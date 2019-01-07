@@ -1,0 +1,4 @@
+baseURL = "http://example.org/"
+languageCode = "en-us"
+title = "Sergii Gatezh's blog"
+theme = "tale"
