@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+		<title>
+				Getting started with Jekyll &middot; Sergii Gatezh&#39;s blog
+		</title>
+	
+		
+  		<link rel="stylesheet" href="/css/style.css">
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Libre+Baskerville:400,400i,700">
+	
+		
+		<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+		<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+	
+		
+		<link href="" rel="alternate" type="application/rss+xml" title="Sergii Gatezh&#39;s blog" />
+	</head>
+	
+    <body>
+        		<nav class="nav">
+			<div class="nav-container">
+				<a href="/">
+					<h2 class="nav-title">Sergii Gatezh&#39;s blog</h2>
+				</a>
+				<ul>
+    <li><a href="/about">About</a></li>
+    <li><a href="/">Posts</a></li>
+</ul>
+			</div>
+		</nav>
+
+        
+
+<main>
+	<div class="post">
+		<div class="post-info">
+    <span>Written by</span>
+        
+        <br>
+        <span>on&nbsp;</span><time datetime="2017-04-04 19:54:55 -0400 EDT">April 4, 2017</time>
+</div>
+		<h1 class="post-title">Getting started with Jekyll</h1>
+<div class="post-line"></div>
+
+		
+
+		
+
+<h2 id="install-ruby">Install ruby</h2>
+
+<blockquote>
+<p>Here I assume that you have <code>brew</code> already installed on your Mac machine. <a href="https://brew.sh">Install it</a> first if you don&rsquo;t have it.</p>
+</blockquote>
+
+<p><a href="https://github.com/rbenv/rbenv/issues/938#issuecomment-285342541">I had to do the following</a></p>
+
+<ol>
+<li><code>sudo xcode-select --install</code></li>
+<li>Install rbenv with <code>brew install rbenv</code></li>
+<li>Add <code>eval &quot;$(rbenv init -)&quot;</code> to the end of <code>~/.zshrc</code> or <code>~/.bash_profile</code></li>
+<li>Install a ruby version <code>rbenv install 2.4.1</code></li>
+<li>Select a ruby version by rbenv <code>rbenv global 2.4.1</code></li>
+<li>Open a new terminal window</li>
+<li>Verify that the right gem folder is being used with <code>gem env home</code> (should report something in your user folder not system wide)</li>
+</ol>
+
+<blockquote>
+<p>If you are on Windows then just <a href="https://www.ruby-lang.org/en/downloads/">install Ruby 2.1.0 or higher</a><sup class="footnote-ref" id="fnref:1"><a href="#fn:1">1</a></sup></p>
+</blockquote>
+
+<h3 id="install-jekyll">Install Jekyll</h3>
+
+<p>Moving on according to <a href="https://jekyllrb.com/docs/quickstart/">Jekyll documentation</a>.</p>
+
+<p>Install Jekyll and Bundler gems through RubyGems. This may take some time.</p>
+
+<pre><code class="language-bash">gem install jekyll bundler
+</code></pre>
+
+<p>After everything is installed go to the foler where you want to locate source files for you website and generate a new one</p>
+
+<pre><code>jekyll new myblog
+</code></pre>
+
+<p>Change into your new directory</p>
+
+<pre><code>cd myblog
+</code></pre>
+
+<p>Build the site on the preview server</p>
+
+<pre><code>bundle exec jekyll serve
+</code></pre>
+
+<p>Now open <code>http://localhost:4000</code> to see results.</p>
+
+<blockquote>
+<p>For some reason after jekyll installation I wasn&rsquo;t able to generate new project with <code>jekyll new projectName</code>. Bundler was giving me an error in terminal saying: &ldquo;An error occurred while installing jekyll-feed (0.9.1), and Bundler cannot continue. Make sure that <code>gem install jekyll-feed -v '0.9.1'</code> succeeds before bundling&rdquo;.
+So I did run that command <code>gem install jekyll-feed -v '0.9.1'</code> and problem was fixed.</p>
+</blockquote>
+
+<h3 id="upload-your-blog-to-github">Upload your blog to GitHub</h3>
+
+<p>Beeing in your blog&rsquo;s folder instantiate a new repository and commit everything what is in it.</p>
+
+<pre><code class="language-bash">git init
+git add .
+git commit -m &quot;Initial commit&quot;
+</code></pre>
+
+<p>Head over to GitHub and create a new repository named <code>username.github.io</code>, where username is your username on GitHub.</p>
+
+<p>You will see instructions how to push your existing repository to GitHub. Just copy and paste into your terminal. In my case it was</p>
+
+<pre><code>git remote add origin https://github.com/gatezh/gatezh.github.io.git
+git push -u origin master
+</code></pre>
+
+<p>Now when you go to http://<em>username</em>.github.io you will see your newly created blog.</p>
+
+<h3 id="add-custom-domain">Add custom domain</h3>
+
+<p>If you have your own domain name go to your newly created repository settings and find there GitHub Pages section. There is a <code>Custom domain</code> field.</p>
+
+<p>After that you need to <a href="https://help.github.com/articles/setting-up-an-apex-domain/#configuring-a-records-with-your-dns-provider">configure A records with your DNS provider</a>.
+It may take couple of hours for your blog to be accessible using your own domain name.</p>
+
+<p>Create <code>CNAME</code> file (without any extension) into your blog&rsquo;s repository. It should contain only one line – your blog&rsquo;s domain name with your domain address. For example gatezh.com.</p>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:1"><a href="https://help.github.com/articles/setting-up-your-github-pages-site-locally-with-jekyll/#requirements">Setting up your GitHub Pages site locally with Jekyll</a>
+ <a class="footnote-return" href="#fnref:1"><sup>[return]</sup></a></li>
+</ol>
+</div>
+
+
+		
+	</div>
+
+	<div class="pagination">
+		<a href="/posts/2017/2017-04-04-host-your-personal-blog-on-github-pages/" class="left arrow">&#8592;</a>
+		<a href="/posts/2017/2017-07-16-using-anki-to-study-programming/" class="right arrow">&#8594;</a>
+
+		<a href="#" class="top">Top</a>
+	</div>
+</main>
+
+
+        		<footer>
+			<span>
+			&copy; <time datetime="2019-04-27 20:19:49.006027 -0400 EDT m=&#43;0.204352542">2019</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			</span>
+		</footer>
+
+    </body>
+</html>
