@@ -1,4 +1,4 @@
-baseURL = "http://blog.gatezh.com/"
+baseURL = "http://beta.gatezh.com/"
 languageCode = "en-us"
 title = "Sergii Gatezh's blog"
 theme = "tale"
