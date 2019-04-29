@@ -2,31 +2,31 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Sergii Gatezh&#39;s blog</title>
-    <link>http://blog.gatezh.com/</link>
+    <link>http://beta.gatezh.com/</link>
     <description>Recent content on Sergii Gatezh&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 16 Jul 2017 20:04:19 -0400</lastBuildDate>
     
-	<atom:link href="http://blog.gatezh.com/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="http://beta.gatezh.com/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Using Anki to study programming</title>
-      <link>http://blog.gatezh.com/posts/2017/2017-07-16-using-anki-to-study-programming/</link>
+      <link>http://beta.gatezh.com/posts/2017/2017-07-16-using-anki-to-study-programming/</link>
       <pubDate>Sun, 16 Jul 2017 20:04:19 -0400</pubDate>
       
-      <guid>http://blog.gatezh.com/posts/2017/2017-07-16-using-anki-to-study-programming/</guid>
+      <guid>http://beta.gatezh.com/posts/2017/2017-07-16-using-anki-to-study-programming/</guid>
       <description>Why it works Anki is based on spaced repetition learning technique.
 I will try to explain it shortly. When you learn something new you have to repeat it to remember it. If you repeat that information too often - you just waste your time. But if you don&amp;rsquo;t repeat it at the right time - you forget it. So the problem here is to figure out the right interval for repetitions.</description>
     </item>
     
     <item>
       <title>Getting started with Jekyll</title>
-      <link>http://blog.gatezh.com/posts/2017/2017-04-04-getting-started-with-jekyll/</link>
+      <link>http://beta.gatezh.com/posts/2017/2017-04-04-getting-started-with-jekyll/</link>
       <pubDate>Tue, 04 Apr 2017 19:54:55 -0400</pubDate>
       
-      <guid>http://blog.gatezh.com/posts/2017/2017-04-04-getting-started-with-jekyll/</guid>
+      <guid>http://beta.gatezh.com/posts/2017/2017-04-04-getting-started-with-jekyll/</guid>
       <description>Install ruby  Here I assume that you have brew already installed on your Mac machine. Install it first if you don&amp;rsquo;t have it.
  I had to do the following
  sudo xcode-select --install Install rbenv with brew install rbenv Add eval &amp;quot;$(rbenv init -)&amp;quot; to the end of ~/.zshrc or ~/.bash_profile Install a ruby version rbenv install 2.4.1 Select a ruby version by rbenv rbenv global 2.4.1 Open a new terminal window Verify that the right gem folder is being used with gem env home (should report something in your user folder not system wide)   If you are on Windows then just install Ruby 2.</description>
@@ -34,19 +34,19 @@ I will try to explain it shortly. When you learn something new you have to repea
     
     <item>
       <title>Host your personal blog on GitHub Pages</title>
-      <link>http://blog.gatezh.com/posts/2017/2017-04-04-host-your-personal-blog-on-github-pages/</link>
+      <link>http://beta.gatezh.com/posts/2017/2017-04-04-host-your-personal-blog-on-github-pages/</link>
       <pubDate>Tue, 04 Apr 2017 19:53:19 -0400</pubDate>
       
-      <guid>http://blog.gatezh.com/posts/2017/2017-04-04-host-your-personal-blog-on-github-pages/</guid>
+      <guid>http://beta.gatezh.com/posts/2017/2017-04-04-host-your-personal-blog-on-github-pages/</guid>
       <description>The initial idea was to write a small post about how to create a Jekyll blog hosted on GitHub. However, when I started to dig dipper and had realized how many things I&amp;rsquo;ll have to describe to make it a manual I&amp;rsquo;ve decided to make this index page which will collect all the posts about this topic. I will try to keep it up to date and make changes whenever I figure out more.</description>
     </item>
     
     <item>
       <title>How to host Angular application on GitHub Pages</title>
-      <link>http://blog.gatezh.com/posts/2017/2017-03-31-how-to-host-angular-application-on-github-pages/</link>
+      <link>http://beta.gatezh.com/posts/2017/2017-03-31-how-to-host-angular-application-on-github-pages/</link>
       <pubDate>Fri, 31 Mar 2017 15:26:55 -0400</pubDate>
       
-      <guid>http://blog.gatezh.com/posts/2017/2017-03-31-how-to-host-angular-application-on-github-pages/</guid>
+      <guid>http://beta.gatezh.com/posts/2017/2017-03-31-how-to-host-angular-application-on-github-pages/</guid>
       <description>[Last update 04-04-2017]
 To install the command run the following:
 npm i -g angular-cli-ghpages   Note: you have to create the dist folder in before (e.g. ng build --prod)

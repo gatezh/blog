@@ -2,21 +2,21 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Categories on Sergii Gatezh&#39;s blog</title>
-    <link>http://blog.gatezh.com/categories/</link>
+    <link>http://beta.gatezh.com/categories/</link>
     <description>Recent content in Categories on Sergii Gatezh&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Tue, 04 Apr 2017 19:54:55 -0400</lastBuildDate>
     
-	<atom:link href="http://blog.gatezh.com/categories/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="http://beta.gatezh.com/categories/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>angular github</title>
-      <link>http://blog.gatezh.com/categories/angular-github/</link>
+      <link>http://beta.gatezh.com/categories/angular-github/</link>
       <pubDate>Tue, 04 Apr 2017 19:54:55 -0400</pubDate>
       
-      <guid>http://blog.gatezh.com/categories/angular-github/</guid>
+      <guid>http://beta.gatezh.com/categories/angular-github/</guid>
       <description></description>
     </item>
     
