@@ -1,4 +1,10 @@
 baseURL = "http://beta.gatezh.com/"
 languageCode = "en-us"
-title = "Sergii Gatezh's blog"
+title = "gatezh.com"
 theme = "tale"
+
+[author]
+  name = "Sergii Gatezh"
+
+[params]
+  css = ["style.css"]
