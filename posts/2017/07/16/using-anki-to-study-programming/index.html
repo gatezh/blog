@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>
+      Using Anki to study programming &middot; gatezh.com
+  </title>
+
+  
+    <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Libre+Baskerville:400,400i,700">
+  <link rel="stylesheet" href="/style.css">
+  
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/brands.css" integrity="sha384-n9+6/aSqa9lBidZMRCQHTHKJscPq6NW4pCQBiMmHdUCvPN8ZOg2zJJTkC7WIezWv" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/fontawesome.css" integrity="sha384-vd1e11sR28tEK9YANUtpIOdjGW14pS87bUBuOIoBILVWLFnS+MCX9T6MMf0VdPGq" crossorigin="anonymous">
+
+  
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="gatezh.com" />
+</head>
+
+  <body>
+    		<nav class="nav">
+			<div class="nav-container">
+				<a href="/">
+					<h2 class="nav-title">gatezh.com</h2>
+				</a>
+				<ul>
+    <li><a href="/posts">Posts</a></li>
+    <li><a href="/about">About</a></li>
+</ul>
+			</div>
+		</nav>
+
+    
+
+<main>
+	<div class="post">
+		<div class="post-info">
+    <span>Written by</span>
+        
+        <br>
+        <span>on&nbsp;</span><time datetime="2017-07-16 20:04:19 -0400 EDT">July 16, 2017</time>
+</div>
+		<h1 class="post-title">Using Anki to study programming</h1>
+<div class="post-line"></div>
+
+		
+
+		
+
+<h2 id="why-it-works">Why it works</h2>
+
+<p>Anki is based on <a href="https://en.wikipedia.org/wiki/Spaced_repetition">spaced repetition</a> learning technique.</p>
+
+<p>I will try to explain it shortly. When you learn something new you have to repeat it to remember it. If you repeat that information too often - you just waste your time. But if you don&rsquo;t repeat it at the right time - you forget it. So the problem here is to figure out <em>the right interval</em> for repetitions. Anki is the tool to help with that task.</p>
+
+<p>Before starting to use it there are some rules:</p>
+
+<h4 id="i-create-your-own-cards">I. create <strong>your own</strong> cards</h4>
+
+<p>There are two reasons:</p>
+
+<p>1) Flash-cards are made to remember information, but not study. Your cards are bread crumbs that allow you to get back to that room in your memory that has information you need.</p>
+
+<p>Creating cards in Anki takes some time, but benefits from it are huge. Consider it as an investment: you spend some time now but will have a great return in the future.</p>
+
+<p>2) You need to study things that you really need and going to use. It may be cool to know all the <em>npm</em> commands, but are you going to use them all? When you don&rsquo;t use them you don&rsquo;t even know when developers changed something and it doesn&rsquo;t work anymore. So it is better to make your own collection of things you want to memorize that you actually going to use.</p>
+
+<h4 id="ii-open-anki-every-day-for-review">II. open Anki <strong>every day</strong> for review</h4>
+
+<p>The key element of <em>spaced repetition</em> is&hellip; well, repetition. You should check your Anki decks every day to make sure that you go through all those cards that need to be repeated. I would recommend to put a reminder or create a task in a task manager and set it for every day repeat. This way you won&rsquo;t forget about it.</p>
+
+<h3 id="setting-up-anki">Setting up Anki</h3>
+
+<p>After you have downloaded and installed Anki it needs some tune up to fit our needs.</p>
+
+<ol>
+<li>Create a new deck</li>
+<li>Click <code>Add</code> button to add a card</li>
+<li>In the window that just appeared choose Type: Cloze</li>
+<li>Click on <code>Cards...</code> button</li>
+
+<li><p>Replace <code>Front Template</code> section with this:</p>
+
+<p>{% raw %}</p>
+
+<pre><code>{{cloze:Text}}&lt;br&gt;
+{{type:cloze:Text}}﻿
+</code></pre>
+
+<p>{% endraw %}</p></li>
+
+<li><p>Replace <code>Styiling</code> section with:</p>
+
+<pre><code>.card {
+ font-family: arial;
+ font-size: 20px;
+ text-align: left;
+ color: black;
+ background-color: white;
+}
+    
+.cloze {
+ font-family: monospace;
+ font-weight: bold;
+ color: blue;
+}
+</code></pre></li>
+
+<li><p>Replace <code>Back Template</code> with:</p>
+
+<p>{% raw %}</p>
+
+<pre><code>{{cloze:Text}}&lt;br&gt;
+{{type:cloze:Text}}﻿&lt;br&gt;
+{{Extra}}
+</code></pre>
+
+<p>{% endraw %}</p></li>
+</ol>
+
+<p>Now you are ready.</p>
+
+<h3 id="how-to-use-it">How to use it</h3>
+
+<p>Let&rsquo;s say you are reading about JavaScript ES6 template literals and want to memorize the syntax, so you can use it if needed.</p>
+
+<ol>
+<li>Create a new card of type <em>Cloze</em></li>
+
+<li><p>Add code snippet into <em>Text</em> area of your card to look like this:</p>
+
+<pre><code>ES6 template literals
+var customerName = &quot;John Smith&quot;;
+console.log(`Hello ${customerName}`);
+</code></pre></li>
+
+<li><p>Select <em>`Hello ${customerName}`</em> part and press <em>Cloze deletation</em> button (looks like this &ndash;&gt; <code>[...]</code>). At the end your code will look like this:</p>
+
+<p>{% raw %}</p>
+
+<pre><code>ES6 template literals
+var customerName = &quot;John Smith&quot;;
+{{c1::console.log(`Hello ${customerName}`);}}
+</code></pre>
+
+<p>{% endraw %}</p></li>
+
+<li><p>You can add some additional information to <em>Extra</em> section. Reference link for example.</p></li>
+
+<li><p>Press <code>Add</code> button and your new card will be saved.</p></li>
+</ol>
+
+<p>When you open your deck and press <code>Study Now</code> button you will see your card with that part you just selected hidden. Below you will see an input field to type in the hidden part.</p>
+
+<p>Now we have something like a code simulator. By constantly practicing new things this way you will memorize new syntax much faster.</p>
+
+
+		
+	</div>
+
+	<div class="pagination">
+		<a href="/posts/2017/04/04/getting-started-with-jekyll/" class="left arrow">&#8592;</a>
+
+		<a href="#" class="top">Top</a>
+	</div>
+</main>
+
+
+    
+  </body>
+</html>
