@@ -1,8 +1,10 @@
 main {
-  height: 70vh;
+  display: flex;
+  height: 90vh;
 }
 
 .hero {
+  margin: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
