@@ -7,6 +7,9 @@
 /out-tsc
 /public
 
+# hugo generated styles
+/resources/_gen
+
 # dependencies
 /node_modules
 
