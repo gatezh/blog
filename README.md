@@ -1,5 +1,7 @@
 # Sergii Gatezh's personal blog
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/2d11f6b1-6693-4f77-aaa3-bbb1d1b0a36d/deploy-status)](https://app.netlify.com/sites/modest-agnesi-55a28f/deploys)
+
 Built with [Hugo](https://gohugo.io/).
 
 
