@@ -1,7 +1,8 @@
-baseURL = "http://beta.gatezh.com/"
+baseURL = "http://gatezh.com/"
 languageCode = "en-us"
 title = "gatezh.com"
 theme = "tale"
+googleAnalytics = "UA-30716629-2"
 
 [author]
   name = "Sergii Gatezh"

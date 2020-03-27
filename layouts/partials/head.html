@@ -37,4 +37,7 @@
 
   <!-- RSS -->
   <link href="{{ with .OutputFormats.Get "RSS" }}{{ .RelPermalink }}{{ end }}" rel="alternate" type="application/rss+xml" title="{{ .Site.Title }}" />
+
+  <!-- Google Analytics -->
+  {{ template "_internal/google_analytics_async.html" . }}
 </head>
