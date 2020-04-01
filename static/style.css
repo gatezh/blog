@@ -13,16 +13,20 @@ main {
 }
 
 .hero .icons {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
   font-size: 2rem;
 }
 
 /* icon styles */
 #github {
+  margin: 0 0.5rem;
   color: #24292e;
 }
 
 #linkedin {
+  margin: 0 0.5rem;
   color: #0077b5;
 }
 
