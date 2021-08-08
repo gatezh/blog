@@ -4,7 +4,6 @@
 
 Built with [Hugo](https://gohugo.io/).
 
-
 ## Development
 
 ### Clone
@@ -23,10 +22,12 @@ git submodule update --init
 
 ### Start
 
->[Install Hugo](https://gohugo.io/getting-started/installing/) if you still don't have it.
+> [Install Hugo](https://gohugo.io/getting-started/installing/) if you still don't have it.
 
 To start Hugo development server with drafts enabled:
 
 ```sh
 hugo server -D
 ```
+
+### Test updates
