@@ -1,0 +1,16 @@
+name: pull
+on: pull_request
+jobs:
+  set-status:
+    runs-on: ubuntu-20.04
+    steps:
+      # https://github.com/marketplace/actions/github-status-action
+      - name: set pending status
+        uses: Sibz/github-status-action@v1
+        with:
+          authToken: ${{secrets.GITHUB_TOKEN}}
+          context: 'E2E tests'
+          description: 'Tests pending deploy'
+          # success, error, failure, or pending
+          state: 'pending'
+          sha: ${{github.event.pull_request.head.sha}}
