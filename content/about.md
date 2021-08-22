@@ -14,6 +14,6 @@ I am a Front-end Engineer working at [**Canvass AI**](https://www.canvass.io).
 
 ## Wishlist
 
-Here is [the list of items](https://www.amazon.ca/hz/wishlist/ls/1CWFE1XVMNS2Y?ref_=wl_fv_le) sold on Amazon.ca that I'm interested in getting at some point.
+Here is [the list of items](https://www.amazon.ca/hz/wishlist/ls/2J5I4HGMFTZ3T?ref_=wl_share) sold on Amazon.ca that I'm interested in getting at some point.
 
 You can help me with that 😉
