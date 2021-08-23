@@ -9,4 +9,5 @@ disqusShortname = "gatezh-com"
   name = "Sergii Gatezh"
 
 [params]
+  description = "Believe. Create."
   css = ["style.css"]
