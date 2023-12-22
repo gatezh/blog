@@ -6,7 +6,7 @@ layout: about
 
 Hello!
 
-My name is **Sergii Gatezh**.
+My name is **Serge Gatezh**.
 
 I am a Front-end Engineer working at [**Canvass AI**](https://www.canvass.io).
 
