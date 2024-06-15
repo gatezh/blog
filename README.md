@@ -1,6 +1,7 @@
 # Serge Gatezh's personal blog
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/2d11f6b1-6693-4f77-aaa3-bbb1d1b0a36d/deploy-status)](https://app.netlify.com/sites/gatezh/deploys)
+[![Cloudflare Pages Build Status](https://img.shields.io/github/deployments/gatezh/blog/Production?label=Cloudflare%20Pages&logo=cloudflare&logoColor=white&style=for-the-badge)](https://gatezh-com.pages.dev)
+
 
 Built with [Hugo](https://gohugo.io/).
 
