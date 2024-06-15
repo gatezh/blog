@@ -12,7 +12,7 @@ draft: false
 
 Recently, I was talking to people and at some point, I mentioned having my website. What stumbled me was that first, some people are still using `www` when typing the name of the website. And second, it turns out my website didn't work with `www` in front of it. I was pretty sure it was set up a long time ago, but apparently, when I was moving my DNS records to Cloudflare, something went wrong.
 
-![Connection timed out](/images/post-fixing-www/1 Connection timed out.png)
+![Connection timed out](/images/post-fixing-www/1-Connection-timed-out.png)
 
 When I started to look into how to fix it, I didn't find anything useful. So I decided that the Internet deserves yet another tutorial on how to fix the `www` DNS record for your website using Cloudflare.
 
