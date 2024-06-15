@@ -12,7 +12,7 @@ draft: false
 
 Recently, I was talking to people and at some point, I mentioned having my website. What stumbled me was that first, some people are still using `www` when typing the name of the website. And second, it turns out my website didn't work with `www` in front of it. I was pretty sure it was set up a long time ago, but apparently, when I was moving my DNS records to Cloudflare, something went wrong.
 
-![Connection timed out](/images/post-fixing-www/1\ Connection\ timed\ out.png)
+![Connection timed out](/images/post-fixing-www/1 Connection timed out.png)
 
 When I started to look into how to fix it, I didn't find anything useful. So I decided that the Internet deserves yet another tutorial on how to fix the `www` DNS record for your website using Cloudflare.
 
@@ -32,7 +32,7 @@ Then select **Custom domains** at the top. Here you press the **Set up a custom 
 
 If you already had a CNAME record in your DNS settings pointing to your Cloudflare pages.dev website, it will just show you that record, notifying you that it will replace it with... exactly the same record.
 
-![Adding www custom subdomain](/images/post-fixing-www/2\ Adding\ www\ custom\ subdomain.png)
+![Adding www custom subdomain](/images/post-fixing-www/2%20Adding%20www%20custom%20subdomain.png)
 
 The only difference is that it is going to work now. Hit the **Activate domain** button and it will work pretty much immediately.
 
