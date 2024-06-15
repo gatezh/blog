@@ -24,7 +24,7 @@ Let's start with the first scenario.
 
 ## "Activate" `www` Subdomain
 
-> ⚠️ Disclaimer: No, it's not enough to just add a CNAME record for www to redirect to your Cloudflare Pages domain at YOUR-WEBSITE-NAME.pages.dev
+> ⚠️ **Disclaimer**: No, it's not enough to just add a CNAME record for `www` to redirect to your Cloudflare Pages domain at YOUR-WEBSITE-NAME.pages.dev
 
 If you only want your website to work, then open your Cloudflare dashboard > select **Workers & Pages** on the left panel > select your website.
 
@@ -54,7 +54,7 @@ Just follow along and deploy your changes. Works as expected!
 
 ![Successful redirect](/images/post-fixing-www/6-Successful-redirect.png)
 
-> Note that if you made the `www` version of your website work by following the first part of this tutorial, it won't be opening anymore since, well... it now redirects to your non-www version.
+> **Note** that if you made the `www` version of your website work by following the first part of this tutorial, it won't be opening anymore since, well... it now redirects to your non-www version.
 
 ## Conclusion
 
