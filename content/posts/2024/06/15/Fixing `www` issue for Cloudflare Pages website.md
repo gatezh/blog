@@ -10,7 +10,7 @@ draft: false
 2. Your website is not accessible when there is `www` in front of your apex domain.
 3. You kind of know what you're doing.
 
-Recently, I was talking to people and at some point, I mentioned having my website. What stumbled me was that first, some people are still using `www` when typing the name of the website. And second, it turns out my website didn't work with `www` in front of it. I was pretty sure it was set up a long time ago, but apparently, when I was moving my DNS records to Cloudflare, something went wrong.
+Recently, I was talking to people and at some point, I mentioned having my website. What stumbled me was that first, some people are still using `www` when typing the name of the website. And second, it turns out my website didn't work with `www` in front of it. I was pretty sure it was set up a long time ago, but apparently, when I was moving my website and DNS records to Cloudflare, something went wrong.
 
 ![Connection timed out](/images/post-fixing-www/1-Connection-timed-out.png)
 
