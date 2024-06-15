@@ -2,7 +2,12 @@
 
 tasks:
   - name: Dev Server
-    before: brew install hugo
+    # before: brew install hugo
+    before: |
+      # Install Hugo v0.118.2
+      wget https://github.com/gohugoio/hugo/releases/download/v0.118.2/hugo_0.118.2_Linux-64bit.tar.gz
+      tar -xzf hugo_0.118.2_Linux-64bit.tar.gz
+      sudo mv hugo /usr/local/bin/
     # From here: https://github.com/gitpod-io/template-hugo
     # Using 'http://localhost:1313' instead of '$(gp url 1313)' in order to see preview in local VS Code
     command: hugo server -D -F --baseURL http://localhost:1313 --liveReloadPort=443 --appendPort=false --bind=0.0.0.0
