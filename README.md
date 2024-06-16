@@ -1,8 +1,5 @@
 # Serge Gatezh's personal blog
 
-[![Cloudflare Pages Build Status](https://img.shields.io/github/deployments/gatezh/blog/Production?label=Cloudflare%20Pages&logo=cloudflare&logoColor=white&style=for-the-badge)](https://gatezh-com.pages.dev)
-
-
 Built with [Hugo](https://gohugo.io/).
 
 ## Development
