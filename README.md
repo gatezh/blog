@@ -3,6 +3,9 @@
 [![Cloudflare Pages Build Status](https://img.shields.io/github/deployments/gatezh/blog/Production?label=Cloudflare%20Pages&logo=cloudflare&logoColor=white&style=for-the-badge)](https://gatezh-com.pages.dev)
 
 
+![Cloudflare Pages Build Status](https://img.shields.io/endpoint?url=https://api.cloudflare.com/client/v4/pages/projects/23fa6ebbdb145dbf47f95d219cfcb95d/deployments)
+
+
 Built with [Hugo](https://gohugo.io/).
 
 ## Development
