@@ -3,7 +3,7 @@ languageCode = "en-us"
 title = "gatezh.com"
 theme = "tale"
 googleAnalytics = "UA-30716629-2"
-disqusShortname = "gatezh-com"
+# disqusShortname = "gatezh-com"
 
 [author]
   name = "Serge Gatezh"
