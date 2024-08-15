@@ -252,7 +252,6 @@ services:
     hostname: "remark42"
     restart: always
     environment:
-      - MHOST
       - SECRET=your-secret-key
       - USER=app
       - REMARK_URL=https://comments.gatezh.com
