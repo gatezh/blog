@@ -39,7 +39,7 @@ Since you are reading this tutorial, you might be interested in getting a cheap 
 
 Even though there is this $3.50/mo IPv4 VM in their pricing, you may experience some difficulty figuring out how to get the VM for that price. To create a VM, select **Products** > **Compute** > **Deploy Server**. In the **Choose Type** section, select **Cloud Compute - Shared CPU**.
 
-![Choose Type](https://imagedelivery.net/23fa6ebbdb145dbf47f95d219cfcb95d/https://gatezh-com.pages.dev/images/post-add-remark42-comments-to-hugo-website/1-Choose-Type.png)
+![Choose Type](https://gatezh-com.pages.dev/cdn-cgi/image/format=auto/https://gatezh-com.pages.dev/images/post-add-remark42-comments-to-hugo-website/1-Choose-Type.png)
 
 Keep **New York** as your location in the Choose Location option. As per my communication with support:
 
