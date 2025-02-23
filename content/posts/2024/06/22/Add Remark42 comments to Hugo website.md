@@ -35,12 +35,11 @@ That's why I would suggest you stick to their $3.50 per month VM offer, which is
 
 Since you are reading this tutorial, you might be interested in getting a cheap VM too! If so, you can use [this limited time referral link](https://www.vultr.com/?ref=9622544-8H) to get $100 to test Vultr platform. Or when the above promo expires, use [this referral link](https://www.vultr.com/?ref=9622543) as a "thank you" for this tutorial. Thank you in advance.
 
-
 ## Pick the Right VM
 
 Even though there is this $3.50/mo IPv4 VM in their pricing, you may experience some difficulty figuring out how to get the VM for that price. To create a VM, select **Products** > **Compute** > **Deploy Server**. In the **Choose Type** section, select **Cloud Compute - Shared CPU**.
 
-![Choose Type](/images/post-add-remark42-comments-to-hugo-website/1-Choose-Type.png)
+![Choose Type](https://imagedelivery.net/99021463718acb805641a42d442adab2/https://gatezh-com.pages.dev/images/post-add-remark42-comments-to-hugo-website/1-Choose-Type.png)
 
 Keep **New York** as your location in the Choose Location option. As per my communication with support:
 
@@ -80,13 +79,12 @@ ssh root@your-server-ip
 
 If you've provided an SSH key, you won't even need to use a password!
 
-
 ## Secure Your VM
 
 I won't go too deep into this, but you should make at least some effort to secure your VM. It is for your own good, as well as for the people who spent time leaving comments on your blog - you don't want to lose those comments.
 
-
 ### Adding Firewall Rules
+
 Vultr has a firewall called `Vultr Firewall`. They have pretty good [documentation](https://docs.vultr.com/vultr-firewall) on it. Please, spare a few minutes to create a few rules to limit access to your VM for ports that you will actually use.
 
 You can create a new Firewall Group in **Products** > **Network** > **Firewall**. Here's how it may look:
@@ -97,13 +95,13 @@ Don't forget to link those rules to your VM in the **Linked Instances** tab (or 
 
 ![Link firewall](/images/post-add-remark42-comments-to-hugo-website/8-Link-firewall.png)
 
-
 ### Add fail2ban
+
 Here is a good [video](https://www.youtube.com/watch?v=kgdoVeyoO2E) on how it can be set up. It takes 5 minutes and is **strongly recommended**.
 
-
 ### Avoid Using `root` User
-As you may already know, it is always advisable to use a non-root account. Apparently, there is already a non-root user created named `linuxuser`. To make SSH authentication work properly, you'll need to copy `authorized_keys` from `/root/.ssh/` to `/home/linuxuser/.ssh`. 
+
+As you may already know, it is always advisable to use a non-root account. Apparently, there is already a non-root user created named `linuxuser`. To make SSH authentication work properly, you'll need to copy `authorized_keys` from `/root/.ssh/` to `/home/linuxuser/.ssh`.
 
 ```
 cp /root/.ssh/authorized_keys /home/linuxuser/.ssh/authorized_keys
@@ -128,8 +126,6 @@ You can now disconnect (CTRL + d) and log in as `linuxuser`:
 ```
 ssh linuxuser@your-server-ip
 ```
-
-
 
 ## Installing Docker
 
@@ -171,8 +167,6 @@ You may need to reboot for the above changes to take effect:
 ```
 sudo reboot
 ```
-
-
 
 ## Install Remark42
 
@@ -263,7 +257,7 @@ services:
       - EMOJI=true
       - AUTH_ANON=false # Forbid anonymous commenting
       # GitHub
-      - AUTH_GITHUB_CID=your-value-here 
+      - AUTH_GITHUB_CID=your-value-here
       - AUTH_GITHUB_CSEC=your-value-here
     ports:
       - "8080"
@@ -285,11 +279,9 @@ Now you are ready to start the Remark42 containers:
 docker compose pull && docker compose up -d
 ```
 
-
-
 ## Adjust your DNS records
 
-Now you need to add an **A** record to your DNS settings, essentially creating a third-level domain name. In my case, I've created a sub-domain *comments* and pointed it to my Vultr VM IP address.
+Now you need to add an **A** record to your DNS settings, essentially creating a third-level domain name. In my case, I've created a sub-domain _comments_ and pointed it to my Vultr VM IP address.
 
 ![DNS A record](/images/post-add-remark42-comments-to-hugo-website/10-DNS-A-record.png)
 
@@ -299,8 +291,6 @@ If you visit your newly created sub-domain name with `/web`, you should see your
 
 Great! We're almost there. The only thing left is to add comments to your blog posts.
 
-
-
 ## Adding comments section to Hugo blog
 
 Interestingly enough, it was pretty hard to find a good (any) article about Remark42 comments integration that actually covers this step. It reminded me of that famous "[how to draw an owl](https://knowyourmeme.com/photos/572078-how-to-draw-an-owl)" meme.
@@ -309,12 +299,11 @@ Anyway, let's jump into business.
 
 You need 3 things to accomplish this integration.
 
-
 ### Create configuration
 
 First, we need to create a configuration for our comments and place it into the `head` section of our blog. I have a separate partial for my blog head, so I had to amend that file with the following config:
 
- `layouts/partials/head.html`
+`layouts/partials/head.html`
 
 ```
 ...
@@ -341,7 +330,6 @@ You can find details about which parameter does what in the [Frontend Configurat
 
 > ⚠️ Even though `site_id` is optional according to the documentation, it didn't work for me without that property for some reason.
 
-
 ### Create `comments` partial
 
 Depending on how you have structured your project, you may need to create this partial in a different place, but for me it is in `layouts/partials/comments.html` and it looks like this:
@@ -354,7 +342,6 @@ Depending on how you have structured your project, you may need to create this p
 
 You can find this code in [the Remark42 documentation](https://remark42.com/docs/configuration/frontend/) under the **Basic configuration** and **Comments** sections.
 
-
 ### Adding to a page
 
 Now the simplest part – you just need to use your newly created `comments` partial. Most likely, you want to use it in `layouts/_default/single.html`. Just paste this code wherever you want your comments to appear (usually it is below your post body and before the footer):
@@ -364,7 +351,6 @@ Now the simplest part – you just need to use your newly created `comments` par
 ```
 
 And that's it! Commit, push, deploy!
-
 
 ## Conclusion
 
