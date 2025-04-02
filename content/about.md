@@ -2,13 +2,14 @@
 title: "About"
 date: 2019-05-08T20:21:27-04:00
 layout: about
+comments: false
 ---
 
 Hello!
 
-My name is **Serge Gatezh**.
+My name is **Serge**.
 
-I am a Front-end Engineer working at [**Canvass AI**](https://www.canvass.io).
+I am a Front-end Engineer.
 
 ---
 
