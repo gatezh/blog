@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "Getting started with Jekyll"
-date:   2017-04-04 19:54:55 -0400
+title: "Getting started with Jekyll"
+date: 2017-04-04 19:54:55 -0400
 permalink: /getting-started-with-jekyll.html
 categories: angular github
-published: true
+draft: false
 ---
 
 ## Install ruby
@@ -55,10 +55,8 @@ bundle exec jekyll serve
 
 Now open `http://localhost:4000` to see results.
 
-
 > For some reason after jekyll installation I wasn't able to generate new project with `jekyll new projectName`. Bundler was giving me an error in terminal saying: "An error occurred while installing jekyll-feed (0.9.1), and Bundler cannot continue. Make sure that `gem install jekyll-feed -v '0.9.1'` succeeds before bundling".
-So I did run that command `gem install jekyll-feed -v '0.9.1'` and problem was fixed.
-
+> So I did run that command `gem install jekyll-feed -v '0.9.1'` and problem was fixed.
 
 ### Upload your blog to GitHub
 
@@ -79,8 +77,7 @@ git remote add origin https://github.com/gatezh/gatezh.github.io.git
 git push -u origin master
 ```
 
-Now when you go to http://*username*.github.io you will see your newly created blog.
-
+Now when you go to http://_username_.github.io you will see your newly created blog.
 
 ### Add custom domain
 
@@ -90,4 +87,3 @@ After that you need to [configure A records with your DNS provider](https://help
 It may take couple of hours for your blog to be accessible using your own domain name.
 
 Create `CNAME` file (without any extension) into your blog's repository. It should contain only one line – your blog's domain name with your domain address. For example gatezh.com.
-
