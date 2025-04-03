@@ -1,6 +1,8 @@
 ---
 title: "Fixing `www` issue for Cloudflare Pages website"
 date: 2024-06-15T16:35:02-06:00
+aliases:
+  - /posts/2024/06/15/posts/fixing-www-issue-for-cloudflare-pages-website
 draft: false
 ---
 
@@ -44,7 +46,7 @@ In this case, I want to redirect users to `gatezh.com` when they try to access `
 
 There are many posts out there about how to make it happen with Cloudflare, but it seems like all of the posts out there are outdated. They suggest using **Page Rules**, but if you locate it in your website's settings panel to the left, there will be a nice red **Legacy** label next to it.
 
-![Page Rules (legacy)](/images/post-fixing-www/4-Page-Rules-(legacy).png)
+![Page Rules (legacy)](</images/post-fixing-www/4-Page-Rules-(legacy).png>)
 
 Not to worry. Cloudflare has very useful documentation describing how to make this change in a new way. There is even an example exactly for the case we need to [Migrate Forwarding URL: Example #1: Redirect `www` to root domain](https://developers.cloudflare.com/rules/reference/page-rules-migration/#migrate-forwarding-url). There is even a _Visual guide_ on how settings should look for your website.
 

@@ -1,6 +1,8 @@
 ---
 title: "Add Remark42 comments to Hugo website"
 date: 2024-06-22T21:00:06-06:00
+aliases:
+  - /posts/2024/06/22/add-remark42-comments-to-hugo-website
 draft: false
 ---
 
