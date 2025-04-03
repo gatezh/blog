@@ -4,6 +4,8 @@ title: "Getting started with Jekyll"
 date: 2017-04-04 19:54:55 -0400
 permalink: /getting-started-with-jekyll.html
 categories: angular github
+aliases:
+  - /posts/2017/04/04/getting-started-with-jekyll
 draft: false
 ---
 
