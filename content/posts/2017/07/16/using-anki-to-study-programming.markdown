@@ -4,6 +4,8 @@ title: "Using Anki to study programming"
 date: 2017-07-16 20:04:19 -0400
 permalink: /using-anki-to-study-programming.html
 categories:
+aliases:
+  - /posts/2017/07/16/using-anki-to-study-programming
 draft: false
 ---
 
