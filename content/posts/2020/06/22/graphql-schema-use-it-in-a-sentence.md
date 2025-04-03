@@ -1,6 +1,8 @@
 ---
 title: "GraphQL schema: use it in a sentence"
 date: 2020-06-22T19:53:28-04:00
+aliases:
+  - /posts/2020/06/22/graphql-schema-use-it-in-a-sentence
 ---
 
 ## TL;DR
@@ -33,11 +35,7 @@ query getCompanyInfo($id: Int!) {
 }
 ```
 
-
-
 There are a few very simple rules to follow to create an easy to read GraphQL schema. Easy reading schema helps you to reduce the number of visits to your documentation. Especially it helps if your GraphQL schema is not accompanied by any documentation.
-
-
 
 ## The issue
 
@@ -62,8 +60,6 @@ The idea is to use GraphQL schema properties in a sentence.
 It is pretty much an extension of ideas of Literate programming by Donald Knuth.
 
 Here are a few rules to make it happen.
-
-
 
 ### Do not include parts of parent name into a property
 
@@ -97,13 +93,11 @@ So it reads
 
 > Company name
 
-
-
 ### Boolean properties
 
 Boolean properties when included in your GraphQL "sentence" should sound like a statement that you agree/disagree with.
 
-From what you see it may not be obvious to you that `companyConditionValue` in the first example is a *boolean* type property. But it is!
+From what you see it may not be obvious to you that `companyConditionValue` in the first example is a _boolean_ type property. But it is!
 
 Let's compare two snippets in a sentence:
 
@@ -134,10 +128,6 @@ Becomes
 vs.
 
 > Company specialWarning triggered
-
-
-
-
 
 ### 2+ words property names
 
@@ -173,10 +163,6 @@ This way it reads like:
 >
 > Company cpecianlWarning reason
 
-
-
-
-
 ### `id`: Leave it alone
 
 Even if you feel very creative, it is better to keep `id` as `id`.
@@ -199,8 +185,6 @@ query getCompanyInfo($id: Int!) {
 }
 ```
 
-
-
 Becomes
 
 > Company companyId
@@ -208,8 +192,6 @@ Becomes
 vs.
 
 > Company id
-
-
 
 ---
 
