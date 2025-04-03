@@ -4,6 +4,8 @@ title: "Host your personal blog on GitHub Pages"
 date: 2017-04-04 19:53:19 -0400
 permalink: /host-your-personal-blog-on-github-pages.html
 categories: angular github
+aliases:
+  - /posts/2017/04/04/host-your-personal-blog-on-github-pages
 draft: false
 ---
 

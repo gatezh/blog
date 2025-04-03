@@ -4,6 +4,8 @@ title: "How to host Angular application on GitHub Pages"
 date: 2017-03-31 15:26:55 -0400
 permalink: /how-to-host-angular-application-on-github-pages.html
 categories: angular github
+aliases:
+  - /posts/2017/03/31/how-to-host-angular-application-on-github-pages
 draft: false
 ---
 
