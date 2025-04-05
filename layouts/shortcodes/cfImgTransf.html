@@ -1,8 +1,0 @@
-{{/* Cloudflare Images Transformations */}}
-{{/* https://developers.cloudflare.com/images/transform-images/transform-via-url/ */}}
-{{/* It is only enabled for the production domain  */}}
-{{/* so it adds suffix only in production environment  */}}
-
-{{- if eq hugo.Environment "production" -}}
-  /cdn-cgi/image/format=auto,width=auto
-{{- end -}}
