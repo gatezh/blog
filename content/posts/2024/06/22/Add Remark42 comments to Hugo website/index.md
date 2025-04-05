@@ -41,21 +41,29 @@ Since you are reading this tutorial, you might be interested in getting a cheap 
 
 Even though there is this $3.50/mo IPv4 VM in their pricing, you may experience some difficulty figuring out how to get the VM for that price. To create a VM, select **Products** > **Compute** > **Deploy Server**. In the **Choose Type** section, select **Cloud Compute - Shared CPU**.
 
-![Choose Type]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/1-Choose-Type.png)
+<!-- 1-Choose-Type.png -->
+
+{{< cfimage "images/1-Choose-Type.png" "Choose Type" >}}
 
 Keep **New York** as your location in the Choose Location option. As per my communication with support:
 
 > We currently offer the $2.50 per month plans exclusively at our NJ and Atlanta locations. Additionally, the plans starting at $3.50 per month are available only in NJ.
 
-![Choose Location]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/2-Choose-Location.png)
+<!-- 2-Choose-Location.png -->
+
+{{< cfimage "images/2-Choose-Location.png" "Choose Location" >}}
 
 When you get to the **Choose Image** section, there is again a caveat. I initially chose Ubuntu, but Ubuntu requires at least 1GB of RAM, so it's not an option for the cheapest VM. I had to go with Debian since that's the other Linux distribution I'm familiar with. Alpine Linux or Fedora CoreOS are better suited for what I was trying to accomplish here, but again, since I wasn't familiar working with those, I decided to go with Debian. I may try to use Alpine Linux next time.
 
-![Choose Image]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/3-Choose-Image.png)
+<!-- 3-Choose-Image.png -->
+
+{{< cfimage "images/3-Choose-Image.png" "Choose Image" >}}
 
 In the **Choose Plan** section, switch to the **Regular Cloud Compute** tab, and you should be able to locate the $3.50/month option second in the list.
 
-![Choose Plan]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/4-Choose-Plan.png)
+<!-- 4-Choose-Plan.png -->
+
+{{< cfimage "images/4-Choose-Plan.png" "Choose Plan" >}}
 
 I haven't picked the $2.50 per month option because, again, my ISP does not support IPv6.
 
@@ -67,11 +75,15 @@ Hit **Deploy Now**, and you should get your VM created.
 
 Server added successfully! Yay!
 
-![Server added successfully]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/5-Server-added-successfully.png)
+<!-- 5-Server-added-successfully.png -->
+
+{{< cfimage "images/5-Server-added-successfully.png" "Server added successfully" >}}
 
 You can now open your terminal and establish an SSH connection by using the credentials available in your Server Details.
 
-![Server details]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/6-Server-Details.png)
+<!-- 6-Server-Details.png -->
+
+{{< cfimage "images/6-Server-Details.png" "Server details" >}}
 
 Just type in your terminal:
 
@@ -91,11 +103,15 @@ Vultr has a firewall called `Vultr Firewall`. They have pretty good [documentati
 
 You can create a new Firewall Group in **Products** > **Network** > **Firewall**. Here's how it may look:
 
-![Firewall rules]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/7-Firewall-rules.png)
+<!-- 7-Firewall-rules.png -->
+
+{{< cfimage "images/7-Firewall-rules.png" "Firewall rules" >}}
 
 Don't forget to link those rules to your VM in the **Linked Instances** tab (or in your VM's settings) to apply them.
 
-![Link firewall]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/8-Link-firewall.png)
+<!-- 8-Link-firewall.png -->
+
+{{< cfimage "images/8-Link-firewall.png" "Link firewall" >}}
 
 ### Add fail2ban
 
@@ -156,7 +172,9 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 
 After installing Docker, you can test if it works with the `sudo docker run hello-world` command. The output should look similar to this:
 
-![Docker hello-world]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/9-Docker-hello-world.png)
+<!-- 9-Docker-hello-world.png -->
+
+{{< cfimage "images/9-Docker-hello-world.png" "Docker hello-world" >}}
 
 Configure Docker to run containers as `linuxuser`:
 
@@ -285,11 +303,15 @@ docker compose pull && docker compose up -d
 
 Now you need to add an **A** record to your DNS settings, essentially creating a third-level domain name. In my case, I've created a sub-domain _comments_ and pointed it to my Vultr VM IP address.
 
-![DNS A record]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/10-DNS-A-record.png)
+<!-- 10-DNS-A-record.png -->
+
+{{< cfimage "images/10-DNS-A-record.png" "DNS A record" >}}
 
 If you visit your newly created sub-domain name with `/web`, you should see your Remark42 comments demo page. In my case, it is `comments.gatezh.com/web`.
 
-![Remark42 demo page]({{< cfImgTransf >}}/images/post-add-remark42-comments-to-hugo-website/11-Comments-demo-page.png)
+<!-- 11-Comments-demo-page.png -->
+
+{{< cfimage "images/11-Comments-demo-page.png" "Comments demo page" >}}
 
 Great! We're almost there. The only thing left is to add comments to your blog posts.
 
