@@ -1,0 +1,20 @@
+{{/* Cloudflare Images Transformations */}}
+{{/* https://developers.cloudflare.com/images/transform-images/transform-via-url/ */}}
+{{/* It is only enabled for the production domain */}}
+{{/* so it adds suffix only in production environment */}}
+
+{{- $img := .Page.Resources.GetMatch (.Get 0) -}}
+{{- $alt := .Get 1 -}}
+
+{{- if $img }}
+  {{- $src := $img.RelPermalink -}}
+  {{- if eq hugo.Environment "production" -}}
+    {{- $src = print "/cdn-cgi/image/format=auto,width=auto" $src -}}
+  {{- end -}}
+  <img
+    src="{{ $src }}"
+    alt="{{ $alt | htmlEscape }}"
+    loading="lazy"
+    style="aspect-ratio: {{ $img.Width }}/{{ $img.Height }}; max-width: 100%; height: auto; background-color: #eee;"
+    >
+{{- end }}
