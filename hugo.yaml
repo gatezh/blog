@@ -3,6 +3,10 @@ languageCode: en-us
 title: Serge Gatezh
 theme: ["PaperMod"]
 
+services:
+  googleAnalytics:
+    id: G-96MLGN850Y
+
 permalinks:
   posts: "/posts/:filename/"
 
