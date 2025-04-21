@@ -3,6 +3,8 @@ title: "Add Remark42 comments to Hugo website"
 date: 2024-06-22T21:00:06-06:00
 aliases:
   - /posts/2024/06/22/add-remark42-comments-to-hugo-website
+description: "A step-by-step guide on replacing Disqus with Remark42 for a privacy-respecting comment system on your Hugo blog."
+summary: "Disqus wasn’t cutting it for me anymore, so I explored privacy-first alternatives and landed on Remark42. This post covers how I set it up from scratch on a cheap Vultr VM, including Docker installation, firewall rules, and GitHub authentication integration—everything you need to enable a lightweight, self-hosted commenting system on your Hugo site."
 draft: false
 ---
 
