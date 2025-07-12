@@ -18,9 +18,10 @@ Having that in mind, I came across this beautiful privacy-focused, lightweight c
 
 [The creator](https://github.com/umputun) (and contributors) of remark42 did a fantastic job packing it into a Docker container, so the only few things you need to do to make it work are to:
 
-Find where to spin those Docker containers (a server)
-Configure it on your server
-Configure it in your blog
+- Find where to spin those Docker containers (a server)
+- Configure it on your server
+- Configure it in your blog
+
 Looks easy, but I had a lot of questions on how exactly to accomplish the above. Googling gave me a lot of articles on the topic, but I found many of them skipping important steps (like how to actually add it to my Hugo website), or including unnecessary steps (like installing nginx and serving your comments through it). Hence, I decided that the internet needs yet another tutorial on how to add remark42 comments to your Hugo website.
 
 First things first - you need a server.
