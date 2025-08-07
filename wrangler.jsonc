@@ -1,0 +1,22 @@
+{
+  "name": "gatezh.com",
+  "compatibility_date": "2025-08-06",
+  "assets": {
+    "directory": "./public",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": false
+  },
+  "build": {
+     "command": "hugo build --gc --minify"
+  },
+  /**
+   * Environment Variables
+   * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+   **/
+  "vars": {
+    "HUGO_VERSION": "0.148.2"
+  },
+  "workers_dev": true,
+  "preview_urls": true
+}
