@@ -1,4 +1,4 @@
-FROM docker.io/hugomods/hugo:base-0.148.2
+FROM docker.io/hugomods/hugo:base-0.118.2
 
 # Update packages
 RUN if [ "alpine" == "alpine" ] ; then apk update ; else apt-get update ; fi
