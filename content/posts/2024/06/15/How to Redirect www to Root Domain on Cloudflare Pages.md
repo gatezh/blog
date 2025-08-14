@@ -1,6 +1,7 @@
 ---
-title: "Fixing `www` issue for Cloudflare Pages website"
+title: "How to Redirect www to Root Domain on Cloudflare Pages"
 date: 2024-06-15T16:35:02-06:00
+lastmod: 2025-08-13T18:26:02-06:00
 aliases:
   - /posts/2024/06/15/posts/fixing-www-issue-for-cloudflare-pages-website
 draft: false
@@ -24,11 +25,11 @@ That's fine, but I prefer to use a shorter non-www version, so I started to look
 
 Let's start with the first scenario.
 
-## "Activate" `www` Subdomain
+## Step 1: "Activate" `www` Subdomain
 
-> ⚠️ **Disclaimer**: No, it's not enough to just add a CNAME record for `www` to redirect to your Cloudflare Pages domain at YOUR-WEBSITE-NAME.pages.dev
+> ⚠️ **Disclaimer**: Unfortunately, it's not enough to just add a CNAME record for `www` to redirect to your Cloudflare Pages domain at YOUR-WEBSITE-NAME.pages.dev
 
-If you only want your website to work, then open your Cloudflare dashboard > select **Workers & Pages** on the left panel > select your website.
+If you want visitors to access your site with www in front of the domain — and keep www visible in the address bar instead of redirecting to the root domain — open your Cloudflare dashboard > select **Workers & Pages** on the left panel > select your website.
 
 Then select **Custom domains** at the top. Here you press the **Set up a custom domain** button and enter your domain with `www` (like `www.gatezh.com`).
 
@@ -40,9 +41,9 @@ The only difference is that it is going to work now. Hit the **Activate domain**
 
 ![Custom domain verification](/images/post-fixing-www/3-Custom-domain-verification.png)
 
-## Redirect to a Root Domain
+## Step 2: Redirect to a Root Domain
 
-In this case, I want to redirect users to `gatezh.com` when they try to access `www.gatezh.com`.
+I want to redirect users to `gatezh.com` when they try to access `www.gatezh.com`.
 
 There are many posts out there about how to make it happen with Cloudflare, but it seems like all of the posts out there are outdated. They suggest using **Page Rules**, but if you locate it in your website's settings panel to the left, there will be a nice red **Legacy** label next to it.
 
@@ -60,4 +61,4 @@ Just follow along and deploy your changes. Works as expected!
 
 ## Conclusion
 
-I hope this short tutorial helped you to fix your `www` issues with your Cloudflare Pages hosted website. Please let me know in the comments if you find it useful. Or if you know why exactly simply adding a CNAME record for the `www` subdomain doesn't work. Thank you in advance.
+I hope this short tutorial helped you set up a `www` redirect for your Cloudflare Pages website. Feel free to share in the comments if you found it useful — or if you happen to know why simply adding a `CNAME` record for the `www` subdomain doesn’t do the trick. Thanks in advance!
