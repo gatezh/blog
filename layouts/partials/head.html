@@ -171,12 +171,37 @@
 
 {{- /* Remark42 comments */}}
 <script>
+    // Determine initial theme for Remark42
+    function getInitialTheme() {
+        {{- if (not site.Params.disableThemeToggle) }}
+        {{- if (eq site.Params.defaultTheme "light") }}
+        return localStorage.getItem("pref-theme") === "dark" ? "dark" : "light";
+        {{- else if (eq site.Params.defaultTheme "dark") }}
+        return localStorage.getItem("pref-theme") === "light" ? "light" : "dark";
+        {{- else }}
+        // Auto theme
+        const savedTheme = localStorage.getItem("pref-theme");
+        if (savedTheme === "dark") return "dark";
+        if (savedTheme === "light") return "light";
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? "dark" : "light";
+        {{- end }}
+        {{- else }}
+        {{- if (eq site.Params.defaultTheme "dark") }}
+        return "dark";
+        {{- else if (eq site.Params.defaultTheme "light") }}
+        return "light";
+        {{- else }}
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? "dark" : "light";
+        {{- end }}
+        {{- end }}
+    }
+
     var remark_config = {
         host: 'https://comments.gatezh.com',
         site_id: 'remark',
         components: ['embed'],
         max_shown_comments: 100,
-        theme: 'light',
+        theme: getInitialTheme(),
         page_title: '{{ .Title }}',
         show_email_subscription: false,
         simple_view: false,
