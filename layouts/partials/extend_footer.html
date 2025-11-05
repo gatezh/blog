@@ -2,22 +2,13 @@
 {{- /* Remark42 theme synchronization */ -}}
 {{- if (not site.Params.disableThemeToggle) }}
 <script>
-    // Sync Remark42 theme with blog theme when toggle is clicked
-    document.addEventListener('DOMContentLoaded', function() {
-        const themeToggle = document.getElementById("theme-toggle");
-        if (themeToggle) {
-            themeToggle.addEventListener("click", () => {
-                // Wait a bit for the theme class to be updated
-                setTimeout(() => {
-                    const newTheme = document.body.className.includes("dark") ? "dark" : "light";
-                    // Update Remark42 theme if it's loaded
-                    if (window.REMARK42 && window.REMARK42.changeTheme) {
-                        window.REMARK42.changeTheme(newTheme);
-                    }
-                }, 100);
-            });
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            window.REMARK42.changeTheme('light');
+        } else {
+            window.REMARK42.changeTheme('dark');
         }
-    });
+    })
 </script>
 {{- end }}
 {{- /* Footer custom content area end */ -}}
