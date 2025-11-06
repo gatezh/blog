@@ -176,7 +176,7 @@
         site_id: 'remark',
         components: ['embed'],
         max_shown_comments: 100,
-        theme: 'light',
+        theme: document.body.className.includes("dark") ? "dark" : "light",
         page_title: '{{ .Title }}',
         show_email_subscription: false,
         simple_view: false,
