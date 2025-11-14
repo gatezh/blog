@@ -25,9 +25,9 @@ worker/
 ├── .prettierrc               # Prettier configuration
 ├── package.json              # Dependencies and scripts
 ├── tsconfig.json             # TypeScript configuration
-├── vitest.config.mts         # Vitest test configuration
+├── vitest.config.ts          # Vitest test configuration
 ├── worker-configuration.d.ts # Worker environment types
-├── wrangler.yaml             # Wrangler configuration
+├── wrangler.jsonc            # Wrangler configuration
 └── README.md                 # This file
 ```
 
@@ -89,6 +89,8 @@ ALLOWED_ORIGINS=https://gatezh.com,http://localhost:1313
 
 ```bash
 bun run dev
+# or
+bun run start
 ```
 
 The worker will be available at `http://localhost:8787`.
@@ -96,30 +98,17 @@ The worker will be available at `http://localhost:8787`.
 ### Run Tests
 
 ```bash
-# Run tests once
 bun run test
-
-# Run tests in watch mode
-bun run test:watch
-
-# Run tests with coverage
-bun run test:coverage
 ```
 
-### Type Checking
+Tests run with Vitest in watch mode by default.
+
+### Generate Types
+
+Generate TypeScript types from your Wrangler configuration:
 
 ```bash
-bun run type-check
-```
-
-### Format Code
-
-```bash
-# Format all files
-bun run format
-
-# Check formatting without making changes
-bun run format:check
+bun run cf-typegen
 ```
 
 ## Deployment
@@ -218,14 +207,10 @@ Returns appropriate CORS headers for cross-origin requests.
 | Script | Description |
 |--------|-------------|
 | `bun run dev` | Start local development server |
+| `bun run start` | Alias for `dev` |
 | `bun run deploy` | Deploy to Cloudflare |
-| `bun run test` | Run tests once |
-| `bun run test:watch` | Run tests in watch mode |
-| `bun run test:coverage` | Run tests with coverage report |
-| `bun run type-check` | Run TypeScript type checking |
-| `bun run format` | Format code with Prettier |
-| `bun run format:check` | Check code formatting |
-| `bun run lint` | Run linter (TypeScript check) |
+| `bun run test` | Run tests with Vitest |
+| `bun run cf-typegen` | Generate TypeScript types from Wrangler config |
 
 ## Troubleshooting
 
@@ -237,27 +222,18 @@ Make sure you have all dependencies installed:
 bun install
 ```
 
-### Type Errors
-
-Run type checking to see detailed errors:
-
-```bash
-bun run type-check
-```
-
 ### Worker Not Deploying
 
 1. Check you're logged in: `wrangler whoami`
-2. Verify `wrangler.yaml` configuration
+2. Verify `wrangler.jsonc` configuration
 3. Check all required secrets are set: `wrangler secret list`
 
 ## Contributing
 
 1. Make changes
 2. Run tests: `bun run test`
-3. Format code: `bun run format`
-4. Type check: `bun run type-check`
-5. Deploy: `bun run deploy`
+3. Generate types: `bun run cf-typegen`
+4. Deploy: `bun run deploy`
 
 ## License
 
