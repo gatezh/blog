@@ -6,22 +6,26 @@ compatibility_date: "2024-11-14"
 # Worker will be available at contact.gatezh.com (configure via Cloudflare dashboard)
 # Or use workers.dev subdomain for testing: gatezh-contact-worker.your-subdomain.workers.dev
 
-# Environment variables (set these in Cloudflare dashboard or use wrangler secret)
-# RESEND_API_KEY - Your Resend API key (use: wrangler secret put RESEND_API_KEY)
+# Required Environment Variables (set using wrangler secret):
+# AIRTABLE_API_KEY - Your Airtable API key (Personal Access Token)
+# AIRTABLE_BASE_ID - Your Airtable base ID (e.g., appXXXXXXXXXXXXXX)
+# AIRTABLE_TABLE_NAME - Your Airtable table name (e.g., "Contact Submissions")
+
+# Optional Environment Variables (for email notifications):
+# RESEND_API_KEY - Your Resend API key (optional)
 # CONTACT_EMAIL_FROM - Email address to send from (e.g., noreply@gatezh.com)
-# CONTACT_EMAIL_TO - Your email address to receive messages
-# ALLOWED_ORIGINS - Comma-separated list of allowed CORS origins (optional)
+# CONTACT_EMAIL_TO - Your email address to receive notifications
 
 # Example: Set secrets using wrangler CLI
-# wrangler secret put RESEND_API_KEY
-# wrangler secret put CONTACT_EMAIL_FROM
-# wrangler secret put CONTACT_EMAIL_TO
+# wrangler secret put AIRTABLE_API_KEY
+# wrangler secret put AIRTABLE_BASE_ID
+# wrangler secret put AIRTABLE_TABLE_NAME
+# wrangler secret put RESEND_API_KEY (optional)
+# wrangler secret put CONTACT_EMAIL_FROM (optional)
+# wrangler secret put CONTACT_EMAIL_TO (optional)
 
-# For development, you can use .dev.vars file (create it in the worker directory)
-# Add this to .dev.vars:
-# RESEND_API_KEY=your_api_key_here
-# CONTACT_EMAIL_FROM=noreply@gatezh.com
-# CONTACT_EMAIL_TO=your.email@example.com
+# For development, use .dev.vars file (create it in the worker directory)
+# See .dev.vars.example for template
 
 # Non-secret environment variables can go here
 # vars:

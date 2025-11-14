@@ -1,6 +1,6 @@
 # Contact Form Setup Guide
 
-This guide explains how to set up and configure the contact form with a standalone Cloudflare Worker, Tailwind CSS, and Resend email service.
+This guide explains how to set up and configure the contact form with a standalone Cloudflare Worker, Tailwind CSS, and Airtable for submission storage.
 
 ## Architecture
 
@@ -8,15 +8,17 @@ The contact form consists of three main components:
 
 1. **Frontend Form** (`content/contact.md`): A Hugo page with a Tailwind CSS-styled form that collects user input
 2. **Cloudflare Worker** (`worker/index.ts`): A standalone serverless worker that processes form submissions
-3. **Resend API**: Email delivery service that sends the contact form submissions to your inbox
+3. **Airtable**: A database that stores all contact form submissions in a structured table
+
+**Optional**: Email notifications via Resend API
 
 ## Prerequisites
 
 - Hugo static site generator
 - Bun (JavaScript runtime and package manager)
 - Cloudflare account with Workers enabled
-- Resend account (free tier available)
-- Domain verified with Resend for sending emails
+- Airtable account (free tier available)
+- Resend account (optional, for email notifications)
 
 ## Initial Setup
 
@@ -51,46 +53,67 @@ bun run watch:css
 
 This creates `/static/css/tailwind.css` which is loaded by the contact form.
 
-### 3. Create a Resend Account
+## Airtable Setup
 
-1. Go to [resend.com](https://resend.com) and sign up for a free account
+### 1. Create an Airtable Account
+
+1. Go to [airtable.com](https://airtable.com) and sign up for a free account
 2. Verify your email address
-3. Complete the onboarding process
 
-### 4. Verify Your Domain with Resend
+### 2. Create a Base and Table
 
-To send emails from your domain (e.g., `noreply@gatezh.com`), you need to verify it:
+1. Click **"Add a base"** or **"Start from scratch"**
+2. Name your base (e.g., "Contact Form Submissions")
+3. Create a table named **"Contact Submissions"** (or your preferred name)
 
-1. Log in to your Resend dashboard
-2. Navigate to **Domains** in the sidebar
-3. Click **Add Domain**
-4. Enter your domain (e.g., `gatezh.com`)
-5. Resend will provide DNS records that you need to add:
-   - **SPF Record**: Allows Resend to send emails on behalf of your domain
-   - **DKIM Record**: Helps verify email authenticity
-   - **DMARC Record**: Defines how to handle unauthenticated emails
+### 3. Configure Table Fields
 
-6. Add these DNS records in your Cloudflare DNS settings:
-   - Go to Cloudflare Dashboard → Select your domain → DNS → Records
-   - Add each TXT record provided by Resend
-   - Wait for DNS propagation (can take a few minutes to 48 hours)
+Your table needs these fields (Airtable will create the first field automatically):
 
-7. Return to Resend and click **Verify Domain**
-8. Once verified, you'll see a green checkmark next to your domain
+| Field Name | Field Type | Description |
+|------------|-----------|-------------|
+| Name | Single line text | Submitter's name |
+| Email | Email | Submitter's email address |
+| Subject | Single line text | Message subject |
+| Message | Long text | The message content |
+| Submitted At | Date and time | When the form was submitted |
 
-**Note:** For testing during development, you can use Resend's test domain (`onboarding@resend.dev`), but it has sending limitations.
+To add fields:
+1. Click the **"+"** button next to the last column
+2. Choose the field type
+3. Name the field exactly as shown above (case-sensitive!)
+4. For "Submitted At", enable "Include a time field"
 
-### 5. Get Your Resend API Key
+**Important**: The field names must match exactly (including capitalization and spacing) as they're used in the worker code.
 
-1. In the Resend dashboard, go to **API Keys**
-2. Click **Create API Key**
-3. Give it a name (e.g., "Contact Form Production")
-4. Select the appropriate permissions:
-   - **Sending access**: Yes (required)
-   - **Domain**: Select your verified domain or "All Domains"
-5. Click **Add**
-6. **IMPORTANT**: Copy the API key immediately - you won't be able to see it again!
-7. Store it securely (you'll need it in the next step)
+### 4. Get Your Airtable API Credentials
+
+You need three pieces of information:
+
+#### A. Personal Access Token (API Key)
+
+1. Go to [airtable.com/create/tokens](https://airtable.com/create/tokens)
+2. Click **"Create new token"**
+3. Give it a name (e.g., "Contact Form Worker")
+4. Under **Scopes**, add these permissions:
+   - `data.records:write` (to create new records)
+   - `data.records:read` (optional, for debugging)
+5. Under **Access**, select your base
+6. Click **"Create token"**
+7. **IMPORTANT**: Copy the token immediately - you won't be able to see it again!
+   - Token format: `patXXXXXXXXXXXXXX`
+
+#### B. Base ID
+
+1. Go to [airtable.com/api](https://airtable.com/api)
+2. Click on your base
+3. Look for "The ID of this base is **appXXXXXXXXXXXXXX**" in the introduction
+4. Copy the base ID (starts with `app`)
+
+#### C. Table Name
+
+Simply use the name of your table (e.g., "Contact Submissions")
+- Must match exactly, including spaces and capitalization
 
 ## Worker Setup and Deployment
 
@@ -106,9 +129,17 @@ cp .dev.vars.example .dev.vars
 Edit `.dev.vars` with your values:
 
 ```env
-RESEND_API_KEY=re_xxxxxxxxxxxxx
-CONTACT_EMAIL_FROM=noreply@gatezh.com
-CONTACT_EMAIL_TO=your.email@example.com
+# Required
+AIRTABLE_API_KEY=patXXXXXXXXXXXXXX
+AIRTABLE_BASE_ID=appXXXXXXXXXXXXXX
+AIRTABLE_TABLE_NAME=Contact Submissions
+
+# Optional: for email notifications
+# RESEND_API_KEY=re_xxxxxxxxxxxxx
+# CONTACT_EMAIL_FROM=noreply@gatezh.com
+# CONTACT_EMAIL_TO=your.email@example.com
+
+# Optional: CORS
 ALLOWED_ORIGINS=https://gatezh.com,http://localhost:1313
 ```
 
@@ -120,12 +151,10 @@ Start the worker development server:
 
 ```bash
 cd worker
-bun run dev
-# or
 wrangler dev
 ```
 
-This will start a local server (typically at `http://localhost:8787`). You can test the worker by sending POST requests to it.
+This will start a local server (typically at `http://localhost:8787`). Test it by submitting the form from your local Hugo site.
 
 ### 3. Deploy Worker to Cloudflare
 
@@ -154,21 +183,20 @@ Set the production environment variables using Wrangler secrets:
 ```bash
 cd worker
 
-# Set RESEND_API_KEY (you'll be prompted to enter the value)
+# Required: Airtable credentials
+wrangler secret put AIRTABLE_API_KEY
+wrangler secret put AIRTABLE_BASE_ID
+wrangler secret put AIRTABLE_TABLE_NAME
+
+# Optional: Email notifications via Resend
 wrangler secret put RESEND_API_KEY
-
-# Set CONTACT_EMAIL_FROM
 wrangler secret put CONTACT_EMAIL_FROM
-
-# Set CONTACT_EMAIL_TO
 wrangler secret put CONTACT_EMAIL_TO
-
-# Optionally set ALLOWED_ORIGINS (non-secret, can use vars)
-# Edit wrangler.yaml to add under vars:
-# ALLOWED_ORIGINS: "https://gatezh.com,http://localhost:1313"
 ```
 
-**Important:** Use `wrangler secret put` for sensitive values like API keys. They will be encrypted and stored securely.
+When prompted, enter each value. The secrets are encrypted and stored securely.
+
+**Important:** Use `wrangler secret put` for sensitive values like API keys.
 
 ### 4. Configure Custom Domain (Optional but Recommended)
 
@@ -184,7 +212,7 @@ To use a custom domain like `contact.gatezh.com` instead of `workers.dev`:
 
 ### 5. Update Frontend Worker URL
 
-Edit `content/contact.md` and update the `WORKER_URL` constant:
+Edit `content/contact.md` and update the `WORKER_URL` constant (around line 73):
 
 ```javascript
 const WORKER_URL = 'https://contact.gatezh.com'; // or your workers.dev URL
@@ -217,8 +245,8 @@ hugo
 1. Visit your site at `https://gatezh.com/contact`
 2. Fill out the form with test data
 3. Click "Send Message"
-4. Check your email (the address you set in `CONTACT_EMAIL_TO`)
-5. You should receive a beautifully formatted email with the contact form submission
+4. Check your Airtable base - you should see a new record!
+5. If configured, check your email for a notification
 
 **Testing Checklist:**
 - [ ] Form appears correctly with Tailwind styling
@@ -227,11 +255,61 @@ hugo
 - [ ] Email format is validated
 - [ ] Form shows loading state while submitting
 - [ ] Success message appears after submission in green
-- [ ] Email is received in your inbox with HTML formatting
-- [ ] Reply-to address is set to the form submitter's email
+- [ ] New record appears in Airtable with all fields populated
+- [ ] Timestamp is correctly recorded
+- [ ] Email notification is received (if configured)
 - [ ] Form is reset after successful submission
 - [ ] Error message appears in red if something goes wrong
 - [ ] CORS works correctly from your domain
+
+## Optional: Email Notifications with Resend
+
+If you want to receive email notifications in addition to Airtable storage:
+
+### 1. Create a Resend Account
+
+1. Go to [resend.com](https://resend.com) and sign up
+2. Verify your email address
+
+### 2. Verify Your Domain (for production)
+
+To send emails from your domain:
+
+1. In Resend dashboard, go to **Domains**
+2. Click **Add Domain**
+3. Enter your domain (e.g., `gatezh.com`)
+4. Add the provided DNS records (SPF, DKIM, DMARC) to Cloudflare DNS
+5. Wait for verification (can take a few minutes)
+
+**Note**: For testing, you can use Resend's test domain (`onboarding@resend.dev`).
+
+### 3. Get Your Resend API Key
+
+1. In Resend dashboard, go to **API Keys**
+2. Click **Create API Key**
+3. Give it a name and set permissions (Sending access)
+4. Copy the API key immediately
+
+### 4. Configure Worker with Resend
+
+Add the Resend credentials to your worker:
+
+```bash
+cd worker
+
+# For development
+# Add to .dev.vars:
+# RESEND_API_KEY=re_xxxxxxxxxxxxx
+# CONTACT_EMAIL_FROM=noreply@gatezh.com
+# CONTACT_EMAIL_TO=your.email@example.com
+
+# For production
+wrangler secret put RESEND_API_KEY
+wrangler secret put CONTACT_EMAIL_FROM
+wrangler secret put CONTACT_EMAIL_TO
+```
+
+Now submissions will be saved to Airtable AND you'll receive email notifications!
 
 ## Development Workflow
 
@@ -244,8 +322,6 @@ bun run watch:css
 # Build CSS for production
 bun run build:css
 ```
-
-The Tailwind config (`tailwind.config.js`) is set up to scan all Hugo content, layouts, and theme files for class usage.
 
 ### Working with the Worker
 
@@ -294,53 +370,57 @@ Follow the browser authentication flow.
 
 ### Form submission fails with "Server configuration error"
 
-**Cause**: `RESEND_API_KEY` is not set or is incorrect
+**Cause**: Airtable credentials are not set or incorrect
 
 **Solution**:
 ```bash
 cd worker
-wrangler secret put RESEND_API_KEY
+wrangler secret put AIRTABLE_API_KEY
+wrangler secret put AIRTABLE_BASE_ID
+wrangler secret put AIRTABLE_TABLE_NAME
 ```
-Enter your Resend API key when prompted.
 
-### Email is not received
+### Submission not appearing in Airtable
 
-1. **Check Resend Dashboard**:
-   - Go to Resend → **Emails** to see if the email was sent
-   - Check for any errors or bounces
+1. **Check Airtable API Status**:
+   - Go to worker logs: `wrangler tail`
+   - Look for error messages
 
-2. **Verify Domain**:
-   - Ensure your domain is verified in Resend
-   - Check that DNS records are properly configured
-   - Use `dig TXT _dmarc.gatezh.com` to verify DNS propagation
+2. **Verify Credentials**:
+   - Double-check your Base ID (starts with `app`)
+   - Verify API token has correct permissions
+   - Ensure table name matches exactly (case-sensitive)
 
-3. **Check Email Address**:
-   - Verify `CONTACT_EMAIL_TO` is set correctly
-   - Check your spam/junk folder
+3. **Check Field Names**:
+   - Field names in Airtable must match exactly:
+     - `Name`, `Email`, `Subject`, `Message`, `Submitted At`
+   - Check for typos, extra spaces, or capitalization differences
 
-4. **API Key Permissions**:
-   - Ensure the API key has sending permissions
-   - Verify it's associated with the correct domain
+4. **API Token Permissions**:
+   - Token must have `data.records:write` scope
+   - Token must have access to the specific base
+
+### Email notifications not working
+
+1. **Check if Resend is configured**:
+   - Email is optional - worker works without it
+   - Verify `RESEND_API_KEY`, `CONTACT_EMAIL_FROM`, `CONTACT_EMAIL_TO` are set
+
+2. **Check Resend Dashboard**:
+   - Go to Resend → **Emails**
+   - Look for delivery status
+
+3. **Check logs**:
+   - `wrangler tail` will show email errors as warnings
+   - Failed emails don't stop submission from being saved
 
 ### Tailwind styles not applying
 
-**Issue**: Form looks unstyled
-
 **Solutions**:
-1. Ensure CSS is built: `bun run build:css`
-2. Check that `/static/css/tailwind.css` exists
-3. Verify the CSS file is being served by Hugo
-4. Check browser DevTools to see if CSS file loads (200 status)
-5. Hard refresh the page (Cmd/Ctrl + Shift + R)
-
-### Worker returns 404
-
-**Issue**: Worker returns "Not found" error
-
-**Solution**:
-- Worker only accepts POST requests to the root path `/`
-- Verify you're making a POST request, not GET
-- Check the `WORKER_URL` in your contact form JavaScript
+1. Build CSS: `bun run build:css`
+2. Check `/static/css/tailwind.css` exists
+3. Verify CSS loads in browser (check Network tab)
+4. Hard refresh: Cmd/Ctrl + Shift + R
 
 ## File Structure
 
@@ -388,14 +468,15 @@ All scripts are in `package.json` and use Bun:
 - ✅ **DO**: Use `.dev.vars` for local development (gitignored)
 - ❌ **DON'T**: Commit API keys to version control
 - ❌ **DON'T**: Put API keys in `wrangler.yaml` or environment files
-- ✅ **DO**: Rotate the key immediately if it's ever exposed
+- ✅ **DO**: Rotate tokens immediately if exposed
+- ✅ **DO**: Use minimal permissions for Airtable tokens
 
 ### Input Validation
 
 The worker includes comprehensive validation:
 - Email format validation with regex
 - Length limits on all fields (name: 100, email: 254, subject: 200, message: 10000)
-- HTML escaping to prevent XSS
+- HTML escaping to prevent XSS in email notifications
 - Type checking for all inputs
 - Trimming of whitespace
 
@@ -415,9 +496,10 @@ Consider adding rate limiting to prevent abuse:
    - Create a rule for your worker URL
    - Example: 5 requests per minute per IP
 
-2. **Resend Limits**:
-   - Free tier: 100 emails/day, 3,000 emails/month
-   - Monitor usage in Resend dashboard
+2. **Airtable Limits**:
+   - Free tier: 5 API calls per second per base
+   - 1,200 records per table on free tier
+   - Monitor usage in Airtable dashboard
 
 ### Spam Protection
 
@@ -432,155 +514,126 @@ Consider adding:
 ### Free Tier Limits
 
 - **Cloudflare Workers**: 100,000 requests/day (free plan)
-- **Resend**: 100 emails/day, 3,000 emails/month (free plan)
-- **Cloudflare Pages**: Unlimited requests (free plan)
+- **Airtable**: 1,200 records per base, 5 API calls/sec (free plan)
+- **Resend** (optional): 100 emails/day, 3,000 emails/month (free plan)
 
 ### Paid Plans
 
-- **Resend**: Starts at $20/month for 50,000 emails
-- **Cloudflare Workers**: $5/month for 10 million requests (Workers Paid plan)
+- **Airtable**: Starts at $20/month for unlimited bases
+- **Cloudflare Workers**: $5/month for 10 million requests
+- **Resend** (optional): Starts at $20/month for 50,000 emails
 
 For a personal blog, the free tiers should be more than sufficient.
 
-## Monitoring and Analytics
+## Managing Submissions in Airtable
 
-### Cloudflare Dashboard
+### Viewing Submissions
 
-1. Go to Workers & Pages → Your Worker
-2. View real-time analytics:
-   - Request count
-   - Success rate
-   - Errors
-   - Response time
+1. Go to [airtable.com](https://airtable.com)
+2. Open your base
+3. View all submissions in table format
+4. Sort by "Submitted At" to see newest first
 
-### Resend Dashboard
+### Organizing Submissions
 
-Monitor:
-- Email delivery status
-- Bounce rate
-- Complaint rate
-- Sending volume
+Create additional fields to track status:
+- **Status** (Single select): New, Read, Replied, Archived
+- **Priority** (Single select): Low, Medium, High
+- **Notes** (Long text): Internal notes about the submission
 
-### Wrangler Tail (Live Logs)
+### Creating Views
 
-View live logs from your worker:
+Create different views to organize submissions:
+1. Click **"Grid view"** dropdown
+2. Click **"Create new view"**
+3. Example views:
+   - **Unread**: Filter where Status = "New"
+   - **High Priority**: Filter where Priority = "High"
+   - **This Week**: Filter where Submitted At is within last 7 days
 
-```bash
-cd worker
-wrangler tail
-```
+### Exporting Data
 
-This shows `console.log()` output and errors in real-time.
+Export submissions as CSV:
+1. Click the **"..."** menu in the top right
+2. Select **"Download CSV"**
+3. Choose which fields to include
 
 ## Customization
-
-### Changing Email Template
-
-The email template is defined in the `generateEmailHTML()` function in `worker/index.ts`. The template includes:
-- Gradient header with purple theme
-- Clean, modern design
-- Responsive layout
-- Proper email client compatibility
-
-To customize:
-1. Edit the HTML/CSS in `generateEmailHTML()`
-2. Test with different email clients
-3. Deploy the updated worker
 
 ### Changing Form Fields
 
 To add or modify form fields:
 
-1. **Update TypeScript Interface** (`worker/index.ts`):
+1. **Add field to Airtable table** (e.g., "Phone")
+
+2. **Update TypeScript interfaces** (`worker/index.ts`):
    ```typescript
    interface ContactFormData {
      name: string;
      email: string;
      subject: string;
      message: string;
-     // Add new field:
-     phone?: string;
+     phone?: string; // Add new field
+   }
+
+   interface AirtableRecord {
+     fields: {
+       Name: string;
+       Email: string;
+       Subject: string;
+       Message: string;
+       'Submitted At': string;
+       Phone?: string; // Add new field
+     };
    }
    ```
 
-2. **Update Validation** (`validateFormData()` function):
+3. **Update validation** (`validateFormData()` function)
+
+4. **Update Airtable payload** (`saveToAirtable()` function):
    ```typescript
-   if (phone && typeof phone !== 'string') {
-     return false;
-   }
-   ```
-
-3. **Update Email Template** (`generateEmailHTML()` function):
-   ```html
-   <div class="field">
-     <span class="label">Phone</span>
-     <div class="value">${escapeHtml(formData.phone || 'N/A')}</div>
-   </div>
-   ```
-
-4. **Update Frontend Form** (`content/contact.md`):
-   ```html
-   <div>
-     <label for="phone" class="form-label">Phone</label>
-     <input type="tel" id="phone" name="phone" class="form-input">
-   </div>
-   ```
-
-5. **Update JavaScript** (in `content/contact.md`):
-   ```javascript
-   const formData = {
-     // ... existing fields
-     phone: form.phone.value.trim()
+   const record: AirtableRecord = {
+     fields: {
+       Name: formData.name,
+       Email: formData.email,
+       Subject: formData.subject,
+       Message: formData.message,
+       Phone: formData.phone, // Add new field
+       'Submitted At': new Date().toISOString(),
+     },
    };
    ```
 
+5. **Update frontend form** (`content/contact.md`)
+
+6. **Update email template** (if using Resend)
+
+### Customizing Email Template
+
+If using email notifications, customize the HTML in `generateEmailHTML()` function in `worker/index.ts`.
+
 ### Customizing Tailwind Theme
 
-Edit `tailwind.config.js` to customize colors, spacing, etc:
+Edit `tailwind.config.js` to customize colors, spacing, etc., then rebuild:
 
-```javascript
-theme: {
-  extend: {
-    colors: {
-      // Add custom colors
-      brand: '#667eea',
-    },
-  },
-},
-```
-
-Then rebuild CSS:
 ```bash
 bun run build:css
 ```
-
-### Adding CAPTCHA
-
-To add Google reCAPTCHA v3:
-
-1. Get reCAPTCHA site and secret keys from Google
-2. Add reCAPTCHA script to the contact form
-3. Get token before form submission
-4. Send token with form data
-5. Verify token in the worker using Google's API
-6. Reject submission if score is too low
 
 ## CI/CD Integration
 
 ### Cloudflare Pages (Hugo Site)
 
-Cloudflare Pages can auto-deploy from GitHub:
+Set up auto-deployment from GitHub:
 
 1. Connect repository to Cloudflare Pages
-2. Set build command: `bun run build`
-3. Set output directory: `public`
-4. Add environment variable: `BUN_VERSION=latest`
+2. Build command: `bun run build`
+3. Output directory: `public`
+4. Environment variable: `BUN_VERSION=latest`
 
 ### Worker Auto-Deployment
 
-Option 1: **GitHub Actions**
-
-Create `.github/workflows/deploy-worker.yml`:
+**GitHub Actions** (`.github/workflows/deploy-worker.yml`):
 
 ```yaml
 name: Deploy Worker
@@ -600,73 +653,68 @@ jobs:
       - name: Deploy Worker
         run: |
           cd worker
-          bun install
           wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-```
-
-Option 2: **Manual Deployment**
-
-Deploy manually when worker code changes:
-```bash
-cd worker
-wrangler deploy
 ```
 
 ## Support and Resources
 
 ### Documentation
 
-- [Resend Docs](https://resend.com/docs)
+- [Airtable API Docs](https://airtable.com/developers/web/api/introduction)
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Wrangler CLI Docs](https://developers.cloudflare.com/workers/wrangler/)
 - [Tailwind CSS Docs](https://tailwindcss.com/docs)
 - [Bun Docs](https://bun.sh/docs)
+- [Resend Docs](https://resend.com/docs) (optional)
 
 ### Useful Commands
 
 ```bash
-# View Wrangler help
-wrangler --help
-
-# List all deployments
+# Wrangler
+wrangler login
+wrangler deploy
+wrangler tail
 wrangler deployments list
-
-# Rollback to previous deployment
+wrangler secret list
+wrangler secret put <NAME>
+wrangler secret delete <NAME>
 wrangler rollback
 
-# View environment variables
-wrangler secret list
+# Bun
+bun install
+bun run build
+bun run build:css
+bun run watch:css
 
-# Delete a secret
-wrangler secret delete RESEND_API_KEY
+# Hugo
+hugo server -D
+hugo
 ```
-
-### Getting Help
-
-For issues with:
-- **Resend**: Check [Resend Documentation](https://resend.com/docs) or contact support
-- **Cloudflare Workers**: Check [Workers Documentation](https://developers.cloudflare.com/workers/)
-- **Tailwind CSS**: Check [Tailwind Documentation](https://tailwindcss.com/docs)
-- **This Implementation**: Check the code comments or create an issue in the repository
 
 ## Changelog
 
-### Version 2.0 (Current)
+### Version 3.0 (Current)
 
-- ✅ Standalone Cloudflare Worker (instead of Pages Function)
+- ✅ Airtable integration for structured data storage
+- ✅ Optional email notifications via Resend
+- ✅ Standalone Cloudflare Worker
 - ✅ Tailwind CSS for modern, responsive styling
-- ✅ Bun for package management and build scripts
+- ✅ Bun for package management
 - ✅ TypeScript with strict type checking
-- ✅ Enhanced email template with gradient design
 - ✅ Comprehensive input validation and security
 - ✅ CORS configuration with origin validation
-- ✅ Development environment support with `.dev.vars`
-- ✅ Custom domain support
-- ✅ Detailed documentation and troubleshooting
+- ✅ Detailed Airtable setup documentation
 
-### Version 1.0 (Previous)
+### Version 2.0
+
+- Standalone Cloudflare Worker (instead of Pages Function)
+- Tailwind CSS styling
+- Resend email integration
+- Bun configuration
+
+### Version 1.0
 
 - Cloudflare Pages Function
 - Inline CSS styling
