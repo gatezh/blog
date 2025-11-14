@@ -315,6 +315,8 @@ Now submissions will be saved to Airtable AND you'll receive email notifications
 
 ### Working with Tailwind CSS
 
+This project uses **Tailwind CSS v4** with CSS-based configuration (no `tailwind.config.js`).
+
 ```bash
 # Watch for CSS changes during development
 bun run watch:css
@@ -322,6 +324,8 @@ bun run watch:css
 # Build CSS for production
 bun run build:css
 ```
+
+Configuration is done in `assets/css/input.css` using the `@theme` directive. See the Customization section for details.
 
 ### Working with the Worker
 
@@ -443,7 +447,6 @@ blog/
 ├── docs/
 │   └── contact-form-setup.md        # This documentation
 ├── package.json                     # Bun dependencies and scripts
-├── tailwind.config.js               # Tailwind configuration
 ├── tsconfig.json                    # TypeScript configuration
 ├── hugo.yaml                        # Hugo config (includes contact button)
 └── .gitignore                       # Project gitignore
@@ -614,11 +617,25 @@ If using email notifications, customize the HTML in `generateEmailHTML()` functi
 
 ### Customizing Tailwind Theme
 
-Edit `tailwind.config.js` to customize colors, spacing, etc., then rebuild:
+Tailwind CSS v4 uses CSS-based configuration. Edit `assets/css/input.css` to customize the theme:
+
+```css
+@theme {
+  /* Add custom colors */
+  --color-brand: #667eea;
+
+  /* Or extend with CSS variables */
+  --color-custom: var(--your-css-var);
+}
+```
+
+Then rebuild:
 
 ```bash
 bun run build:css
 ```
+
+**Note**: Tailwind v4 doesn't use `tailwind.config.js` - all configuration is done in CSS using the `@theme` directive.
 
 ## CI/CD Integration
 
@@ -700,9 +717,10 @@ hugo
 - ✅ Airtable integration for structured data storage
 - ✅ Optional email notifications via Resend
 - ✅ Standalone Cloudflare Worker
-- ✅ Tailwind CSS for modern, responsive styling
+- ✅ Tailwind CSS v4 with CSS-based configuration (no config file!)
 - ✅ Bun for package management
 - ✅ TypeScript with strict type checking
+- ✅ Pinned dependency versions in package.json
 - ✅ Comprehensive input validation and security
 - ✅ CORS configuration with origin validation
 - ✅ Detailed Airtable setup documentation
