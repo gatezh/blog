@@ -10,7 +10,7 @@
     "watch:css": "tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.css --watch"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "4.0.0-beta.7"
+    "tailwindcss": "4.1.17"
   },
   "dependencies": {}
 }

@@ -7,57 +7,57 @@ showToc: false
 <link rel="stylesheet" href="/css/tailwind.css">
 
 <div class="max-w-2xl mx-auto px-4 py-8">
-  <p class="mb-8 text-lg text-secondary">Feel free to reach out to me using the form below:</p>
+  <p class="mb-8 text-lg">Feel free to reach out to me using the form below:</p>
 
   <form id="contactForm" class="space-y-6">
     <div>
-      <label for="name" class="form-label">Name *</label>
+      <label for="name" class="block mb-2 font-medium">Name *</label>
       <input
         type="text"
         id="name"
         name="name"
         required
-        class="form-input"
+        class="w-full px-4 py-3 border rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         placeholder="Your name"
       >
     </div>
 
     <div>
-      <label for="email" class="form-label">Email *</label>
+      <label for="email" class="block mb-2 font-medium">Email *</label>
       <input
         type="email"
         id="email"
         name="email"
         required
-        class="form-input"
+        class="w-full px-4 py-3 border rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         placeholder="your.email@example.com"
       >
     </div>
 
     <div>
-      <label for="subject" class="form-label">Subject *</label>
+      <label for="subject" class="block mb-2 font-medium">Subject *</label>
       <input
         type="text"
         id="subject"
         name="subject"
         required
-        class="form-input"
+        class="w-full px-4 py-3 border rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         placeholder="What is this about?"
       >
     </div>
 
     <div>
-      <label for="message" class="form-label">Message *</label>
+      <label for="message" class="block mb-2 font-medium">Message *</label>
       <textarea
         id="message"
         name="message"
         required
-        class="form-textarea"
+        class="w-full px-4 py-3 border rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[150px] resize-y"
         placeholder="Your message..."
       ></textarea>
     </div>
 
-    <button type="submit" class="btn-primary" id="submitBtn">
+    <button type="submit" class="px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" id="submitBtn">
       Send Message
     </button>
 
