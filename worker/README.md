@@ -46,15 +46,15 @@ worker/
 bun install
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure Local Development Variables (Optional)
 
-Copy the example environment file:
+For local development only, you can create a `.dev.vars` file:
 
 ```bash
 cp .dev.vars.example .dev.vars
 ```
 
-Edit `.dev.vars` with your credentials:
+Edit `.dev.vars` with your credentials for testing locally:
 
 ```env
 # Required
@@ -70,6 +70,8 @@ CONTACT_EMAIL_TO=your.email@example.com
 # Optional: CORS
 ALLOWED_ORIGINS=https://gatezh.com,http://localhost:1313
 ```
+
+**Note:** `.dev.vars` is ONLY for local development. Production secrets are configured through Cloudflare (see Deployment section).
 
 ### 3. Set Up Airtable
 
@@ -125,7 +127,9 @@ wrangler login
 bun run deploy
 ```
 
-### 3. Set Production Secrets
+### 3. Set Production Secrets in Cloudflare
+
+**Option A: Using Wrangler CLI**
 
 ```bash
 # Required
@@ -137,7 +141,17 @@ wrangler secret put AIRTABLE_TABLE_NAME
 wrangler secret put RESEND_API_KEY
 wrangler secret put CONTACT_EMAIL_FROM
 wrangler secret put CONTACT_EMAIL_TO
+wrangler secret put ALLOWED_ORIGINS
 ```
+
+**Option B: Using Cloudflare Dashboard**
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Navigate to Workers & Pages → Your Worker
+3. Go to Settings → Variables and Secrets
+4. Add the required secrets
+
+**Important:** Secrets are stored in Cloudflare, NOT in `.env` files or your repository!
 
 ## API
 
