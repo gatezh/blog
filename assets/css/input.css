@@ -1,6 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Theme configuration for PaperMod integration */
+@theme {
+  /* Custom colors using CSS variables from PaperMod theme */
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
+  --color-border: var(--border);
+  --color-entry: var(--entry);
+  --color-theme: var(--theme);
+}
 
 /* Custom component classes for the contact form */
 @layer components {
