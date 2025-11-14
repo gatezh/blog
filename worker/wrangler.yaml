@@ -1,7 +1,7 @@
 # Wrangler configuration for Contact Form Worker
-name = "gatezh-contact-worker"
-main = "index.ts"
-compatibility_date = "2024-11-14"
+name: gatezh-contact-worker
+main: index.ts
+compatibility_date: "2024-11-14"
 
 # Worker will be available at contact.gatezh.com (configure via Cloudflare dashboard)
 # Or use workers.dev subdomain for testing: gatezh-contact-worker.your-subdomain.workers.dev
@@ -23,6 +23,6 @@ compatibility_date = "2024-11-14"
 # CONTACT_EMAIL_FROM=noreply@gatezh.com
 # CONTACT_EMAIL_TO=your.email@example.com
 
-[vars]
 # Non-secret environment variables can go here
-# ALLOWED_ORIGINS = "https://gatezh.com,http://localhost:1313"
+# vars:
+#   ALLOWED_ORIGINS: "https://gatezh.com,http://localhost:1313"
