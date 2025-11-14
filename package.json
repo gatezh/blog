@@ -1,0 +1,21 @@
+{
+  "name": "gatezh-blog",
+  "version": "1.0.0",
+  "description": "Personal blog with Hugo and Cloudflare Workers",
+  "private": true,
+  "scripts": {
+    "dev": "hugo server -D",
+    "build": "bun run build:css && hugo",
+    "build:css": "tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.css --watch",
+    "worker:dev": "wrangler dev worker/index.ts",
+    "worker:deploy": "wrangler deploy worker/index.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.94.0"
+  },
+  "dependencies": {}
+}

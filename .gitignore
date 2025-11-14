@@ -55,3 +55,18 @@ Temporary Items
 # End of https://www.toptal.com/developers/gitignore/api/macos,hugo
 
 .aider*
+
+# Node/Bun dependencies
+node_modules/
+bun.lockb
+
+# Tailwind CSS output
+/static/css/tailwind.css
+
+# Worker
+worker/.dev.vars
+worker/dist/
+worker/.wrangler/
+
+# TypeScript
+*.tsbuildinfo

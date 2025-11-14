@@ -1,0 +1,28 @@
+# Wrangler configuration for Contact Form Worker
+name = "gatezh-contact-worker"
+main = "index.ts"
+compatibility_date = "2024-11-14"
+
+# Worker will be available at contact.gatezh.com (configure via Cloudflare dashboard)
+# Or use workers.dev subdomain for testing: gatezh-contact-worker.your-subdomain.workers.dev
+
+# Environment variables (set these in Cloudflare dashboard or use wrangler secret)
+# RESEND_API_KEY - Your Resend API key (use: wrangler secret put RESEND_API_KEY)
+# CONTACT_EMAIL_FROM - Email address to send from (e.g., noreply@gatezh.com)
+# CONTACT_EMAIL_TO - Your email address to receive messages
+# ALLOWED_ORIGINS - Comma-separated list of allowed CORS origins (optional)
+
+# Example: Set secrets using wrangler CLI
+# wrangler secret put RESEND_API_KEY
+# wrangler secret put CONTACT_EMAIL_FROM
+# wrangler secret put CONTACT_EMAIL_TO
+
+# For development, you can use .dev.vars file (create it in the worker directory)
+# Add this to .dev.vars:
+# RESEND_API_KEY=your_api_key_here
+# CONTACT_EMAIL_FROM=noreply@gatezh.com
+# CONTACT_EMAIL_TO=your.email@example.com
+
+[vars]
+# Non-secret environment variables can go here
+# ALLOWED_ORIGINS = "https://gatezh.com,http://localhost:1313"
