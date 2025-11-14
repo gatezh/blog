@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/marcosgomesneto/bun-devcontainers/tree/main/src/basic-bun
 {
-  "name": "gatezh-blog",
+  "name": "gatezh.com",
   "dockerFile": "Dockerfile",
   // Configure tool-specific properties.
   "customizations": {
