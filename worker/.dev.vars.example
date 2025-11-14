@@ -2,7 +2,16 @@
 # Copy this file to .dev.vars and fill in your values
 # DO NOT commit .dev.vars to version control!
 
-RESEND_API_KEY=re_your_api_key_here
-CONTACT_EMAIL_FROM=noreply@gatezh.com
-CONTACT_EMAIL_TO=your.email@example.com
+# Required: Airtable Configuration
+AIRTABLE_API_KEY=patXXXXXXXXXXXXXX
+AIRTABLE_BASE_ID=appXXXXXXXXXXXXXX
+AIRTABLE_TABLE_NAME=Contact Submissions
+
+# Optional: Email Notifications via Resend
+# If you want to receive email notifications in addition to Airtable storage, set these:
+# RESEND_API_KEY=re_your_api_key_here
+# CONTACT_EMAIL_FROM=noreply@gatezh.com
+# CONTACT_EMAIL_TO=your.email@example.com
+
+# Optional: CORS Configuration
 ALLOWED_ORIGINS=https://gatezh.com,http://localhost:1313

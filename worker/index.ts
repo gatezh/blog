@@ -1,12 +1,15 @@
 /**
  * Cloudflare Worker for handling contact form submissions
- * Sends emails using Resend API
+ * Saves submissions to Airtable and optionally sends email notifications
  */
 
 interface Env {
-  RESEND_API_KEY: string;
-  CONTACT_EMAIL_TO: string;
-  CONTACT_EMAIL_FROM: string;
+  AIRTABLE_API_KEY: string;
+  AIRTABLE_BASE_ID: string;
+  AIRTABLE_TABLE_NAME: string;
+  RESEND_API_KEY?: string; // Optional: for email notifications
+  CONTACT_EMAIL_TO?: string; // Optional: for email notifications
+  CONTACT_EMAIL_FROM?: string; // Optional: for email notifications
   ALLOWED_ORIGINS?: string; // Comma-separated list of allowed origins
 }
 
@@ -15,6 +18,16 @@ interface ContactFormData {
   email: string;
   subject: string;
   message: string;
+}
+
+interface AirtableRecord {
+  fields: {
+    Name: string;
+    Email: string;
+    Subject: string;
+    Message: string;
+    'Submitted At': string;
+  };
 }
 
 interface ResendEmailPayload {
@@ -82,9 +95,42 @@ function validateFormData(data: any): data is ContactFormData {
 }
 
 /**
- * Send email using Resend API
+ * Save submission to Airtable
  */
-async function sendEmail(
+async function saveToAirtable(
+  apiKey: string,
+  baseId: string,
+  tableName: string,
+  formData: ContactFormData
+): Promise<Response> {
+  const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`;
+
+  const record: AirtableRecord = {
+    fields: {
+      Name: formData.name,
+      Email: formData.email,
+      Subject: formData.subject,
+      Message: formData.message,
+      'Submitted At': new Date().toISOString(),
+    },
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(record),
+  });
+
+  return response;
+}
+
+/**
+ * Send email notification using Resend API (optional)
+ */
+async function sendEmailNotification(
   apiKey: string,
   emailData: ResendEmailPayload
 ): Promise<Response> {
@@ -115,7 +161,7 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Generate HTML email content
+ * Generate HTML email content for notifications
  */
 function generateEmailHTML(formData: ContactFormData): string {
   return `
@@ -285,9 +331,9 @@ async function handlePost(request: Request, env: Env): Promise<Response> {
       );
     }
 
-    // Check for required environment variables
-    if (!env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is not configured');
+    // Check for required Airtable configuration
+    if (!env.AIRTABLE_API_KEY || !env.AIRTABLE_BASE_ID || !env.AIRTABLE_TABLE_NAME) {
+      console.error('Airtable configuration is missing');
       return jsonResponse(
         { error: 'Server configuration error. Please contact the administrator.' },
         500,
@@ -295,39 +341,63 @@ async function handlePost(request: Request, env: Env): Promise<Response> {
       );
     }
 
-    const emailFrom = env.CONTACT_EMAIL_FROM || 'noreply@gatezh.com';
-    const emailTo = env.CONTACT_EMAIL_TO || 'contact@gatezh.com';
+    // Save to Airtable (primary action)
+    const airtableResponse = await saveToAirtable(
+      env.AIRTABLE_API_KEY,
+      env.AIRTABLE_BASE_ID,
+      env.AIRTABLE_TABLE_NAME,
+      formData
+    );
 
-    // Prepare email payload
-    const emailPayload: ResendEmailPayload = {
-      from: emailFrom,
-      to: emailTo,
-      subject: `Contact Form: ${formData.subject}`,
-      html: generateEmailHTML(formData),
-      reply_to: formData.email,
-    };
-
-    // Send email via Resend
-    const emailResponse = await sendEmail(env.RESEND_API_KEY, emailPayload);
-
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error('Resend API error:', errorText);
+    if (!airtableResponse.ok) {
+      const errorText = await airtableResponse.text();
+      console.error('Airtable API error:', errorText);
 
       return jsonResponse(
-        { error: 'Failed to send email. Please try again later.' },
+        { error: 'Failed to save submission. Please try again later.' },
         500,
         corsHeaders
       );
     }
 
-    const result = await emailResponse.json();
+    const airtableResult = await airtableResponse.json();
+
+    // Optional: Send email notification if Resend is configured
+    let emailSent = false;
+    if (env.RESEND_API_KEY && env.CONTACT_EMAIL_TO && env.CONTACT_EMAIL_FROM) {
+      try {
+        const emailPayload: ResendEmailPayload = {
+          from: env.CONTACT_EMAIL_FROM,
+          to: env.CONTACT_EMAIL_TO,
+          subject: `Contact Form: ${formData.subject}`,
+          html: generateEmailHTML(formData),
+          reply_to: formData.email,
+        };
+
+        const emailResponse = await sendEmailNotification(
+          env.RESEND_API_KEY,
+          emailPayload
+        );
+
+        if (emailResponse.ok) {
+          emailSent = true;
+        } else {
+          const emailError = await emailResponse.text();
+          console.warn('Email notification failed:', emailError);
+          // Don't fail the request if email fails - submission is already saved
+        }
+      } catch (emailError) {
+        console.warn('Email notification error:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     return jsonResponse(
       {
         success: true,
-        message: 'Your message has been sent successfully!',
-        id: result.id,
+        message: 'Your message has been received successfully!',
+        id: airtableResult.id,
+        emailSent,
       },
       200,
       corsHeaders
