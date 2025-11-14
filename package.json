@@ -7,15 +7,10 @@
     "dev": "hugo server -D",
     "build": "bun run build:css && hugo",
     "build:css": "tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.css --minify",
-    "watch:css": "tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.css --watch",
-    "worker:dev": "wrangler dev worker/index.ts",
-    "worker:deploy": "wrangler deploy worker/index.ts"
+    "watch:css": "tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.css --watch"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "4.20241127.0",
-    "@tailwindcss/cli": "4.0.0-beta.7",
-    "typescript": "5.7.2",
-    "wrangler": "3.94.0"
+    "@tailwindcss/cli": "4.0.0-beta.7"
   },
   "dependencies": {}
 }
