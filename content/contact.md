@@ -4,120 +4,74 @@ date: 2025-11-14
 showToc: false
 ---
 
-<style>
-.contact-form {
-  max-width: 600px;
-  margin: 2rem auto;
-}
+<link rel="stylesheet" href="/css/tailwind.css">
 
-.form-group {
-  margin-bottom: 1.5rem;
-}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <p class="mb-8 text-lg text-secondary">Feel free to reach out to me using the form below:</p>
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background-color: var(--entry);
-  color: var(--primary);
-  font-family: inherit;
-  font-size: 1rem;
-}
-
-.form-group textarea {
-  min-height: 150px;
-  resize: vertical;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--tertiary);
-}
-
-.submit-btn {
-  background-color: var(--tertiary);
-  color: var(--primary);
-  padding: 0.75rem 2rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.submit-btn:hover {
-  opacity: 0.8;
-}
-
-.submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.form-message {
-  margin-top: 1rem;
-  padding: 1rem;
-  border-radius: 4px;
-  display: none;
-}
-
-.form-message.success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.form-message.error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-.form-message.show {
-  display: block;
-}
-</style>
-
-<div class="contact-form">
-  <p>Feel free to reach out to me using the form below:</p>
-
-  <form id="contactForm">
-    <div class="form-group">
-      <label for="name">Name *</label>
-      <input type="text" id="name" name="name" required>
+  <form id="contactForm" class="space-y-6">
+    <div>
+      <label for="name" class="form-label">Name *</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        required
+        class="form-input"
+        placeholder="Your name"
+      >
     </div>
 
-    <div class="form-group">
-      <label for="email">Email *</label>
-      <input type="email" id="email" name="email" required>
+    <div>
+      <label for="email" class="form-label">Email *</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        required
+        class="form-input"
+        placeholder="your.email@example.com"
+      >
     </div>
 
-    <div class="form-group">
-      <label for="subject">Subject *</label>
-      <input type="text" id="subject" name="subject" required>
+    <div>
+      <label for="subject" class="form-label">Subject *</label>
+      <input
+        type="text"
+        id="subject"
+        name="subject"
+        required
+        class="form-input"
+        placeholder="What is this about?"
+      >
     </div>
 
-    <div class="form-group">
-      <label for="message">Message *</label>
-      <textarea id="message" name="message" required></textarea>
+    <div>
+      <label for="message" class="form-label">Message *</label>
+      <textarea
+        id="message"
+        name="message"
+        required
+        class="form-textarea"
+        placeholder="Your message..."
+      ></textarea>
     </div>
 
-    <button type="submit" class="submit-btn" id="submitBtn">Send Message</button>
+    <button type="submit" class="btn-primary" id="submitBtn">
+      Send Message
+    </button>
 
-    <div id="formMessage" class="form-message"></div>
+    <div
+      id="formMessage"
+      class="hidden mt-4 p-4 rounded-lg"
+      role="alert"
+    ></div>
   </form>
 </div>
 
 <script>
+const WORKER_URL = 'https://contact.gatezh.com'; // Update this with your worker URL after deployment
+
 document.getElementById('contactForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -130,17 +84,17 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
   submitBtn.textContent = 'Sending...';
 
   // Hide previous messages
-  formMessage.classList.remove('show', 'success', 'error');
+  formMessage.className = 'hidden mt-4 p-4 rounded-lg';
 
   const formData = {
-    name: form.name.value,
-    email: form.email.value,
-    subject: form.subject.value,
-    message: form.message.value
+    name: form.name.value.trim(),
+    email: form.email.value.trim(),
+    subject: form.subject.value.trim(),
+    message: form.message.value.trim()
   };
 
   try {
-    const response = await fetch('/api/contact', {
+    const response = await fetch(WORKER_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -152,14 +106,14 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
 
     if (response.ok) {
       formMessage.textContent = 'Thank you! Your message has been sent successfully.';
-      formMessage.classList.add('success', 'show');
+      formMessage.className = 'block mt-4 p-4 rounded-lg bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 border border-green-200 dark:border-green-800';
       form.reset();
     } else {
       throw new Error(data.error || 'Failed to send message');
     }
   } catch (error) {
     formMessage.textContent = 'Sorry, there was an error sending your message. Please try again later.';
-    formMessage.classList.add('error', 'show');
+    formMessage.className = 'block mt-4 p-4 rounded-lg bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 border border-red-200 dark:border-red-800';
     console.error('Form submission error:', error);
   } finally {
     submitBtn.disabled = false;

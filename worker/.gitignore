@@ -1,0 +1,9 @@
+# Local development variables
+.dev.vars
+
+# Wrangler output
+dist/
+.wrangler/
+
+# TypeScript
+*.tsbuildinfo

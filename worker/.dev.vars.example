@@ -1,0 +1,8 @@
+# Development environment variables for the Contact Form Worker
+# Copy this file to .dev.vars and fill in your values
+# DO NOT commit .dev.vars to version control!
+
+RESEND_API_KEY=re_your_api_key_here
+CONTACT_EMAIL_FROM=noreply@gatezh.com
+CONTACT_EMAIL_TO=your.email@example.com
+ALLOWED_ORIGINS=https://gatezh.com,http://localhost:1313
