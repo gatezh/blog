@@ -164,8 +164,8 @@ wrangler secret put CONTACT_EMAIL_FROM
 wrangler secret put CONTACT_EMAIL_TO
 
 # Optionally set ALLOWED_ORIGINS (non-secret, can use vars)
-# Edit wrangler.toml to add under [vars]:
-# ALLOWED_ORIGINS = "https://gatezh.com,http://localhost:1313"
+# Edit wrangler.yaml to add under vars:
+# ALLOWED_ORIGINS: "https://gatezh.com,http://localhost:1313"
 ```
 
 **Important:** Use `wrangler secret put` for sensitive values like API keys. They will be encrypted and stored securely.
@@ -353,7 +353,7 @@ blog/
 │   └── contact.md                   # Contact form page with Tailwind
 ├── worker/
 │   ├── index.ts                     # Cloudflare Worker code
-│   ├── wrangler.toml                # Worker configuration
+│   ├── wrangler.yaml                # Worker configuration
 │   ├── .dev.vars.example            # Example dev environment variables
 │   ├── .dev.vars                    # Local dev environment (gitignored)
 │   └── .gitignore                   # Worker-specific gitignore
@@ -387,7 +387,7 @@ All scripts are in `package.json` and use Bun:
 - ✅ **DO**: Use `wrangler secret put` for production API keys
 - ✅ **DO**: Use `.dev.vars` for local development (gitignored)
 - ❌ **DON'T**: Commit API keys to version control
-- ❌ **DON'T**: Put API keys in `wrangler.toml` or environment files
+- ❌ **DON'T**: Put API keys in `wrangler.yaml` or environment files
 - ✅ **DO**: Rotate the key immediately if it's ever exposed
 
 ### Input Validation
