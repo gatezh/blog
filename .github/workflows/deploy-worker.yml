@@ -3,7 +3,7 @@ name: Deploy Worker
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'worker/**'
   pull_request:
@@ -30,7 +30,7 @@ jobs:
         run: bun run test
 
       - name: Deploy to Cloudflare Workers
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         working-directory: ./worker
         run: bun run deploy
         env:

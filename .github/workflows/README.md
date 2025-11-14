@@ -9,7 +9,7 @@ This directory contains GitHub Actions workflows for automated CI/CD.
 Automatically deploys the Cloudflare Worker when changes are pushed to the `worker/` directory.
 
 **Triggers:**
-- Push to `main` branch with changes in `worker/**`
+- Push to `master` branch with changes in `worker/**`
 - Pull requests with changes in `worker/**`
 
 **Steps:**
@@ -17,7 +17,7 @@ Automatically deploys the Cloudflare Worker when changes are pushed to the `work
 2. Setup Bun runtime
 3. Install worker dependencies
 4. Run tests
-5. Deploy to Cloudflare Workers (only on push to main)
+5. Deploy to Cloudflare Workers (only on push to master)
 
 **Required Secrets:**
 
@@ -41,7 +41,7 @@ Add the following secret to your GitHub repository:
 **Deployment Behavior:**
 
 - **Pull Requests**: Runs tests only (no deployment)
-- **Push to main**: Runs tests and deploys if tests pass
+- **Push to master**: Runs tests and deploys if tests pass
 - **Other branches**: Only triggers if `worker/` files change
 
 **Manual Deployment:**
