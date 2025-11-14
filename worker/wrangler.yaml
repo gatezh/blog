@@ -1,6 +1,6 @@
 # Wrangler configuration for Contact Form Worker
 name: gatezh-contact-worker
-main: index.ts
+main: src/index.ts
 compatibility_date: "2024-11-14"
 
 # Worker will be available at contact.gatezh.com (configure via Cloudflare dashboard)

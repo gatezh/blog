@@ -1,0 +1,27 @@
+{
+  "name": "gatezh-contact-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for handling contact form submissions with Airtable storage",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.5.17",
+    "@cloudflare/workers-types": "4.20241127.0",
+    "prettier": "3.4.2",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8",
+    "wrangler": "3.94.0"
+  },
+  "dependencies": {}
+}
