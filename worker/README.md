@@ -153,6 +153,44 @@ wrangler secret put ALLOWED_ORIGINS
 
 **Important:** Secrets are stored in Cloudflare, NOT in `.env` files or your repository!
 
+## GitHub Actions Deployment
+
+The worker includes a GitHub Actions workflow that automatically deploys on push to `master` when files in `worker/` change.
+
+### Setup GitHub Actions
+
+**1. Create a Cloudflare API Token**
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens)
+2. Click "Create Token"
+3. Use the "Edit Cloudflare Workers" template, or create a custom token with these permissions:
+   - **Account** → **Cloudflare Workers Scripts** → **Edit**
+4. Select your account under "Account Resources"
+5. Click "Continue to summary" → "Create Token"
+6. **Copy the token** (you won't see it again!)
+
+**2. Add Token to GitHub Secrets**
+
+1. Go to your GitHub repository
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click "New repository secret"
+4. Name: `CLOUDFLARE_API_TOKEN`
+5. Value: Paste your Cloudflare API token
+6. Click "Add secret"
+
+**3. Verify Workflow**
+
+The workflow will automatically run when:
+- You push to `master` branch with changes in `worker/`
+- You create a PR with changes in `worker/`
+
+It will:
+1. Install dependencies with Bun
+2. Run tests
+3. Deploy to Cloudflare (only on push to master)
+
+**Note:** Make sure to set your production secrets in Cloudflare (see step 3 above) before the first deployment!
+
 ## API
 
 ### POST /
