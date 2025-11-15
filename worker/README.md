@@ -117,8 +117,28 @@ bun run cf-typegen
 
 ### 1. Authenticate with Cloudflare
 
+**Option A: Local Machine (OAuth)**
+
 ```bash
 wrangler login
+```
+
+**Option B: Codespace/Container/CI (API Token)**
+
+If OAuth login doesn't work (e.g., in GitHub Codespaces or containers), use an API token:
+
+1. Create a Cloudflare API Token at https://dash.cloudflare.com/profile/api-tokens
+2. Use the "Edit Cloudflare Workers" template
+3. Set the token as an environment variable:
+
+```bash
+export CLOUDFLARE_API_TOKEN=your_token_here
+```
+
+Or deploy with the token inline:
+
+```bash
+CLOUDFLARE_API_TOKEN=your_token_here bun run deploy
 ```
 
 ### 2. Deploy to Production
