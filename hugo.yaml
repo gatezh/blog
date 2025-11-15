@@ -3,6 +3,11 @@ languageCode: en-us
 title: Serge Gatezh
 theme: ["PaperMod"]
 
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
 services:
   googleAnalytics:
     id: G-96MLGN850Y

@@ -2,6 +2,7 @@
 title: "Contact"
 date: 2025-11-14
 showToc: false
+comments: false
 ---
 
 <link rel="stylesheet" href="/css/tailwind.css">
