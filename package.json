@@ -5,9 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "hugo server -D",
-    "build": "hugo"
-  },
-  "devDependencies": {
-    "tailwindcss": "4.1.17"
+    "build": "bun run build:css && hugo",
+    "build:css": "npx --yes @tailwindcss/cli@4.1.17 -i ./assets/css/input.css -o ./static/css/tailwind.css --minify",
+    "watch:css": "npx --yes @tailwindcss/cli@4.1.17 -i ./assets/css/input.css -o ./static/css/tailwind.css --watch"
   }
 }

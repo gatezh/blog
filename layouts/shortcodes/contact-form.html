@@ -1,8 +1,4 @@
-{{ $css := resources.Get "css/input.css" | css.TailwindCSS }}
-{{ if hugo.IsProduction }}
-  {{ $css = $css | minify | fingerprint }}
-{{ end }}
-<link rel="stylesheet" href="{{ $css.RelPermalink }}"{{ with $css.Data.Integrity }} integrity="{{ . }}"{{ end }}>
+<link rel="stylesheet" href="/css/tailwind.css">
 
 <div class="max-w-2xl mx-auto px-4 py-8">
   <p class="mb-8 text-lg text-gray-700 dark:text-gray-300">Feel free to reach out to me using the form below:</p>
