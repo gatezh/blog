@@ -16,6 +16,9 @@ hugo.linux
 # Temporary lock file while building
 /.hugo_build.lock
 
+# Module cache
+/_vendor/
+
 ### macOS ###
 # General
 .DS_Store
