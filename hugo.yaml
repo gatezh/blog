@@ -1,7 +1,10 @@
 baseURL: http://gatezh.com/
 languageCode: en-us
 title: Serge Gatezh
-theme: ["PaperMod"]
+
+module:
+  imports:
+    - path: github.com/adityatelange/hugo-PaperMod
 
 services:
   googleAnalytics:
