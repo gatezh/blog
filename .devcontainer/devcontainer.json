@@ -1,8 +1,8 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/marcosgomesneto/bun-devcontainers/tree/main/src/basic-bun
+// For format details, see https://aka.ms/devcontainer.json
 {
   "name": "gatezh.com",
-  "dockerFile": "Dockerfile",
+  "image": "ghcr.io/gatezh/devcontainer-hugo-bun:latest",
+
   // Configure tool-specific properties.
   "customizations": {
     // Configure properties specific to VS Code.
@@ -31,5 +31,6 @@
       ]
     }
   },
+
   "postCreateCommand": "bash -lc 'ln -sf \"$(command -v bun)\" /usr/local/bin/node'"
 }

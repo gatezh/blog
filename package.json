@@ -4,7 +4,7 @@
   "description": "Personal blog with Hugo and Cloudflare Workers",
   "private": true,
   "scripts": {
-    "dev": "hugo server -D",
+    "dev": "hugo server --appendPort=false --baseURL / --bind 0.0.0.0 -D",
     "build": "bun run build:css && hugo",
     "build:css": "npx --yes @tailwindcss/cli@4.1.17 -i ./assets/css/input.css -o ./static/css/tailwind.css --minify",
     "watch:css": "npx --yes @tailwindcss/cli@4.1.17 -i ./assets/css/input.css -o ./static/css/tailwind.css --watch"
