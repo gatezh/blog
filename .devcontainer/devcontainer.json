@@ -2,6 +2,10 @@
   "name": "gatezh.com",
   "image": "ghcr.io/gatezh/devcontainer-hugo-bun:latest",
 
+  "runArgs": [
+    "--hostname=gatezh-blog"
+  ],
+
   "customizations": {
     "vscode": {
       "settings": {
