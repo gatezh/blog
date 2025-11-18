@@ -27,6 +27,8 @@ params:
     buttons:
       - name: go to posts
         url: "/posts"
+      - name: contact
+        url: "/contact"
       # - name: Tags
       #   url: "/tags"
 

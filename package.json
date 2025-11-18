@@ -1,0 +1,13 @@
+{
+  "name": "gatezh-blog",
+  "version": "1.0.0",
+  "description": "Personal blog with Hugo and Cloudflare Workers",
+  "private": true,
+  "scripts": {
+    "dev": "hugo server --appendPort=false --baseURL / --bind 0.0.0.0 -D",
+    "build": "hugo"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.1.17"
+  }
+}

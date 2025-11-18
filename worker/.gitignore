@@ -1,0 +1,20 @@
+# Local development variables
+.dev.vars
+
+# Dependencies
+node_modules/
+bun.lockb
+
+# Wrangler output
+dist/
+.wrangler/
+
+# TypeScript
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+.vitest/
+
+# Build artifacts
+*.log

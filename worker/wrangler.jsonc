@@ -1,0 +1,25 @@
+{
+  "name": "gatezh-contact-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-14",
+  /**
+   * Environment Variables
+   * Set secrets using: wrangler secret put <KEY>
+   * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+   *
+   * Required:
+   * - AIRTABLE_API_KEY: Your Airtable Personal Access Token
+   * - AIRTABLE_BASE_ID: Your Airtable base ID (starts with app)
+   * - AIRTABLE_TABLE_NAME: Name of your Airtable table
+   *
+   * Optional (for email notifications):
+   * - RESEND_API_KEY: Your Resend API key
+   * - CONTACT_EMAIL_FROM: Email address to send from
+   * - CONTACT_EMAIL_TO: Your email address to receive notifications
+   *
+   * For local development, create a .dev.vars file (see .dev.vars.example)
+   **/
+  "vars": {
+    // "ALLOWED_ORIGINS": "https://gatezh.com,http://localhost:1313"
+  }
+}

@@ -1,26 +1,34 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/marcosgomesneto/bun-devcontainers/tree/main/src/basic-bun
 {
-  "name": "gatezh.com",
-  "dockerFile": "Dockerfile",
+  "name": "gatezh-com",
+  "image": "ghcr.io/gatezh/devcontainer-hugo-bun:latest",
+  "runArgs": [
+    "--hostname=gatezh-com"
+  ],
   // Configure tool-specific properties.
   "customizations": {
     // Configure properties specific to VS Code.
     "vscode": {
+      // Use zsh as the default shell for better VS Code integration
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        // Suppress extension recommendation prompts (e.g., Container Tools in Codespaces)
+        "extensions.ignoreRecommendations": true
+      },
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
+        // **Claude Code**
+        "anthropic.claude-code",
         // **Bun**
         "oven.bun-vscode",
-
         // Prettier - Code Formatter
         "esbenp.prettier-vscode",
-
         // **Tailwind**
         // Tailwind CSS IntelliSense
         "bradlc.vscode-tailwindcss",
         // Tailwind Fold
         "stivo.tailwind-fold",
-
         // **Hugo**
         // Hugofy - Hugo-related extension
         "akmittal.hugofy",
@@ -30,6 +38,5 @@
         "kaellarkin.hugo-shortcode-syntax"
       ]
     }
-  },
-  "postCreateCommand": "bash -lc 'ln -sf \"$(command -v bun)\" /usr/local/bin/node'"
+  }
 }
