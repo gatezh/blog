@@ -1,4 +1,4 @@
-{{ $css := resources.Get "css/input.css" | postCSS }}
+{{ $css := resources.Get "css/input.css" | css.TailwindCSS }}
 {{ if hugo.IsProduction }}
   {{ $css = $css | minify | fingerprint }}
 {{ end }}

@@ -8,9 +8,6 @@
     "build": "hugo"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "4.1.17",
-    "postcss": "8.4.49",
-    "postcss-cli": "11.0.0",
     "tailwindcss": "4.1.17"
   }
 }
