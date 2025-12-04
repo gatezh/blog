@@ -8,7 +8,7 @@
     "source=${localWorkspaceFolderBasename}-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
   ],
   "runArgs": [
-    "--hostname=devcontainer-name"
+    "--hostname=gatezh-com"
   ],
   // Configure tool-specific properties.
   "customizations": {
@@ -22,8 +22,6 @@
       },
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
-        // **Claude Code**
-        "anthropic.claude-code",
         // **Bun**
         "oven.bun-vscode",
         // Prettier - Code Formatter
