@@ -1,0 +1,17 @@
+plugins:
+  # Found here: https://discourse.gohugo.io/t/hugo-and-prettier/22596/4
+  # https://github.com/NiklasPor/prettier-plugin-go-template
+  # ⚠️ Seems to be abandoned
+  # TODO: Try https://github.com/amochkin/prettier-hugo-plugin
+  - prettier-plugin-go-template
+  - prettier-plugin-tailwindcss
+
+overrides:
+  - files:
+      - "*.html"
+    options:
+      parser: go-template
+  - files: "*.jsonc"
+    options:
+      parser: jsonc
+      trailingComma: none
