@@ -267,6 +267,8 @@ Visit `https://github.com/users/YOUR_USERNAME/packages` and check the "OS/Arch" 
 
 It was a great learning experience to get my Docker images standardized and have a single source of truth for all of my projects that use the same tech stack.
 
+Check out my [devcontainer-images](https://github.com/gatezh/devcontainer-images) repository to see whatever is omitted in this article.
+
 If you find my writing useful, or feel like I missed something in my tutorial – let me know in the comments below!
 
 ---
