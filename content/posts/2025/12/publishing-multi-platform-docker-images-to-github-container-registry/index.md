@@ -10,9 +10,9 @@ draft: true
 
 ## Why I Needed This
 
-I've been working with devcontainers for my projects, and every time I start a new project, I end up waiting some time for Docker to download and install Hugo, Bun, and other dependencies. It wasn't too long of a wait (maybe 30-40 seconds), but it's annoying enough to start thinking about to do something about it.
+I've been working with devcontainers for my projects, and every time I start a new project, I end up waiting for some time for Docker to download and install Hugo, Bun, and other dependencies. It wasn't too long of a wait (maybe 30-40 seconds), but it's annoying enough to start thinking about doing something about it.
 
-Another reason is that each of my projects had it's own Dockerfile in devcontainer setup, so when I changed something in the image and wanted to propagete it to other projetcts I had to do it manually.
+Another reason is that each of my projects had its own Dockerfile in devcontainer setup, so when I changed something in the image and wanted to propagate it to other projects I had to do it manually.
 
 The solution? Pre-build my devcontainer images and host them on GitHub Container Registry (GHCR). This way:
 
@@ -103,7 +103,7 @@ docker build \
   .
 ```
 
-As you can see I chose to add `hugo0.152.2-bun1.3.2-alpine` to be aware of the versions I'm using.
+As you can see, I chose to add `hugo0.152.2-bun1.3.2-alpine` to be aware of the versions I'm using.
 
 This worked perfectly - both tags created, build finished in seconds (thanks to layer caching).
 
@@ -128,7 +128,7 @@ Here's what I learned: **`docker build` only builds for your current platform**,
 
 The `unknown/unknown` entry is just build attestation metadata from Docker - you can ignore it.
 
-⚠️ This means my image would only work on ARM machines. If I try to use it on Intel/AMD (like on GitHub Codespaces for example) would get an error.
+⚠️ This means my image would only work on ARM machines. If I try to use it on Intel/AMD (like on GitHub Codespaces for example) I would get an error.
 
 ## Building for Both Platforms
 
@@ -265,7 +265,7 @@ Visit `https://github.com/users/YOUR_USERNAME/packages` and check the "OS/Arch" 
 
 ## Conclusion
 
-It was a greate learning experience to get my Docker images standardized and have a single source of truth for all of my projects that use the same tech stack.
+It was a great learning experience to get my Docker images standardized and have a single source of truth for all of my projects that use the same tech stack.
 
 If you find my writing useful, or feel like I missed something in my tutorial – let me know in the comments below!
 
