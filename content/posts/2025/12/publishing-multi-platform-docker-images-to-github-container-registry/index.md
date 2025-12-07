@@ -1,24 +1,24 @@
 ---
 title: 'Publishing Multi-Platform Docker Images to Github Container Registry'
 date: '2025-12-05T20:41:18Z'
+ShowToc: true
+TocOpen: true
 draft: true
 ---
 
-## Intro
-
-[Intro here]
-
-**TL;DR:** If you're just here for the commands, jump to the [Quick Reference](#quick-reference) at the bottom.
+**TL;DR:** If you're just here for the commands, jump to the **[Quick Reference](#quick-reference)** at the bottom.
 
 ## Why I Needed This
 
-I've been working with devcontainers for my projects, and every time I start a new project, I end up waiting several minutes for Docker to download and install Hugo, Bun, and other dependencies. It's not the end of the world, but it's annoying enough that I decided to do something about it.
+I've been working with devcontainers for my projects, and every time I start a new project, I end up waiting some time for Docker to download and install Hugo, Bun, and other dependencies. It wasn't too long of a wait (maybe 30-40 seconds), but it's annoying enough to start thinking about to do something about it.
+
+Another reason is that each of my projects had it's own Dockerfile in devcontainer setup, so when I changed something in the image and wanted to propagete it to other projetcts I had to do it manually.
 
 The solution? Pre-build my devcontainer images and host them on GitHub Container Registry (GHCR). This way:
 
 1. I can reuse the same image across multiple projects
 2. Container startup becomes almost instant (just pulling instead of building)
-3. I maintain one Dockerfile instead of copying it everywhere
+3. I maintain one `Dockerfile` instead of copying it everywhere
 
 Sounds simple, right? Well, it mostly is, but I ran into a few gotchas along the way.
 
@@ -55,7 +55,7 @@ Save it somewhere safe - password manager, encrypted notes, whatever works for y
 
 ## Logging Into GHCR
 
-I wondered if this login was permanent or if I needed to save the token somewhere special like `.ssh/`. Turns out, Docker stores credentials in `~/.docker/config.json`. The login persists until:
+I wondered if this login was permanent or if I needed to save the token somewhere special like `.ssh` directory. Turns out, Docker stores credentials in `~/.docker/config.json`. The login persists until:
 - You run `docker logout ghcr.io`
 - The token expires
 - You delete the config
@@ -103,6 +103,8 @@ docker build \
   .
 ```
 
+As you can see I chose to add `hugo0.152.2-bun1.3.2-alpine` to be aware of the versions I'm using.
+
 This worked perfectly - both tags created, build finished in seconds (thanks to layer caching).
 
 ### Pushing to GHCR
@@ -126,11 +128,11 @@ Here's what I learned: **`docker build` only builds for your current platform**,
 
 The `unknown/unknown` entry is just build attestation metadata from Docker - you can ignore it.
 
-⚠️ This means my image would only work on ARM machines. Anyone trying to use it on Intel/AMD (like on GitHub Codespaces for example) would get an error.
+⚠️ This means my image would only work on ARM machines. If I try to use it on Intel/AMD (like on GitHub Codespaces for example) would get an error.
 
 ## Building for Both Platforms
 
-To actually build for multiple architectures, you need `docker buildx`:
+To actually build for multiple architectures, you need to use `docker buildx` command:
 ```bash
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
@@ -145,8 +147,6 @@ Key differences:
 - `--push` is required (you can't load multi-platform images locally)
 - Docker automatically sets `TARGETARCH` correctly for each platform
 
-This build took about 4 minutes since it built twice - once for each architecture. The ARM64 build used cached layers, but AMD64 was built fresh.
-
 After the push completed, my package page now showed:
 ```
 linux/amd64 ✓
@@ -154,7 +154,7 @@ linux/arm64 ✓
 unknown/unknown (attestation)
 ```
 
-Perfect! Now anyone can use this image regardless of their architecture.
+Perfect! Now I can use this image on my M3 macbook and on GitHub Codespaces.
 
 ## The Devcontainer Confusion
 
@@ -173,6 +173,7 @@ The key insight: **the Dockerfile and the image are decoupled**.
 
 **What I was doing before (slow):**
 ```json
+// devcontainer.json
 {
   "build": {
     "dockerfile": "Dockerfile"
@@ -183,6 +184,7 @@ This builds from the Dockerfile every time you open the devcontainer.
 
 **What I should do now (fast):**
 ```json
+// devcontainer.json
 {
   "image": "ghcr.io/gatezh/devcontainer-hugo-bun:latest"
 }
@@ -199,9 +201,9 @@ For updates, the process is:
 2. Run the buildx command to rebuild and push
 3. Projects using `:latest` automatically get the update next time they rebuild
 
-You can also use specific version tags (like `hugo0.152.2-bun1.3.2-alpine`) if you want to pin to a specific version.
+You can also use specific version tags (like `hugo0.152.2-bun1.3.2-alpine`) if you want to pin to a specific version of an image.
 
-## Organizing Your Dockerfiles
+## Organizing Dockerfiles
 
 I asked about best practices for organizing this. There are two common approaches:
 
@@ -263,7 +265,9 @@ Visit `https://github.com/users/YOUR_USERNAME/packages` and check the "OS/Arch" 
 
 ## Conclusion
 
-[Conclusion here]
+It was a greate learning experience to get my Docker images standardized and have a single source of truth for all of my projects that use the same tech stack.
+
+If you find my writing useful, or feel like I missed something in my tutorial – let me know in the comments below!
 
 ---
 
