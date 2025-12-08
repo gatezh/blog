@@ -3,7 +3,6 @@ title: 'Publishing Multi-Platform Docker Images to Github Container Registry'
 date: '2025-12-05T20:41:18Z'
 ShowToc: true
 TocOpen: true
-draft: true
 ---
 
 **TL;DR:** If you're just here for the commands, jump to the **[Quick Reference](#quick-reference)** at the bottom.
