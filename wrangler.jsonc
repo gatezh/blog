@@ -15,7 +15,8 @@
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    **/
   "vars": {
-    "HUGO_VERSION": "0.118.2"
+    // ⚠️ Keep the same hugo version as in devcontainer.json
+    "HUGO_VERSION": "0.152.2"
   },
   "workers_dev": true,
   "preview_urls": true
