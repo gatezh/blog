@@ -204,7 +204,7 @@ You can also use specific version tags (like `hugo0.152.2-bun1.3.2-alpine`) if y
 
 ## Organizing Dockerfiles
 
-I asked about best practices for organizing this. There are two common approaches:
+I've looked into best practices for organizing this. There are two common approaches:
 
 **Option 1: Dedicated devcontainer-images repo**
 ```
@@ -227,6 +227,34 @@ This is cleaner if you plan to have multiple different devcontainer images. You 
 The Dockerfile lives in one project (like your blog), and other projects just reference the image. Simpler, but less organized if you have many images.
 
 I'm leaning toward Option 1 since I'll probably create more images in the future.
+
+## Dedicated repo
+
+So I've decided to go with the dedicated repository approach. Not only because it allows me to neatly organize my Dockerfiles and suggested `devcontainer.json` config files. It also allows me to add GitHub Actions workflow so that whenever I update any of my Dockerfiles it automatically builds and pushes new images to my registry.
+
+I won't go into too many details about the repo since you can simply look at the repo itself [here](https://github.com/gatezh/devcontainer-images).
+
+The only thing to mention is that when you create such a repository you can link it with your Docker images (packages) on the Packages page so it shows the README from your linked repo.
+
+## The last issue
+
+When I tried to test my GitHub Actions workflow and automatically build my images when Dockerfile changes I got an unexpected surprise:
+
+<!-- GitHub Actions permissions error.png -->
+
+{{< cfimage "images/GitHub Actions permissions error.png" "GitHub Actions permissions error" >}}
+
+Fortunately the fix is pretty simple. Since I previously created my Docker image (package) manually I just needed to:
+
+1. Go to the package settings (on GitHub, navigate to your profile/org → Packages → select the package)
+2. Scroll to "Manage Actions access"
+3. Add your repository with "Write" role
+
+<!-- Manage Actions access.png -->
+
+{{< cfimage "images/Manage Actions access.png" "Manage Actions access" >}}
+
+That did the trick and the following updates were built and published to my registry automatically. Nice 😎
 
 ## Quick Reference
 
