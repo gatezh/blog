@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/marcosgomesneto/bun-devcontainers/tree/main/src/basic-bun
 {
-  "name": "gatezh.com",
+  "name": "Hugo Dev",
   // ⚠️ Keep the same hugo version as in wrangler.jsonc
   "image": "ghcr.io/gatezh/devcontainer-hugo-bun:hugo0.152.2-bun1.3.2-alpine",
   // Keep node_modules out of a host machine
