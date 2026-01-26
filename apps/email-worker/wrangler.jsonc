@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gatezh-com-email-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-03",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  // Environment variables (non-sensitive)
+  "vars": {
+    // Email recipient - where contact form submissions are sent
+    "TO_EMAIL": "hello@example.com",
+    // Email sender - must be from a verified domain in Resend
+    "FROM_EMAIL": "contact@example.com",
+    // Allowed CORS origin for the contact form
+    "ALLOWED_ORIGIN": "https://example.com"
+  },
+  "observability": {
+    "enabled": false,
+    "logs": {
+      "enabled": true
+    }
+  }
+  // Secrets (set via `wrangler secret put`):
+  // - RESEND_API_KEY: Your Resend API key
+  // - TURNSTILE_SECRET_KEY: Your Cloudflare Turnstile secret key
+}
