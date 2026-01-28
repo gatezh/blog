@@ -65,6 +65,7 @@ node_modules/
 ### Cloudflare ###
 .wrangler/
 **/dist/
+worker-configuration.d.ts
 
 ### Environment ###
 .env
