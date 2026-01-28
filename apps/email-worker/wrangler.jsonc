@@ -6,12 +6,10 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  // Environment variables (non-sensitive)
   "vars": {
-    // Email recipient - where contact form submissions are sent
-    "TO_EMAIL": "serge@gatezh.com",
-    // Email sender - must be from a verified domain in Resend
-    "FROM_EMAIL": "contact@gatezh.com",
+    // TO_EMAIL and FROM_EMAIL are set in the Cloudflare Dashboard.
+    // Do not set them here — values in this file override dashboard settings on deploy.
+
     // Allowed CORS origin for the contact form
     "ALLOWED_ORIGIN": "https://gatezh.com"
   },
