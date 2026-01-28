@@ -9,7 +9,7 @@
     "types": "wrangler types"
   },
   "dependencies": {
-    "hono": "4.11.6",
+    "hono": "4.11.7",
     "resend": "4.5.1"
   },
   "devDependencies": {
