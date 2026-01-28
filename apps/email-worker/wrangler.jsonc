@@ -6,7 +6,6 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  // Environment variables (non-sensitive)
   "vars": {
     // Email recipient - where contact form submissions are sent
     "TO_EMAIL": "hello@example.com",

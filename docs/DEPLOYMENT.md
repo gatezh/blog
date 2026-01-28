@@ -73,14 +73,14 @@ Before deploying, you need:
 
 ### 5. Configure Email Destination
 
-Edit `apps/email-worker/wrangler.jsonc` to set where contact form emails are sent:
+Set the following environment variables in the Cloudflare Dashboard under Workers & Pages > `gatezh-com-email-worker` > Settings > Variables:
 
-```jsonc
-"vars": {
-  "TO_EMAIL": "hello@example.com",      // Where to receive emails
-  "FROM_EMAIL": "contact@example.com"   // Must be from verified domain
-}
-```
+| Variable     | Description                                                                               |
+| ------------ | ----------------------------------------------------------------------------------------- |
+| `TO_EMAIL`   | Where to receive contact form emails (e.g., `hello@yourdomain.com`)                       |
+| `FROM_EMAIL` | Sender address, must be from a domain verified in Resend (e.g., `contact@yourdomain.com`) |
+
+> **Note:** Do not add these to `wrangler.jsonc` — values in the config file override dashboard settings on every deploy.
 
 ### 6. Configure GitHub Secrets and Variables
 
