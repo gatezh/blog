@@ -34,10 +34,10 @@ params:
   # Contact form configuration
   # Turnstile site key (public, safe to commit)
   # Get from Cloudflare Dashboard > Turnstile
-  turnstileSiteKey: ""
+  turnstileSiteKey: "0x4AAAAAACUaMne4Sn7WV9Yo"
   # Worker URL - set after deploying the email worker
   # Example: https://gatezh-com-email-worker.<subdomain>.workers.dev
-  contactWorkerUrl: ""
+  contactWorkerUrl: "https://gatezh-com-email-worker.gatezh.workers.dev"
 
   profileMode:
     enabled: true
