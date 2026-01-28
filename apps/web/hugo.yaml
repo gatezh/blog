@@ -1,0 +1,54 @@
+baseURL: https://gatezh.com/
+languageCode: en-us
+title: Serge Gatezh
+
+module:
+  imports:
+    - path: github.com/adityatelange/hugo-PaperMod
+
+services:
+  googleAnalytics:
+    id: G-96MLGN850Y
+
+permalinks:
+  posts: "/posts/:filename/"
+
+menu:
+  main:
+    - identifier: posts
+      name: Posts
+      url: /posts/
+      weight: 10
+    - identifier: ever-learning
+      name: Ever Learning
+      url: /ever-learning/
+      weight: 20
+    - identifier: contact
+      name: Contact
+      url: /contact/
+      weight: 30
+
+params:
+  comments: true
+
+  # Contact form configuration
+  # Turnstile site key (public, safe to commit)
+  # Get from Cloudflare Dashboard > Turnstile
+  turnstileSiteKey: "0x4AAAAAACUaMne4Sn7WV9Yo"
+  # Worker URL - set after deploying the email worker
+  # Example: https://gatezh-com-email-worker.<subdomain>.workers.dev
+  contactWorkerUrl: "https://gatezh-com-email-worker.gatezh.workers.dev"
+
+  profileMode:
+    enabled: true
+    title: "Serge Gatezh"
+    subtitle: "Front-end Engineer"
+    buttons:
+      - name: go to posts
+        url: "/posts"
+
+  socialIcons:
+    - name: "GitHub"
+      url: "https://github.com/gatezh"
+    - name: "Linkedin"
+      url: "https://linkedin.com/in/gatezh"
