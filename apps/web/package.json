@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "hugo server --buildDrafts --appendPort=false --baseURL / --bind 0.0.0.0",
-    "build": "hugo --minify",
+    "dev": "test -n \"$CODESPACE_NAME\" && hugo server --buildDrafts --appendPort=false --baseURL / --bind 0.0.0.0 || hugo server --buildDrafts --bind 0.0.0.0",
     "preview": "hugo server --appendPort=false --baseURL / --bind 0.0.0.0",
+    "build": "hugo --minify",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {

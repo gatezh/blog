@@ -25,6 +25,12 @@ This is a Bun monorepo for gatezh.com containing:
   - `.github/workflows/deploy-web.yml` (env.BUN_VERSION)
   - `.github/workflows/deploy-email-worker.yml` (env.BUN_VERSION)
 
+### Pre-Completion Checks
+Before finishing any feature or change, **ALWAYS run verification**:
+- **TypeScript**: `bunx tsc --noEmit` in any workspace with TypeScript
+- **Build**: `bun run build` to ensure production build works
+- **Tests**: `bun run test` if tests exist for the changed code
+
 ## Monorepo Structure
 
 ```
