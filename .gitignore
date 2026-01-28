@@ -3,9 +3,9 @@
 
 ### Hugo ###
 # Generated files by hugo
-/public/
-/resources/_gen/
-/assets/jsconfig.json
+**/public/
+**/resources/_gen/
+**/assets/jsconfig.json
 hugo_stats.json
 
 # Executable may be added to repository
@@ -14,10 +14,10 @@ hugo.darwin
 hugo.linux
 
 # Temporary lock file while building
-/.hugo_build.lock
+**/.hugo_build.lock
 
 # Module cache
-/_vendor/
+**/_vendor/
 
 ### macOS ###
 # General
@@ -59,9 +59,15 @@ Temporary Items
 ### Node ###
 node_modules/
 
+### Bun ###
+# bun.lock is committed for reproducible builds
+
 ### Cloudflare ###
 .wrangler/
+**/dist/
+worker-configuration.d.ts
 
 ### Environment ###
 .env
 .env.*
+.dev.vars

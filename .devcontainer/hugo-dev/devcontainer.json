@@ -2,11 +2,13 @@
 // README at: https://github.com/marcosgomesneto/bun-devcontainers/tree/main/src/basic-bun
 {
   "name": "Hugo Dev",
-  // ⚠️ Keep the same hugo version as in wrangler.jsonc
+  // ⚠️ Keep the same hugo version as in .github/workflows/deploy-web.yml
   "image": "ghcr.io/gatezh/devcontainer-hugo-bun:hugo0.152.2-bun1.3.2-alpine",
   // Keep node_modules out of a host machine
   "mounts": [
-    "source=${localWorkspaceFolderBasename}-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+    "source=${localWorkspaceFolderBasename}-root-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=${localWorkspaceFolderBasename}-web-node_modules,target=${containerWorkspaceFolder}/apps/web/node_modules,type=volume",
+    "source=${localWorkspaceFolderBasename}-worker-node_modules,target=${containerWorkspaceFolder}/apps/email-worker/node_modules,type=volume"
   ],
   "runArgs": [
     "--hostname=gatezh-com"
@@ -41,5 +43,7 @@
         "kaellarkin.hugo-shortcode-syntax"
       ]
     }
-  }
+  },
+  // Run bun install after container creation
+  "postCreateCommand": "bun install"
 }
