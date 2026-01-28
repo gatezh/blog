@@ -1,15 +1,19 @@
+import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { Resend } from "resend";
 
-interface Env {
-  // Secrets (set via wrangler secret put)
-  RESEND_API_KEY: string;
-  TURNSTILE_SECRET_KEY: string;
-  ALLOWED_ORIGIN: string;
-
-  // Environment variables
-  TO_EMAIL: string;
-  FROM_EMAIL: string;
-}
+// Environment bindings type
+type Env = {
+  Bindings: {
+    // Secrets (set via wrangler secret put)
+    RESEND_API_KEY: string;
+    TURNSTILE_SECRET_KEY: string;
+    ALLOWED_ORIGIN: string;
+    // Environment variables
+    TO_EMAIL: string;
+    FROM_EMAIL: string;
+  };
+};
 
 interface ContactFormData {
   name: string;
@@ -50,7 +54,7 @@ async function verifyTurnstile(
     }
   );
 
-  const result: TurnstileVerifyResponse = await response.json();
+  const result = (await response.json()) as TurnstileVerifyResponse;
 
   if (!result.success) {
     return {
@@ -77,97 +81,18 @@ function sanitize(input: string): string {
     .replace(/'/g, "&#x27;");
 }
 
-// Create CORS headers
-function corsHeaders(origin: string, allowedOrigin: string): HeadersInit {
-  // Allow the specific origin or localhost for development
-  const isAllowed =
-    origin === allowedOrigin ||
-    origin.startsWith("http://localhost:") ||
-    origin.startsWith("http://127.0.0.1:");
+// Build HTML email content
+function buildHtmlContent(
+  safeName: string,
+  safeEmail: string,
+  safeSubject: string | null,
+  safeMessage: string
+): string {
+  const subjectLine = safeSubject
+    ? `<p><strong>Subject:</strong> ${safeSubject}</p>`
+    : "";
 
-  return {
-    "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Max-Age": "86400",
-  };
-}
-
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const origin = request.headers.get("Origin") || "";
-    const headers = corsHeaders(origin, env.ALLOWED_ORIGIN);
-
-    // Handle CORS preflight
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers });
-    }
-
-    // Only accept POST requests
-    if (request.method !== "POST") {
-      return new Response(JSON.stringify({ error: "Method not allowed" }), {
-        status: 405,
-        headers: { ...headers, "Content-Type": "application/json" },
-      });
-    }
-
-    try {
-      const data: ContactFormData = await request.json();
-
-      // Validate required fields
-      if (!data.name || !data.email || !data.message || !data.turnstileToken) {
-        return new Response(
-          JSON.stringify({ error: "Missing required fields" }),
-          {
-            status: 400,
-            headers: { ...headers, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      // Validate email format
-      if (!isValidEmail(data.email)) {
-        return new Response(
-          JSON.stringify({ error: "Invalid email address" }),
-          {
-            status: 400,
-            headers: { ...headers, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      // Verify Turnstile token
-      const clientIP = request.headers.get("CF-Connecting-IP");
-      const turnstileResult = await verifyTurnstile(
-        data.turnstileToken,
-        env.TURNSTILE_SECRET_KEY,
-        clientIP
-      );
-
-      if (!turnstileResult.success) {
-        return new Response(
-          JSON.stringify({
-            error: "Captcha verification failed. Please try again.",
-          }),
-          {
-            status: 400,
-            headers: { ...headers, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      // Sanitize inputs
-      const safeName = sanitize(data.name);
-      const safeEmail = sanitize(data.email);
-      const safeSubject = data.subject ? sanitize(data.subject) : null;
-      const safeMessage = sanitize(data.message);
-
-      // Build email content
-      const subjectLine = safeSubject
-        ? `<p><strong>Subject:</strong> ${safeSubject}</p>`
-        : "";
-
-      const htmlContent = `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -208,69 +133,139 @@ export default {
   </div>
 </body>
 </html>`;
+}
 
-      const textContent = `New Contact Form Submission
+// Build plain text email content
+function buildTextContent(
+  name: string,
+  email: string,
+  subject: string | undefined,
+  message: string
+): string {
+  return `New Contact Form Submission
 
-Name: ${data.name}
-Email: ${data.email}
-${safeSubject ? `Subject: ${data.subject}\n` : ""}
+Name: ${name}
+Email: ${email}
+${subject ? `Subject: ${subject}\n` : ""}
 Message:
-${data.message}
+${message}
 
 ---
 This message was sent via the contact form on gatezh.com`;
+}
 
-      // Send email via Resend
-      const resend = new Resend(env.RESEND_API_KEY);
+const app = new Hono<Env>();
 
-      const emailSubject = safeSubject
-        ? `Contact: ${safeSubject}`
-        : `Contact from ${safeName}`;
+// CORS middleware with dynamic origin checking
+app.use(
+  "*",
+  cors({
+    origin: (origin, c) => {
+      const allowedOrigin = c.env.ALLOWED_ORIGIN;
+      // Allow the specific origin or localhost for development
+      const isAllowed =
+        origin === allowedOrigin ||
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:");
+      return isAllowed ? origin : allowedOrigin;
+    },
+    allowMethods: ["POST", "OPTIONS"],
+    allowHeaders: ["Content-Type"],
+    maxAge: 86400,
+  })
+);
 
-      const { data: emailData, error } = await resend.emails.send({
-        from: `Serge Gatezh Blog <${env.FROM_EMAIL}>`,
-        to: env.TO_EMAIL,
-        replyTo: data.email,
-        subject: emailSubject,
-        html: htmlContent,
-        text: textContent,
-      });
+// Contact form submission endpoint
+app.post("/", async (c) => {
+  try {
+    const data = await c.req.json<ContactFormData>();
 
-      if (error) {
-        console.error("Resend error:", error);
-        return new Response(
-          JSON.stringify({
-            error: "Failed to send message. Please try again later.",
-          }),
-          {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" },
-          }
-        );
-      }
+    // Validate required fields
+    if (!data.name || !data.email || !data.message || !data.turnstileToken) {
+      return c.json({ error: "Missing required fields" }, 400);
+    }
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: "Thank you! Your message has been sent successfully.",
-          id: emailData?.id,
-        }),
-        {
-          status: 200,
-          headers: { ...headers, "Content-Type": "application/json" },
-        }
-      );
-    } catch (error) {
-      console.error("Worker error:", error);
-      return new Response(
-        JSON.stringify({
-          error: "An unexpected error occurred. Please try again.",
-        }),
-        {
-          status: 500,
-          headers: { ...headers, "Content-Type": "application/json" },
-        }
+    // Validate email format
+    if (!isValidEmail(data.email)) {
+      return c.json({ error: "Invalid email address" }, 400);
+    }
+
+    // Verify Turnstile token
+    const clientIP = c.req.header("CF-Connecting-IP") || null;
+    const turnstileResult = await verifyTurnstile(
+      data.turnstileToken,
+      c.env.TURNSTILE_SECRET_KEY,
+      clientIP
+    );
+
+    if (!turnstileResult.success) {
+      return c.json(
+        { error: "Captcha verification failed. Please try again." },
+        400
       );
     }
-  },
-};
+
+    // Sanitize inputs
+    const safeName = sanitize(data.name);
+    const safeEmail = sanitize(data.email);
+    const safeSubject = data.subject ? sanitize(data.subject) : null;
+    const safeMessage = sanitize(data.message);
+
+    // Build email content
+    const htmlContent = buildHtmlContent(
+      safeName,
+      safeEmail,
+      safeSubject,
+      safeMessage
+    );
+    const textContent = buildTextContent(
+      data.name,
+      data.email,
+      data.subject,
+      data.message
+    );
+
+    // Send email via Resend
+    const resend = new Resend(c.env.RESEND_API_KEY);
+
+    const emailSubject = safeSubject
+      ? `Contact: ${safeSubject}`
+      : `Contact from ${safeName}`;
+
+    const { data: emailData, error } = await resend.emails.send({
+      from: `Serge Gatezh Blog <${c.env.FROM_EMAIL}>`,
+      to: c.env.TO_EMAIL,
+      replyTo: data.email,
+      subject: emailSubject,
+      html: htmlContent,
+      text: textContent,
+    });
+
+    if (error) {
+      console.error("Resend error:", error);
+      return c.json(
+        { error: "Failed to send message. Please try again later." },
+        500
+      );
+    }
+
+    return c.json({
+      success: true,
+      message: "Thank you! Your message has been sent successfully.",
+      id: emailData?.id,
+    });
+  } catch (error) {
+    console.error("Worker error:", error);
+    return c.json(
+      { error: "An unexpected error occurred. Please try again." },
+      500
+    );
+  }
+});
+
+// Return 405 for any other methods on root
+app.all("/", (c) => {
+  return c.json({ error: "Method not allowed" }, 405);
+});
+
+export default app;
