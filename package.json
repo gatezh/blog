@@ -1,15 +1,19 @@
 {
-  "name": "gatezh-com",
+  "name": "gatezh-com-monorepo",
   "version": "1.0.0",
   "private": true,
+  "workspaces": ["apps/*"],
   "scripts": {
-    "dev": "hugo server --buildDrafts --appendPort=false --baseURL / --bind 0.0.0.0",
-    "build": "hugo --minify",
-    "preview": "hugo server --appendPort=false --baseURL / --bind 0.0.0.0"
+    "dev": "bun run --cwd apps/web dev",
+    "dev:worker": "bun run --cwd apps/email-worker dev",
+    "build": "bun run --cwd apps/web build",
+    "build:worker": "bun run --cwd apps/email-worker build",
+    "deploy:web": "bun run --cwd apps/web deploy",
+    "deploy:worker": "bun run --cwd apps/email-worker deploy",
+    "deploy": "bun run deploy:web && bun run deploy:worker",
+    "prettier": "bunx prettier . --write"
   },
   "devDependencies": {
-    "prettier": "3.5.3",
-    "prettier-plugin-go-template": "0.0.15",
-    "prettier-plugin-tailwindcss": "0.6.11"
+    "prettier": "3.5.3"
   }
 }
