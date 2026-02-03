@@ -1,0 +1,11 @@
+name = "Terminal"
+license = "MIT"
+licenselink = "https://github.com/gatezh/blog/blob/main/LICENSE"
+description = "A terminal-inspired theme for gatezh.com with light/dark mode support"
+homepage = "https://gatezh.com"
+tags = ["terminal", "minimal", "tailwind", "responsive"]
+features = ["responsive", "dark mode", "light mode", "monospace"]
+
+[author]
+  name = "Serge Gatezh"
+  homepage = "https://gatezh.com"
