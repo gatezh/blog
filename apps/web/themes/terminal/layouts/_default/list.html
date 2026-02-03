@@ -32,17 +32,18 @@
     </div>
   </header>
 
-  {{/* Post Count */}}
+  {{/* Post Count and Pagination */}}
   {{ $pages := .Pages }}
-  {{ if $pages }}
+  {{ $paginator := .Paginate $pages }}
+  {{ if $paginator.Pages }}
   <div class="mb-6 text-terminal-muted text-sm">
-    <span class="terminal-output">total {{ len $pages }} {{ if eq (len $pages) 1 }}item{{ else }}items{{ end }}</span>
+    <span class="terminal-output">total {{ $paginator.TotalNumberOfElements }} {{ if eq $paginator.TotalNumberOfElements 1 }}item{{ else }}items{{ end }}</span>
   </div>
 
   {{/* File Listing Style */}}
   <div class="file-listing">
     <ul class="post-list">
-      {{ range $pages.ByDate.Reverse }}
+      {{ range $paginator.Pages }}
       <li class="post-list-item group">
         <a href="{{ .Permalink }}" class="post-list-link block">
           {{/* File listing row */}}
@@ -91,7 +92,6 @@
   {{ end }}
 
   {{/* Pagination if enabled */}}
-  {{ $paginator := .Paginate $pages }}
   {{ if gt $paginator.TotalPages 1 }}
   <nav class="mt-8 pt-4 border-t border-terminal-border" aria-label="Pagination">
     <div class="flex items-center justify-between text-sm">

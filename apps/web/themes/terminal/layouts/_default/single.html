@@ -18,12 +18,12 @@
         <span class="terminal-window-dot red"></span>
         <span class="terminal-window-dot yellow"></span>
         <span class="terminal-window-dot green"></span>
-        <span class="terminal-window-title">~/{{ .Section | default "page" }}/{{ .File.BaseFileName | default .Title | urlize }}</span>
+        <span class="terminal-window-title">~/{{ .Section | default "page" }}/{{ with .File }}{{ .BaseFileName }}{{ else }}{{ $.Title | urlize }}{{ end }}</span>
       </div>
       <div class="terminal-window-content">
         <div class="mb-4">
           <span class="terminal-prompt"></span>
-          <span class="terminal-command">cat {{ .File.BaseFileName | default .Title | urlize }}.md</span>
+          <span class="terminal-command">cat {{ with .File }}{{ .BaseFileName }}{{ else }}{{ $.Title | urlize }}{{ end }}.md</span>
         </div>
         <h1 class="text-2xl font-bold mt-0 mb-0" itemprop="headline">{{ .Title }}</h1>
       </div>
@@ -161,6 +161,3 @@
   {{ end }}
 </article>
 {{ end }}
-
-{{/* Additional head content for article schema - description handled by head.html */}}
-{{ define "head" }}{{ end }}
