@@ -55,7 +55,7 @@ All ADRs should follow the standard template provided in [`adr-template.md`](./a
 
 | Number | Title | Status | Date |
 |--------|-------|--------|------|
-| [001](./adr-001-remark42-theme-synchronization.md) | Remark42 Theme Synchronization with PaperMod | Accepted | 2025-11-08 |
+| [001](./adr-001-remark42-theme-synchronization.md) | Remark42 Theme Synchronization with PaperMod | Superseded | 2025-11-08 |
 | [002](./adr-002-csp-configuration.md) | Content Security Policy Configuration | Accepted | 2025-11-07 |
 
 ## Resources
