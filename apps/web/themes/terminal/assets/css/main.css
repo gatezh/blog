@@ -628,42 +628,6 @@
     resize: vertical;
   }
 
-  /* -------------------------------------------------------------------------
-     Cards
-     ------------------------------------------------------------------------- */
-  .card {
-    background-color: var(--color-terminal-bg);
-    border: 1px solid var(--color-terminal-border);
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-  }
-
-  .card-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--color-terminal-fg);
-    margin-bottom: 0.75rem;
-  }
-
-  /* -------------------------------------------------------------------------
-     Utility Classes
-     ------------------------------------------------------------------------- */
-  .no-underline {
-    text-decoration: none;
-  }
-
-  .text-muted {
-    color: var(--color-terminal-muted);
-  }
-
-  .text-accent {
-    color: var(--color-terminal-accent);
-  }
-
-  .bg-secondary {
-    background-color: var(--color-terminal-bg-secondary);
-  }
-
   /* Prose - for rendered markdown content */
   .prose > *:first-child {
     margin-top: 0;
@@ -789,47 +753,6 @@
   .toc nav a::before {
     content: '# ';
     color: var(--color-terminal-border);
-  }
-}
-
-/* =============================================================================
-   Utility Layer
-   ============================================================================= */
-@layer utilities {
-  /* Transition utilities */
-  .transition-theme {
-    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
-  }
-
-  /* Text size utilities that maintain monospace */
-  .text-mono-xs {
-    font-size: 0.75rem;
-    font-family: var(--font-mono);
-  }
-
-  .text-mono-sm {
-    font-size: 0.875rem;
-    font-family: var(--font-mono);
-  }
-
-  .text-mono-base {
-    font-size: 0.9375rem;
-    font-family: var(--font-mono);
-  }
-
-  .text-mono-lg {
-    font-size: 1.125rem;
-    font-family: var(--font-mono);
-  }
-
-  /* Hide scrollbar but keep functionality */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
   }
 }
 
