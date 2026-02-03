@@ -186,11 +186,11 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 
 ## Final Verification
 
-- [ ] Run `bun run build` - must complete without errors
-- [ ] Manual test: homepage displays correctly with terminal aesthetic
-- [ ] Manual test: theme toggle works (light/dark/system positions)
-- [ ] Manual test: system theme is respected when set to "system"
-- [ ] Manual test: Remark42 comments sync with theme changes
-- [ ] Manual test: posts list and individual posts render properly
-- [ ] Manual test: contact form submits successfully
-- [ ] Manual test: site is responsive on mobile
+- [x] Run `bun run build` - must complete without errors
+- [x] Manual test: homepage displays correctly with terminal aesthetic
+- [x] Manual test: theme toggle works (light/dark/system positions)
+- [x] Manual test: system theme is respected when set to "system"
+- [x] Manual test: Remark42 comments sync with theme changes
+- [x] Manual test: posts list and individual posts render properly
+- [x] Manual test: contact form submits successfully
+- [x] Manual test: site is responsive on mobile
