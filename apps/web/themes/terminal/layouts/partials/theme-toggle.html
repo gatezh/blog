@@ -1,0 +1,158 @@
+{{/*
+  Three-position theme toggle
+
+  Positions:
+  - Light (sun icon)
+  - System (monitor icon) - default
+  - Dark (moon icon)
+
+  The toggle uses a segmented button design with the active position highlighted.
+  JavaScript handles theme switching, localStorage persistence, and system preference detection.
+*/}}
+<div class="theme-toggle" role="radiogroup" aria-label="Theme selection">
+  {{/* Light mode button */}}
+  <button
+    type="button"
+    class="theme-toggle-btn"
+    data-theme="light"
+    aria-label="Light theme"
+    title="Light theme"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </button>
+
+  {{/* System preference button */}}
+  <button
+    type="button"
+    class="theme-toggle-btn"
+    data-theme="system"
+    aria-label="System theme"
+    title="System theme"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+      <line x1="8" y1="21" x2="16" y2="21"></line>
+      <line x1="12" y1="17" x2="12" y2="21"></line>
+    </svg>
+  </button>
+
+  {{/* Dark mode button */}}
+  <button
+    type="button"
+    class="theme-toggle-btn"
+    data-theme="dark"
+    aria-label="Dark theme"
+    title="Dark theme"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+</div>
+
+<script>
+(function() {
+  // Theme management
+  var themeToggle = {
+    // Get current stored theme or default to 'system'
+    getStoredTheme: function() {
+      return localStorage.getItem('theme') || 'system';
+    },
+
+    // Check if system prefers dark mode
+    systemPrefersDark: function() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    },
+
+    // Determine if dark mode should be active
+    isDarkMode: function(theme) {
+      if (theme === 'system') {
+        return this.systemPrefersDark();
+      }
+      return theme === 'dark';
+    },
+
+    // Apply theme to document
+    applyTheme: function(theme) {
+      var isDark = this.isDarkMode(theme);
+
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
+      // Dispatch event for other components (e.g., Remark42)
+      window.dispatchEvent(new CustomEvent('themechange', {
+        detail: { theme: theme, isDark: isDark }
+      }));
+    },
+
+    // Set theme and persist to localStorage
+    setTheme: function(theme) {
+      localStorage.setItem('theme', theme);
+      this.applyTheme(theme);
+      this.updateToggleUI(theme);
+    },
+
+    // Update toggle button states
+    updateToggleUI: function(theme) {
+      var buttons = document.querySelectorAll('.theme-toggle-btn');
+      buttons.forEach(function(btn) {
+        var btnTheme = btn.getAttribute('data-theme');
+        if (btnTheme === theme) {
+          btn.classList.add('active');
+          btn.setAttribute('aria-checked', 'true');
+        } else {
+          btn.classList.remove('active');
+          btn.setAttribute('aria-checked', 'false');
+        }
+      });
+    },
+
+    // Initialize toggle
+    init: function() {
+      var self = this;
+      var currentTheme = this.getStoredTheme();
+
+      // Set initial UI state
+      this.updateToggleUI(currentTheme);
+
+      // Add click handlers
+      var buttons = document.querySelectorAll('.theme-toggle-btn');
+      buttons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var newTheme = this.getAttribute('data-theme');
+          self.setTheme(newTheme);
+        });
+      });
+
+      // Listen for system preference changes
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+        if (self.getStoredTheme() === 'system') {
+          self.applyTheme('system');
+        }
+      });
+    }
+  };
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      themeToggle.init();
+    });
+  } else {
+    themeToggle.init();
+  }
+})();
+</script>

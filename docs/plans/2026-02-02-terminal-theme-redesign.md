@@ -91,13 +91,13 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Create: `apps/web/themes/terminal/layouts/partials/theme-toggle.html`
 
 **Steps:**
-- [ ] Create baseof.html with HTML structure, head/header/main/footer blocks
-- [ ] Create head.html with meta tags, font loading, CSS via css.TailwindCSS
-- [ ] Create theme-toggle.html with three-position toggle (light/dark/system)
-- [ ] Implement theme JS: detect system preference, store in localStorage, apply class
-- [ ] Create header.html with site title and navigation (terminal prompt style)
-- [ ] Create footer.html with copyright and social links
-- [ ] Verify site builds without errors: `bun run build`
+- [x] Create baseof.html with HTML structure, head/header/main/footer blocks
+- [x] Create head.html with meta tags, font loading, CSS via css.TailwindCSS
+- [x] Create theme-toggle.html with three-position toggle (light/dark/system)
+- [x] Implement theme JS: detect system preference, store in localStorage, apply class
+- [x] Create header.html with site title and navigation (terminal prompt style)
+- [x] Create footer.html with copyright and social links
+- [x] Verify site builds without errors: `bun run build`
 
 ### Task 3: Create main Tailwind styles with terminal aesthetic
 
