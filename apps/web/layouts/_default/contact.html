@@ -78,13 +78,13 @@
           ></textarea>
         </div>
 
-        {{/* Turnstile captcha */}}
+        {{/* Turnstile captcha - theme synced with site theme */}}
         {{- with .Site.Params.turnstileSiteKey }}
         <div class="form-group">
           <div
+            id="turnstile-container"
             class="cf-turnstile"
             data-sitekey="{{ . }}"
-            data-theme="auto"
           ></div>
         </div>
         {{- end }}
@@ -219,7 +219,16 @@
         })
       });
 
-      var data = await response.json();
+      var data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        showError('Server returned an invalid response. Please try again.');
+        if (typeof turnstile !== 'undefined') {
+          turnstile.reset();
+        }
+        return;
+      }
 
       if (response.ok && data.success) {
         form.classList.add('hidden');
