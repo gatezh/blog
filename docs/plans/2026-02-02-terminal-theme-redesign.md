@@ -148,13 +148,13 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Modify: `apps/web/themes/terminal/layouts/_default/single.html`
 
 **Steps:**
-- [ ] Create comments.html partial with Remark42 configuration
-- [ ] Implement initial theme detection (system/localStorage/light/dark)
-- [ ] Add event listener to sync Remark42 theme when toggle changes
-- [ ] Handle system theme: listen for prefers-color-scheme media query changes
-- [ ] Include comments partial in single.html for posts
-- [ ] Verify comments load with correct theme: `bun run dev`
-- [ ] Test theme switching syncs Remark42 widget
+- [x] Create comments.html partial with Remark42 configuration
+- [x] Implement initial theme detection (system/localStorage/light/dark)
+- [x] Add event listener to sync Remark42 theme when toggle changes
+- [x] Handle system theme: listen for prefers-color-scheme media query changes
+- [x] Include comments partial in single.html for posts
+- [x] Verify comments load with correct theme: `bun run dev`
+- [x] Test theme switching syncs Remark42 widget
 
 ### Task 7: Update contact page with new theme
 
