@@ -13,7 +13,7 @@ services:
     id: G-96MLGN850Y
 
 permalinks:
-  posts: "/posts/:filename/"
+  posts: "/posts/:contentbasename/"
 
 menu:
   main:
