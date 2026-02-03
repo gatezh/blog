@@ -134,12 +134,12 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Create: `apps/web/themes/terminal/layouts/_default/single.html`
 
 **Steps:**
-- [ ] Create list.html for posts/ever-learning index pages
-- [ ] Style list items as terminal output or file listing
-- [ ] Create single.html for individual posts/pages
-- [ ] Style article header, content, and metadata
-- [ ] Add code block styling with terminal window chrome
-- [ ] Verify posts and pages render correctly: `bun run dev`
+- [x] Create list.html for posts/ever-learning index pages
+- [x] Style list items as terminal output or file listing
+- [x] Create single.html for individual posts/pages
+- [x] Style article header, content, and metadata
+- [x] Add code block styling with terminal window chrome
+- [x] Verify posts and pages render correctly: `bun run dev`
 
 ### Task 6: Integrate Remark42 comments with theme sync
 
