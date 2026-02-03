@@ -105,15 +105,15 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Modify: `apps/web/themes/terminal/assets/css/main.css`
 
 **Steps:**
-- [ ] Add Tailwind base/components/utilities layers
-- [ ] Define custom colors via CSS variables (light and dark themes)
-- [ ] Set up monospace typography with JetBrains Mono
-- [ ] Style base elements (body, headings, links, paragraphs)
-- [ ] Create terminal-inspired components (prompt prefix, blinking cursor)
-- [ ] Style navigation with terminal look
-- [ ] Style theme toggle button/component
-- [ ] Add responsive utilities
-- [ ] Verify styles apply correctly: `bun run dev`
+- [x] Add Tailwind base/components/utilities layers
+- [x] Define custom colors via CSS variables (light and dark themes)
+- [x] Set up monospace typography with JetBrains Mono
+- [x] Style base elements (body, headings, links, paragraphs)
+- [x] Create terminal-inspired components (prompt prefix, blinking cursor)
+- [x] Style navigation with terminal look
+- [x] Style theme toggle button/component
+- [x] Add responsive utilities
+- [x] Verify styles apply correctly: `bun run dev`
 
 ### Task 4: Create homepage layout
 
