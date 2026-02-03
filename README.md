@@ -6,7 +6,7 @@ Personal blog and portfolio website built with Hugo and deployed to Cloudflare W
 
 This is a Bun monorepo containing:
 
-- **apps/web** - Hugo static website using PaperMod theme
+- **apps/web** - Hugo static website using custom terminal theme
 - **apps/email-worker** - Cloudflare Worker for contact form emails
 
 ## Quick Start

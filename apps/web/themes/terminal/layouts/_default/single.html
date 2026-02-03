@@ -162,9 +162,5 @@
 </article>
 {{ end }}
 
-{{/* Additional head content for article schema */}}
-{{ define "head" }}
-{{ with .Params.description }}
-<meta name="description" content="{{ . }}">
-{{ end }}
-{{ end }}
+{{/* Additional head content for article schema - description handled by head.html */}}
+{{ define "head" }}{{ end }}

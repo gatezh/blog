@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded - Replaced by custom terminal theme implementation in `apps/web/themes/terminal/layouts/partials/comments.html`
 
 ## Context
 
