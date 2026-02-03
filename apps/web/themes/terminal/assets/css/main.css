@@ -321,13 +321,6 @@
     50% { opacity: 0; }
   }
 
-  /* Typing effect for terminal commands */
-  @keyframes typing-highlight {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
   /* Command prompt prefix */
   .terminal-prompt {
     color: var(--color-terminal-accent);
@@ -861,15 +854,10 @@
     font-size: 1.125rem;
   }
 
-  /* Tighter spacing on mobile */
+  /* Full-width code blocks on mobile with tighter spacing */
   pre {
     padding: 0.75rem;
     font-size: 0.8125rem;
-    border-radius: 0.375rem;
-  }
-
-  /* Full-width code blocks on mobile */
-  pre {
     margin-left: -1rem;
     margin-right: -1rem;
     border-radius: 0;
