@@ -46,15 +46,22 @@
     });
 
     // Load when contact section is 500px from viewport
-    var observer = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting) {
-        loadTurnstile();
-        observer.disconnect();
-      }
-    }, { rootMargin: '500px' });
     document.addEventListener('DOMContentLoaded', function() {
       var contact = document.getElementById('contact');
-      if (contact) observer.observe(contact);
+      if (!contact) return;
+
+      // Check for IntersectionObserver support, fallback to immediate load
+      if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries) {
+          if (entries[0].isIntersecting) {
+            loadTurnstile();
+            observer.disconnect();
+          }
+        }, { rootMargin: '500px' });
+        observer.observe(contact);
+      } else {
+        loadTurnstile();
+      }
     });
   })();
 </script>

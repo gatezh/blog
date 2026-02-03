@@ -15,12 +15,32 @@
 <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
 
 {{/* Description */}}
-{{ with .Description | default site.Params.description }}
+{{ $description := .Description | default site.Params.description }}
+{{ with $description }}
 <meta name="description" content="{{ . }}">
 {{ end }}
 
+{{/* Open Graph */}}
+<meta property="og:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
+<meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
+<meta property="og:url" content="{{ .Permalink }}">
+{{ with $description }}<meta property="og:description" content="{{ . }}">{{ end }}
+{{ with site.Title }}<meta property="og:site_name" content="{{ . }}">{{ end }}
+{{ with site.Params.ogImage }}<meta property="og:image" content="{{ . | absURL }}">{{ end }}
+
+{{/* Twitter Card */}}
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
+{{ with $description }}<meta name="twitter:description" content="{{ . }}">{{ end }}
+{{ with site.Params.ogImage }}<meta name="twitter:image" content="{{ . | absURL }}">{{ end }}
+
 {{/* Canonical URL */}}
 <link rel="canonical" href="{{ .Permalink }}">
+
+{{/* RSS Feed autodiscovery */}}
+{{ with .OutputFormats.Get "rss" -}}
+<link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">
+{{- end }}
 
 {{/* JetBrains Mono font from Google Fonts */}}
 <link rel="preconnect" href="https://fonts.googleapis.com">
