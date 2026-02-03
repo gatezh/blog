@@ -1,4 +1,103 @@
 @import "tailwindcss";
 
 /* Terminal Theme Configuration
-   This will be expanded in Task 3 with full styling */
+   Full styling will be expanded in Task 3, but base colors and utilities
+   are needed for Task 2 layouts to build successfully */
+
+/* Custom theme colors using CSS custom properties */
+@theme {
+  /* Light mode colors (default) */
+  --color-terminal-bg: #f5f5f0;
+  --color-terminal-fg: #1a1a1a;
+  --color-terminal-accent: #22c55e;
+  --color-terminal-muted: #6b7280;
+  --color-terminal-border: #d1d5db;
+
+  /* Font family */
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Dark mode color overrides */
+.dark {
+  --color-terminal-bg: #0d1117;
+  --color-terminal-fg: #e6edf3;
+  --color-terminal-accent: #22c55e;
+  --color-terminal-muted: #8b949e;
+  --color-terminal-border: #30363d;
+}
+
+/* Base styles */
+@layer base {
+  html {
+    font-family: var(--font-mono);
+  }
+
+  body {
+    background-color: var(--color-terminal-bg);
+    color: var(--color-terminal-fg);
+  }
+
+  a {
+    color: var(--color-terminal-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  a:hover {
+    text-decoration: none;
+  }
+}
+
+/* Theme toggle component styles */
+@layer components {
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+    background-color: color-mix(in srgb, var(--color-terminal-border) 50%, transparent);
+  }
+
+  .theme-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem;
+    border-radius: 0.375rem;
+    color: var(--color-terminal-muted);
+    transition: all 150ms ease;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+  }
+
+  .theme-toggle-btn:hover {
+    color: var(--color-terminal-fg);
+  }
+
+  .theme-toggle-btn.active {
+    background-color: var(--color-terminal-bg);
+    color: var(--color-terminal-accent);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+
+  /* Blinking cursor animation */
+  .terminal-cursor {
+    display: inline-block;
+    width: 0.5rem;
+    height: 1.125rem;
+    background-color: var(--color-terminal-accent);
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* No underline utility for nav links */
+  .no-underline {
+    text-decoration: none;
+  }
+}
