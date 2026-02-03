@@ -76,8 +76,12 @@ var remark_config = {
 (function() {
   // Sync Remark42 theme
   function syncRemark42Theme(isDark) {
-    if (typeof window.REMARK42 !== 'undefined' && window.REMARK42.changeTheme) {
-      window.REMARK42.changeTheme(isDark ? 'dark' : 'light');
+    try {
+      if (typeof window.REMARK42 !== 'undefined' && window.REMARK42.changeTheme) {
+        window.REMARK42.changeTheme(isDark ? 'dark' : 'light');
+      }
+    } catch (e) {
+      // Silently fail if Remark42 theme change fails
     }
   }
 
