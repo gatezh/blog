@@ -32,7 +32,7 @@
 
 {{/* Google Analytics */}}
 {{ if hugo.IsProduction }}
-{{ with site.Services.GoogleAnalytics.ID }}
+{{ with site.Config.Services.GoogleAnalytics.ID }}
 <script async src="https://www.googletagmanager.com/gtag/js?id={{ . }}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];

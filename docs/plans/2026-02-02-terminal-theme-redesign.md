@@ -121,11 +121,11 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Create: `apps/web/themes/terminal/layouts/index.html`
 
 **Steps:**
-- [ ] Create profile section with name, subtitle, terminal styling
-- [ ] Add social links with terminal-style presentation
-- [ ] Create "recent posts" section with terminal list styling
-- [ ] Add navigation styled as terminal commands
-- [ ] Verify homepage renders correctly: `bun run dev`
+- [x] Create profile section with name, subtitle, terminal styling
+- [x] Add social links with terminal-style presentation
+- [x] Create "recent posts" section with terminal list styling
+- [x] Add navigation styled as terminal commands
+- [x] Verify homepage renders correctly: `bun run dev`
 
 ### Task 5: Create list and single page layouts
 
