@@ -1,0 +1,22 @@
+{{/*
+  CSS Partial - Processes Tailwind CSS using Hugo's built-in function
+
+  This partial:
+  1. Loads the main.css file from theme assets
+  2. Processes it through Tailwind CSS v4
+  3. Minifies in production
+  4. Fingerprints for cache busting
+*/}}
+
+{{ with resources.Get "css/main.css" }}
+  {{ $opts := dict "inlineImports" true }}
+  {{ with . | css.TailwindCSS $opts }}
+    {{ if hugo.IsProduction }}
+      {{ with . | minify | fingerprint }}
+        <link rel="stylesheet" href="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}">
+      {{ end }}
+    {{ else }}
+      <link rel="stylesheet" href="{{ .RelPermalink }}">
+    {{ end }}
+  {{ end }}
+{{ end }}
