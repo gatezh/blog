@@ -1,0 +1,26 @@
+{{/*
+  Base template for all pages
+
+  Provides the HTML structure with blocks that can be overridden:
+  - head: Additional head content
+  - main: Page content
+  - footer: Footer content (defaults to partials/footer.html)
+*/}}
+<!DOCTYPE html>
+<html lang="{{ site.LanguageCode | default "en" }}" class="h-full">
+<head>
+  {{- partial "head.html" . -}}
+  {{- block "head" . }}{{ end -}}
+</head>
+<body class="min-h-full flex flex-col bg-terminal-bg text-terminal-fg font-mono antialiased">
+  {{- partial "header.html" . -}}
+
+  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-8">
+    {{- block "main" . }}{{ end -}}
+  </main>
+
+  {{- block "footer" . }}
+    {{- partial "footer.html" . -}}
+  {{ end -}}
+</body>
+</html>
