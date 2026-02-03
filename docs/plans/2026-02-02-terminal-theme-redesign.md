@@ -162,11 +162,11 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Modify: `apps/web/layouts/_default/contact.html`
 
 **Steps:**
-- [ ] Update contact.html to extend new base layout
-- [ ] Restyle form with terminal aesthetic using Tailwind classes
-- [ ] Keep all existing functionality (Turnstile, form submission)
-- [ ] Style success/error states to match theme
-- [ ] Verify contact form works: `bun run dev` and test submission
+- [x] Update contact.html to extend new base layout
+- [x] Restyle form with terminal aesthetic using Tailwind classes
+- [x] Keep all existing functionality (Turnstile, form submission)
+- [x] Style success/error states to match theme
+- [x] Verify contact form works: `bun run dev` and test submission
 
 ### Task 8: Polish and responsive design
 
