@@ -79,13 +79,11 @@
         </div>
 
         {{/* Turnstile captcha - theme synced with site theme */}}
+        {{/* Note: Using explicit render mode - no cf-turnstile class or data-sitekey here */}}
+        {{/* Widget is rendered via turnstile.render() in turnstile.html partial */}}
         {{- with .Site.Params.turnstileSiteKey }}
         <div class="form-group">
-          <div
-            id="turnstile-container"
-            class="cf-turnstile"
-            data-sitekey="{{ . }}"
-          ></div>
+          <div id="turnstile-container"></div>
         </div>
         {{- end }}
 
