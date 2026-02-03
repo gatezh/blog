@@ -22,7 +22,12 @@ var remark_config = {
   max_shown_comments: 100,
   theme: (function() {
     // Get stored theme preference (our terminal theme uses 'theme' key)
-    var storedTheme = localStorage.getItem('theme') || 'system';
+    var storedTheme;
+    try {
+      storedTheme = localStorage.getItem('theme') || 'system';
+    } catch (e) {
+      storedTheme = 'system';
+    }
 
     if (storedTheme === 'dark') {
       return 'dark';
@@ -33,7 +38,7 @@ var remark_config = {
     // storedTheme === 'system': check system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   })(),
-  page_title: '{{ .Title | js }}',
+  page_title: {{ .Title | jsonify }},
   show_email_subscription: false,
   simple_view: false,
   no_footer: true,
@@ -84,7 +89,12 @@ var remark_config = {
   // Listen for system preference changes
   // This handles the case when theme is set to 'system' and OS preference changes
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(event) {
-    var storedTheme = localStorage.getItem('theme') || 'system';
+    var storedTheme;
+    try {
+      storedTheme = localStorage.getItem('theme') || 'system';
+    } catch (e) {
+      storedTheme = 'system';
+    }
     if (storedTheme === 'system') {
       syncRemark42Theme(event.matches);
     }

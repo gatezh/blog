@@ -59,7 +59,12 @@
 */}}
 <script>
 (function() {
-  var stored = localStorage.getItem('theme');
+  var stored;
+  try {
+    stored = localStorage.getItem('theme');
+  } catch (e) {
+    stored = null;
+  }
   var theme = stored || 'system';
   var isDark;
 
