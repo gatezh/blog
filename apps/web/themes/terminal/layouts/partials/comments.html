@@ -33,7 +33,7 @@ var remark_config = {
     // storedTheme === 'system': check system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   })(),
-  page_title: '{{ .Title }}',
+  page_title: '{{ .Title | js }}',
   show_email_subscription: false,
   simple_view: false,
   no_footer: true,
@@ -69,14 +69,6 @@ var remark_config = {
 {{/* Theme Synchronization Script */}}
 <script>
 (function() {
-  // Helper to get the effective dark mode state
-  function getEffectiveDarkMode(theme) {
-    if (theme === 'dark') return true;
-    if (theme === 'light') return false;
-    // theme === 'system'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  }
-
   // Sync Remark42 theme
   function syncRemark42Theme(isDark) {
     if (typeof window.REMARK42 !== 'undefined' && window.REMARK42.changeTheme) {

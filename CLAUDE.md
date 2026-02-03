@@ -1,7 +1,7 @@
 # Agent Instructions
 
 This is a Bun monorepo for gatezh.com containing:
-- **apps/web** - Hugo static website (PaperMod theme)
+- **apps/web** - Hugo static website (custom terminal theme with Tailwind CSS v4)
 - **apps/email-worker** - Cloudflare Worker for contact form emails
 
 ## Critical Rules
@@ -37,7 +37,10 @@ Before finishing any feature or change, **ALWAYS run verification**:
 ├── apps/
 │   ├── web/                    # Hugo website
 │   │   ├── content/            # Site content (Markdown)
-│   │   ├── layouts/            # Custom layouts (overrides theme)
+│   │   ├── layouts/            # Site-specific layouts (override theme)
+│   │   ├── themes/terminal/    # Custom terminal theme
+│   │   │   ├── assets/css/     # Tailwind CSS styles
+│   │   │   └── layouts/        # Theme layouts and partials
 │   │   ├── static/             # Static assets
 │   │   ├── hugo.yaml           # Hugo configuration
 │   │   ├── package.json        # Web app dependencies
@@ -70,9 +73,13 @@ Worker configuration uses JSONC:
 - `apps/email-worker/wrangler.jsonc`
 
 ### Hugo Theme
-- Uses PaperMod theme via Hugo modules (go.mod)
-- Custom layouts in `apps/web/layouts/` override theme
-- Theme provides extension points: `extend_head.html`, `extend_footer.html`
+- Uses custom terminal theme in `apps/web/themes/terminal/`
+- Theme uses Tailwind CSS v4 via Hugo's `css.TailwindCSS` function
+- Site-specific layouts in `apps/web/layouts/` override theme (e.g., contact.html)
+- Theme features:
+  - Three-position theme switcher (light/dark/system)
+  - Terminal-inspired aesthetic with monospace typography
+  - Remark42 comments integration with theme synchronization
 
 ## Build Commands
 
