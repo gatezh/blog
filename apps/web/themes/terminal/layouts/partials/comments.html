@@ -1,0 +1,102 @@
+{{/*
+  Remark42 Comments Integration
+
+  This partial handles:
+  1. Remark42 configuration with proper initial theme detection
+  2. Loading the Remark42 script
+  3. Theme synchronization when:
+     - User clicks the theme toggle (listens for 'themechange' event)
+     - System preference changes (when theme is set to 'system')
+
+  The theme toggle dispatches a 'themechange' event with { theme, isDark } detail.
+  We listen for this event and call REMARK42.changeTheme() accordingly.
+*/}}
+
+{{- if site.Params.comments }}
+{{/* Remark42 Configuration */}}
+<script>
+var remark_config = {
+  host: 'https://comments.gatezh.com',
+  site_id: 'remark',
+  components: ['embed'],
+  max_shown_comments: 100,
+  theme: (function() {
+    // Get stored theme preference (our terminal theme uses 'theme' key)
+    var storedTheme = localStorage.getItem('theme') || 'system';
+
+    if (storedTheme === 'dark') {
+      return 'dark';
+    }
+    if (storedTheme === 'light') {
+      return 'light';
+    }
+    // storedTheme === 'system': check system preference
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  })(),
+  page_title: '{{ .Title }}',
+  show_email_subscription: false,
+  simple_view: false,
+  no_footer: true,
+  locale: 'en'
+};
+</script>
+
+{{/* Load Remark42 Script */}}
+<script>
+!function(e,n){
+  for(var o=0;o<e.length;o++){
+    var r=n.createElement("script"),
+        c=".js",
+        d=n.head||n.body;
+    "noModule"in r?(r.type="module",c=".mjs"):r.async=!0;
+    r.defer=!0;
+    r.src=remark_config.host+"/web/"+e[o]+c;
+    d.appendChild(r);
+  }
+}(remark_config.components||["embed"],document);
+</script>
+
+{{/* Comments Container */}}
+<section class="comments-section mt-10 pt-6 border-t border-terminal-border">
+  <div class="mb-4">
+    <span class="terminal-prompt"></span>
+    <span class="terminal-command">./comments --list</span>
+  </div>
+  <div id="remark42"></div>
+  <noscript>Please enable JavaScript to view the comments.</noscript>
+</section>
+
+{{/* Theme Synchronization Script */}}
+<script>
+(function() {
+  // Helper to get the effective dark mode state
+  function getEffectiveDarkMode(theme) {
+    if (theme === 'dark') return true;
+    if (theme === 'light') return false;
+    // theme === 'system'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  // Sync Remark42 theme
+  function syncRemark42Theme(isDark) {
+    if (typeof window.REMARK42 !== 'undefined' && window.REMARK42.changeTheme) {
+      window.REMARK42.changeTheme(isDark ? 'dark' : 'light');
+    }
+  }
+
+  // Listen for theme toggle changes (dispatched by theme-toggle.html)
+  window.addEventListener('themechange', function(event) {
+    syncRemark42Theme(event.detail.isDark);
+  });
+
+  // Listen for system preference changes
+  // This handles the case when theme is set to 'system' and OS preference changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(event) {
+    var storedTheme = localStorage.getItem('theme') || 'system';
+    if (storedTheme === 'system') {
+      syncRemark42Theme(event.matches);
+    }
+  });
+})();
+</script>
+{{- end }}
