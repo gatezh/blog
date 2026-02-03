@@ -636,6 +636,98 @@
     color: var(--color-terminal-muted);
     margin-top: 0.5rem;
   }
+
+  /* -------------------------------------------------------------------------
+     Article Content - Enhanced Code Blocks
+
+     Code blocks within article content get terminal window chrome styling
+     ------------------------------------------------------------------------- */
+  .article-content pre {
+    position: relative;
+    margin: 1.5em 0;
+    padding-top: 2.5rem;
+    border: 1px solid var(--color-terminal-border);
+    border-radius: 0.5rem;
+    background-color: var(--color-terminal-code-bg);
+    overflow: hidden;
+  }
+
+  /* Terminal window header for code blocks */
+  .article-content pre::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2rem;
+    background-color: var(--color-terminal-bg-secondary);
+    border-bottom: 1px solid var(--color-terminal-border);
+    background-image:
+      radial-gradient(circle at 0.75rem center, #ef4444 5px, transparent 5px),
+      radial-gradient(circle at 1.75rem center, #eab308 5px, transparent 5px),
+      radial-gradient(circle at 2.75rem center, #22c55e 5px, transparent 5px);
+    background-repeat: no-repeat;
+    background-position: 0 center;
+  }
+
+  .article-content pre code {
+    display: block;
+    padding: 1rem;
+    overflow-x: auto;
+    background: none;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+
+  /* Line numbers effect (optional visual enhancement) */
+  .article-content pre code {
+    counter-reset: line;
+  }
+
+  /* Syntax highlighting compatible styles */
+  .article-content .highlight {
+    margin: 1.5em 0;
+  }
+
+  .article-content .highlight pre {
+    margin: 0;
+  }
+
+  /* -------------------------------------------------------------------------
+     Table of Contents Styling
+     ------------------------------------------------------------------------- */
+  .toc nav {
+    font-size: 0.875rem;
+  }
+
+  .toc nav ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+  }
+
+  .toc nav ul ul {
+    padding-left: 1rem;
+  }
+
+  .toc nav li {
+    margin: 0.25rem 0;
+  }
+
+  .toc nav a {
+    color: var(--color-terminal-muted);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .toc nav a:hover {
+    color: var(--color-terminal-accent);
+  }
+
+  .toc nav a::before {
+    content: '# ';
+    color: var(--color-terminal-border);
+  }
 }
 
 /* =============================================================================
