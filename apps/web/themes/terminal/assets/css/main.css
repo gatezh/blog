@@ -321,6 +321,12 @@
     50% { opacity: 0; }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .terminal-cursor {
+      animation: none;
+    }
+  }
+
   /* Command prompt prefix */
   .terminal-prompt {
     color: var(--color-terminal-accent);
@@ -584,6 +590,12 @@
     border-color: var(--color-terminal-accent);
     color: var(--color-terminal-accent);
     background-color: color-mix(in srgb, var(--color-terminal-accent) 5%, transparent);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
   /* -------------------------------------------------------------------------
