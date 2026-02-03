@@ -175,12 +175,12 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Possibly modify: various layout files
 
 **Steps:**
-- [ ] Test and fix mobile responsiveness
-- [ ] Add subtle animations (cursor blink, hover states)
-- [ ] Ensure proper contrast and accessibility (WCAG AA)
-- [ ] Test theme persistence across page loads
-- [ ] Test system theme changes are detected
-- [ ] Run final build: `bun run build`
+- [x] Test and fix mobile responsiveness
+- [x] Add subtle animations (cursor blink, hover states)
+- [x] Ensure proper contrast and accessibility (WCAG AA)
+- [x] Test theme persistence across page loads
+- [x] Test system theme changes are detected
+- [x] Run final build: `bun run build`
 
 ---
 

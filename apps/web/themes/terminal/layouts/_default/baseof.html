@@ -13,9 +13,12 @@
   {{- block "head" . }}{{ end -}}
 </head>
 <body class="min-h-full flex flex-col bg-terminal-bg text-terminal-fg font-mono antialiased">
+  {{/* Skip to main content link for accessibility */}}
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   {{- partial "header.html" . -}}
 
-  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-8">
+  <main id="main-content" class="flex-1 w-full max-w-3xl mx-auto px-4 py-8" tabindex="-1">
     {{- block "main" . }}{{ end -}}
   </main>
 
