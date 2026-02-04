@@ -1,73 +1,95 @@
 {{- define "main" }}
 
-<article class="post-single">
-  <header class="post-header">
-    <h1 class="post-title">{{ .Title }}</h1>
+<article class="prose max-w-none">
+  <header class="mb-8">
+    <h1 class="text-2xl font-semibold mb-2 flex items-center gap-3">
+      <span class="text-terminal-accent font-semibold">./{{ .Title | urlize }}</span>
+      <span class="terminal-cursor"></span>
+    </h1>
   </header>
 
-  <div class="post-content">
+  <div class="article-content">
     {{ .Content }}
 
-    <section id="contact" class="contact-section">
-      <form id="contact-form" class="contact-form" novalidate>
+    <section id="contact" class="mt-8">
+      <form id="contact-form" class="max-w-xl space-y-6" novalidate>
+        {{/* Name field */}}
         <div class="form-group">
-          <label for="contact-name">Name <span class="required">*</span></label>
+          <label for="contact-name" class="form-label">
+            <span class="text-terminal-muted">$</span> name
+            <span class="text-red-500 ml-1">*</span>
+          </label>
           <input
             type="text"
             id="contact-name"
             name="name"
+            class="form-input"
             placeholder="Your name"
             required
             autocomplete="name"
           />
         </div>
 
+        {{/* Email field */}}
         <div class="form-group">
-          <label for="contact-email">Email <span class="required">*</span></label>
+          <label for="contact-email" class="form-label">
+            <span class="text-terminal-muted">$</span> email
+            <span class="text-red-500 ml-1">*</span>
+          </label>
           <input
             type="email"
             id="contact-email"
             name="email"
+            class="form-input"
             placeholder="you@example.com"
             required
             autocomplete="email"
           />
         </div>
 
+        {{/* Subject field */}}
         <div class="form-group">
-          <label for="contact-subject">Subject</label>
+          <label for="contact-subject" class="form-label">
+            <span class="text-terminal-muted">$</span> subject
+          </label>
           <input
             type="text"
             id="contact-subject"
             name="subject"
+            class="form-input"
             placeholder="What's this about?"
             autocomplete="off"
           />
         </div>
 
+        {{/* Message field */}}
         <div class="form-group">
-          <label for="contact-message">Message <span class="required">*</span></label>
+          <label for="contact-message" class="form-label">
+            <span class="text-terminal-muted">$</span> message
+            <span class="text-red-500 ml-1">*</span>
+          </label>
           <textarea
             id="contact-message"
             name="message"
+            class="form-input min-h-[150px] resize-y"
             rows="6"
             placeholder="Your message..."
             required
           ></textarea>
         </div>
 
+        {{/* Turnstile captcha - theme synced with site theme */}}
+        {{/* Note: Using explicit render mode - no cf-turnstile class or data-sitekey here */}}
+        {{/* Widget is rendered via turnstile.render() in turnstile.html partial */}}
         {{- with .Site.Params.turnstileSiteKey }}
-        <div class="form-group turnstile-container">
-          <div
-            class="cf-turnstile"
-            data-sitekey="{{ . }}"
-            data-theme="auto"
-          ></div>
+        <div class="form-group">
+          <div id="turnstile-container"></div>
         </div>
         {{- end }}
 
-        <div id="contact-error" class="contact-error hidden">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        {{/* Error message */}}
+        <div id="contact-error" class="hidden flex items-center gap-3 p-4 rounded-md border border-red-500/30 bg-red-500/10 text-red-500" role="alert" aria-live="assertive">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -75,179 +97,39 @@
           <span id="contact-error-text">Error message</span>
         </div>
 
-        <button type="submit" id="contact-submit" class="contact-submit">
-          <span id="submit-text">Send Message</span>
-          <svg id="submit-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        {{/* Submit button */}}
+        <button type="submit" id="contact-submit" class="btn btn-primary">
+          <span id="submit-text">$ send</span>
+          <svg id="submit-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"></line>
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
           </svg>
-          <svg id="submit-spinner" class="hidden spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg id="submit-spinner" class="hidden animate-spin" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
           </svg>
         </button>
       </form>
 
-      <div id="contact-success" class="contact-success hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      {{/* Success message */}}
+      <div id="contact-success" class="hidden text-center py-12 px-8" role="status" aria-live="polite">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-4 text-terminal-accent">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
           <polyline points="22 4 12 14.01 9 11.01"></polyline>
         </svg>
-        <h3>Message Sent!</h3>
-        <p>Thank you for reaching out. I'll get back to you shortly.</p>
+        <h3 class="text-xl font-semibold mb-2">
+          <span class="text-terminal-accent">$</span> message_sent
+          <span class="text-terminal-accent">!</span>
+        </h3>
+        <p class="text-terminal-muted">Thank you for reaching out. I'll get back to you shortly.</p>
+        <div class="mt-4 text-terminal-muted text-sm">
+          <span class="text-terminal-accent">></span> exit 0
+        </div>
       </div>
     </section>
   </div>
 </article>
 
-<style>
-  .contact-section {
-    margin-top: 2rem;
-  }
-
-  .contact-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    max-width: 600px;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .form-group label {
-    font-weight: 500;
-    color: var(--primary);
-  }
-
-  .form-group .required {
-    color: #ef4444;
-  }
-
-  .form-group input,
-  .form-group textarea {
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--code-bg);
-    color: var(--primary);
-    font-size: 1rem;
-    font-family: inherit;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-
-  .form-group input:focus,
-  .form-group textarea:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  .form-group input::placeholder,
-  .form-group textarea::placeholder {
-    color: var(--secondary);
-    opacity: 0.7;
-  }
-
-  .form-group textarea {
-    resize: vertical;
-    min-height: 150px;
-  }
-
-  .turnstile-container {
-    margin: 0.5rem 0;
-  }
-
-  .contact-submit {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.875rem 1.5rem;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
-    align-self: flex-start;
-  }
-
-  .contact-submit:hover:not(:disabled) {
-    background: #2563eb;
-    transform: translateY(-1px);
-  }
-
-  .contact-submit:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .contact-submit svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .contact-error {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px;
-    color: #ef4444;
-  }
-
-  .contact-success {
-    text-align: center;
-    padding: 3rem 2rem;
-  }
-
-  .contact-success svg {
-    color: #22c55e;
-    margin-bottom: 1rem;
-  }
-
-  .contact-success h3 {
-    margin: 0 0 0.5rem;
-    font-size: 1.5rem;
-    color: var(--primary);
-  }
-
-  .contact-success p {
-    margin: 0;
-    color: var(--secondary);
-  }
-
-  .hidden {
-    display: none !important;
-  }
-
-  .spinner {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* Dark mode adjustments */
-  .dark .contact-error {
-    background: rgba(239, 68, 68, 0.15);
-  }
-</style>
-
-{{- /* Turnstile lazy loading */ -}}
+{{/* Turnstile lazy loading */}}
 {{- partial "turnstile.html" . }}
 
 <script>
@@ -271,7 +153,7 @@
 
   function setLoading(loading) {
     submitBtn.disabled = loading;
-    submitText.textContent = loading ? 'Sending...' : 'Send Message';
+    submitText.textContent = loading ? '$ sending...' : '$ send';
     submitIcon.classList.toggle('hidden', loading);
     submitSpinner.classList.toggle('hidden', !loading);
   }
@@ -335,7 +217,16 @@
         })
       });
 
-      var data = await response.json();
+      var data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        showError('Server returned an invalid response. Please try again.');
+        if (typeof turnstile !== 'undefined') {
+          turnstile.reset();
+        }
+        return;
+      }
 
       if (response.ok && data.success) {
         form.classList.add('hidden');

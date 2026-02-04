@@ -1,0 +1,33 @@
+{{/*
+  404 Error Page - Terminal-styled not found page
+
+  Displays a terminal-style error message when a page is not found.
+*/}}
+{{ define "main" }}
+<article class="error-page">
+  <div class="terminal-window">
+    <div class="terminal-window-header">
+      <span class="terminal-window-dot red"></span>
+      <span class="terminal-window-dot yellow"></span>
+      <span class="terminal-window-dot green"></span>
+      <span class="terminal-window-title">~/error</span>
+    </div>
+    <div class="terminal-window-content">
+      <div class="mb-4">
+        <span class="terminal-prompt"></span>
+        <span class="terminal-command">cat /404</span>
+      </div>
+      <h1 class="text-2xl font-bold mb-4 mt-0">404: Page Not Found</h1>
+      <p class="text-terminal-muted mb-6">
+        The requested path could not be found. It may have been moved or deleted.
+      </p>
+      <div class="text-terminal-muted text-sm mb-6">
+        <span class="terminal-output">Error: ENOENT: no such file or directory</span>
+      </div>
+      <a href="{{ "/" | relURL }}" class="btn btn-primary">
+        <span class="text-sm">$</span> cd ~
+      </a>
+    </div>
+  </div>
+</article>
+{{ end }}

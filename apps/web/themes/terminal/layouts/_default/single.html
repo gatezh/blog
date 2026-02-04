@@ -1,0 +1,163 @@
+{{/*
+  Single template - Terminal-styled individual post/page
+
+  Displays:
+  - Article header with title, date, reading time
+  - Optional description/summary
+  - Article content with prose styling
+  - Tags/categories
+  - Comments section (for posts)
+*/}}
+{{ define "main" }}
+<article class="single-page" itemscope itemtype="https://schema.org/Article">
+  {{/* Article Header */}}
+  <header class="mb-8">
+    {{/* Terminal window chrome for title */}}
+    <div class="terminal-window mb-6">
+      <div class="terminal-window-header">
+        <span class="terminal-window-dot red"></span>
+        <span class="terminal-window-dot yellow"></span>
+        <span class="terminal-window-dot green"></span>
+        <span class="terminal-window-title">~/{{ .Section | default "page" }}/{{ with .File }}{{ .BaseFileName }}{{ else }}{{ $.Title | urlize }}{{ end }}</span>
+      </div>
+      <div class="terminal-window-content">
+        <div class="mb-4">
+          <span class="terminal-prompt"></span>
+          <span class="terminal-command">cat {{ with .File }}{{ .BaseFileName }}{{ else }}{{ $.Title | urlize }}{{ end }}.md</span>
+        </div>
+        <h1 class="text-2xl font-bold mt-0 mb-0" itemprop="headline">{{ .Title }}</h1>
+      </div>
+    </div>
+
+    {{/* Article metadata */}}
+    <div class="article-meta">
+      {{/* Date */}}
+      {{ if not .Date.IsZero }}
+      <time class="article-date" datetime="{{ .Date.Format "2006-01-02" }}" itemprop="datePublished">
+        {{ .Date.Format "January 2, 2006" }}
+      </time>
+      {{ end }}
+
+      {{/* Reading time */}}
+      {{ if .ReadingTime }}
+      <span class="article-reading-time">
+        {{ .ReadingTime }} min read
+      </span>
+      {{ end }}
+
+      {{/* Word count */}}
+      {{ if gt .WordCount 0 }}
+      <span class="text-terminal-muted hidden sm:inline">
+        {{ .WordCount }} words
+      </span>
+      {{ end }}
+    </div>
+
+    {{/* Description/Summary */}}
+    {{ with .Params.description }}
+    <p class="text-terminal-muted text-base mb-0 mt-4 border-l-2 border-terminal-accent pl-4 italic">
+      {{ . }}
+    </p>
+    {{ end }}
+  </header>
+
+  {{/* Table of Contents (optional) */}}
+  {{ if and .Params.toc (gt (len .TableOfContents) 100) }}
+  <nav class="toc mb-8 p-4 bg-terminal-bg-secondary border border-terminal-border rounded-lg">
+    <details open>
+      <summary class="cursor-pointer font-semibold text-sm mb-2">
+        <span class="terminal-prompt"></span>
+        Table of Contents
+      </summary>
+      <div class="text-sm mt-4">
+        {{ .TableOfContents }}
+      </div>
+    </details>
+  </nav>
+  {{ end }}
+
+  {{/* Article Content */}}
+  <div class="article-content prose max-w-none" itemprop="articleBody">
+    {{ .Content }}
+  </div>
+
+  {{/* Tags - uses Hugo's .GetTerms for proper taxonomy handling */}}
+  {{ $tags := .GetTerms "tags" }}
+  {{ with $tags }}
+  <footer class="mt-8 pt-6 border-t border-terminal-border">
+    <div class="mb-2 text-sm text-terminal-muted">
+      <span class="terminal-prompt"></span>
+      <span class="terminal-command">echo $TAGS</span>
+    </div>
+    <div class="article-tags">
+      {{ range . }}
+      <a href="{{ .Permalink }}" class="article-tag">
+        #{{ .LinkTitle }}
+      </a>
+      {{ end }}
+    </div>
+  </footer>
+  {{ end }}
+
+  {{/* Categories - uses Hugo's .GetTerms for proper taxonomy handling */}}
+  {{ $categories := .GetTerms "categories" }}
+  {{ with $categories }}
+  <div class="mt-4{{ if not $tags }} mt-8 pt-6 border-t border-terminal-border{{ end }}">
+    <span class="text-sm text-terminal-muted">Filed under: </span>
+    {{ range $i, $cat := . }}
+    {{ if $i }}, {{ end }}
+    <a href="{{ $cat.Permalink }}" class="text-terminal-accent hover:text-terminal-accent-hover">
+      {{ $cat.LinkTitle }}
+    </a>
+    {{ end }}
+  </div>
+  {{ end }}
+
+  {{/* Post Navigation */}}
+  {{ $related := .Site.RegularPages.Related . | first 3 }}
+  {{ with $related }}
+  <nav class="mt-10 pt-6 border-t border-terminal-border">
+    <div class="mb-4">
+      <span class="terminal-prompt"></span>
+      <span class="terminal-command">ls --related</span>
+    </div>
+    <ul class="post-list">
+      {{ range . }}
+      <li class="post-list-item">
+        <a href="{{ .Permalink }}" class="post-list-link">
+          <span class="post-list-title">{{ .Title }}</span>
+          <span class="post-list-date ml-2">{{ .Date.Format "Jan 2006" }}</span>
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+  </nav>
+  {{ end }}
+
+  {{/* Previous/Next Navigation */}}
+  <nav class="mt-8 pt-6 border-t border-terminal-border" aria-label="Post navigation">
+    <div class="flex flex-col sm:flex-row justify-between gap-4 text-sm">
+      {{ with .PrevInSection }}
+      <a href="{{ .Permalink }}" class="nav-link flex items-center gap-2 group">
+        <span class="text-terminal-accent">&larr;</span>
+        <span class="truncate max-w-xs group-hover:text-terminal-accent">{{ .Title }}</span>
+      </a>
+      {{ else }}
+      <span></span>
+      {{ end }}
+
+      {{ with .NextInSection }}
+      <a href="{{ .Permalink }}" class="nav-link flex items-center gap-2 group sm:text-right">
+        <span class="truncate max-w-xs group-hover:text-terminal-accent">{{ .Title }}</span>
+        <span class="text-terminal-accent">&rarr;</span>
+      </a>
+      {{ end }}
+    </div>
+  </nav>
+
+  {{/* Comments Section - Only for posts */}}
+  {{ if eq .Section "posts" }}
+    {{ partial "comments.html" . }}
+  {{ end }}
+</article>
+{{ end }}

@@ -1,17 +1,19 @@
 baseURL: https://gatezh.com/
 languageCode: en-us
 title: Serge Gatezh
+theme: terminal
 
-module:
-  imports:
-    - path: github.com/adityatelange/hugo-PaperMod
+# Build configuration for Tailwind CSS v4
+build:
+  buildStats:
+    enable: true
 
 services:
   googleAnalytics:
     id: G-96MLGN850Y
 
 permalinks:
-  posts: "/posts/:filename/"
+  posts: "/posts/:contentbasename/"
 
 menu:
   main:
