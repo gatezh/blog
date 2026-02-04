@@ -1,0 +1,135 @@
+{{/*
+  Homepage template - Terminal-styled landing page
+
+  Displays:
+  - Profile section with name and subtitle (from params.profileMode)
+  - Social links styled as terminal output
+  - Recent posts section styled as terminal list
+  - Navigation links styled as terminal commands
+*/}}
+{{ define "main" }}
+<div class="homepage">
+  {{/* Profile Section */}}
+  <section class="mb-12">
+    <div class="terminal-window mb-8">
+      <div class="terminal-window-header">
+        <span class="terminal-window-dot red"></span>
+        <span class="terminal-window-dot yellow"></span>
+        <span class="terminal-window-dot green"></span>
+        <span class="terminal-window-title">~/welcome</span>
+      </div>
+      <div class="terminal-window-content">
+        <div class="mb-4">
+          <span class="terminal-prompt"></span>
+          <span class="terminal-command">whoami</span>
+        </div>
+        <h1 class="text-2xl font-bold mb-2 mt-0">
+          {{ with site.Params.profileMode }}
+            {{ .title | default site.Title }}
+          {{ else }}
+            {{ site.Title }}
+          {{ end }}
+        </h1>
+        <p class="text-terminal-muted mb-0">
+          {{ with site.Params.profileMode }}
+            {{ .subtitle }}
+          {{ end }}
+        </p>
+      </div>
+    </div>
+
+    {{/* Social Links */}}
+    {{ with site.Params.socialIcons }}
+    <div class="mb-8">
+      <div class="mb-2">
+        <span class="terminal-prompt"></span>
+        <span class="terminal-command">cat ./social-links.txt</span>
+      </div>
+      <ul class="list-none p-0 m-0 space-y-1 pl-4">
+        {{ range . }}
+        <li class="terminal-output">
+          <a href="{{ .url }}" class="hover:text-terminal-accent-hover" target="_blank" rel="noopener noreferrer">
+            {{ .name }}
+          </a>
+        </li>
+        {{ end }}
+      </ul>
+    </div>
+    {{ end }}
+
+    {{/* Quick Navigation */}}
+    {{ with site.Params.profileMode.buttons }}
+    <div class="flex flex-wrap gap-3">
+      {{ range . }}
+      <a href="{{ .url | relURL }}" class="btn btn-primary">
+        <span class="text-sm">$</span> {{ .name }}
+      </a>
+      {{ end }}
+    </div>
+    {{ end }}
+  </section>
+
+  {{/* Recent Posts Section */}}
+  {{ $posts := where site.RegularPages "Section" "posts" }}
+  {{ if $posts }}
+  <section class="mb-12">
+    <div class="mb-4">
+      <span class="terminal-prompt"></span>
+      <span class="terminal-command">ls -lt ./posts | head -5</span>
+    </div>
+    <ul class="post-list">
+      {{ range first 5 $posts.ByDate.Reverse }}
+      <li class="post-list-item">
+        <a href="{{ .Permalink }}" class="post-list-link">
+          <div class="flex items-start justify-between gap-4">
+            <span class="post-list-title">{{ .Title }}</span>
+            <time class="post-list-date shrink-0" datetime="{{ .Date.Format "2006-01-02" }}">
+              {{ .Date.Format "Jan 02, 2006" }}
+            </time>
+          </div>
+          {{ with .Summary }}
+          <p class="post-list-summary">{{ . | plainify | truncate 120 }}</p>
+          {{ end }}
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+    <div class="mt-4">
+      <a href="{{ "posts" | relURL }}" class="btn btn-secondary">
+        <span class="text-terminal-accent">></span> View all posts
+      </a>
+    </div>
+  </section>
+  {{ end }}
+
+  {{/* Ever Learning Section */}}
+  {{ $everLearning := where site.RegularPages "Section" "ever-learning" }}
+  {{ if $everLearning }}
+  <section>
+    <div class="mb-4">
+      <span class="terminal-prompt"></span>
+      <span class="terminal-command">ls ./ever-learning</span>
+    </div>
+    <ul class="post-list">
+      {{ range first 3 $everLearning.ByDate.Reverse }}
+      <li class="post-list-item">
+        <a href="{{ .Permalink }}" class="post-list-link">
+          <div class="flex items-start justify-between gap-4">
+            <span class="post-list-title">{{ .Title }}</span>
+            <time class="post-list-date shrink-0" datetime="{{ .Date.Format "2006-01-02" }}">
+              {{ .Date.Format "Jan 02, 2006" }}
+            </time>
+          </div>
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+    <div class="mt-4">
+      <a href="{{ "ever-learning" | relURL }}" class="btn btn-secondary">
+        <span class="text-terminal-accent">></span> View all
+      </a>
+    </div>
+  </section>
+  {{ end }}
+</div>
+{{ end }}

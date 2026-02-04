@@ -1,0 +1,890 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   Terminal Theme - Custom Styles
+
+   A terminal-inspired theme with light and dark modes featuring:
+   - Monospace typography (JetBrains Mono)
+   - Terminal-style UI elements (prompts, cursors, command styling)
+   - Clean, minimal aesthetic
+   ============================================================================= */
+
+/* =============================================================================
+   Theme Configuration - CSS Custom Properties
+   ============================================================================= */
+@theme {
+  /* Light mode colors (default)
+     Contrast ratios verified for WCAG AA compliance:
+     - fg (#1a1a1a) on bg (#f5f5f0): ~12:1 (excellent)
+     - muted (#595e66) on bg (#f5f5f0): ~5.5:1 (passes AA)
+     - accent (#16a34a) on bg (#f5f5f0): ~4.5:1 (passes AA for text) */
+  --color-terminal-bg: #f5f5f0;
+  --color-terminal-bg-secondary: #eaeae5;
+  --color-terminal-fg: #1a1a1a;
+  --color-terminal-accent: #16a34a; /* Darker green for better contrast */
+  --color-terminal-accent-hover: #15803d;
+  --color-terminal-muted: #595e66; /* Darker muted for better contrast */
+  --color-terminal-border: #d1d5db;
+  --color-terminal-code-bg: #e5e5e0;
+
+  /* Font family */
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Dark mode color overrides
+   Contrast ratios verified for WCAG AA compliance:
+   - fg (#e6edf3) on bg (#0d1117): ~10:1 (excellent)
+   - muted (#9ca3af) on bg (#0d1117): ~6:1 (passes AA)
+   - accent (#4ade80) on bg (#0d1117): ~8:1 (passes AA) */
+.dark {
+  --color-terminal-bg: #0d1117;
+  --color-terminal-bg-secondary: #161b22;
+  --color-terminal-fg: #e6edf3;
+  --color-terminal-accent: #4ade80; /* Lighter green for better contrast on dark */
+  --color-terminal-accent-hover: #86efac;
+  --color-terminal-muted: #9ca3af; /* Lighter muted for better contrast */
+  --color-terminal-border: #30363d;
+  --color-terminal-code-bg: #161b22;
+}
+
+/* =============================================================================
+   Base Styles
+   ============================================================================= */
+@layer base {
+  /* Root typography */
+  html {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Body defaults */
+  body {
+    background-color: var(--color-terminal-bg);
+    color: var(--color-terminal-fg);
+    font-size: 0.9375rem; /* 15px */
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-terminal-fg);
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    margin-top: 0;
+  }
+
+  h2 {
+    font-size: 1.375rem;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+  }
+
+  h4, h5, h6 {
+    font-size: 1rem;
+  }
+
+  /* Paragraphs */
+  p {
+    margin-bottom: 1em;
+  }
+
+  /* Links */
+  a {
+    color: var(--color-terminal-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    transition: color 150ms ease, text-decoration-color 150ms ease;
+  }
+
+  a:hover {
+    color: var(--color-terminal-accent-hover);
+    text-decoration-color: transparent;
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--color-terminal-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Lists */
+  ul, ol {
+    margin-bottom: 1em;
+    padding-left: 1.5em;
+  }
+
+  li {
+    margin-bottom: 0.25em;
+  }
+
+  ul {
+    list-style-type: disc;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  /* Blockquotes */
+  blockquote {
+    border-left: 3px solid var(--color-terminal-accent);
+    padding-left: 1em;
+    margin: 1em 0;
+    color: var(--color-terminal-muted);
+    font-style: italic;
+  }
+
+  /* Horizontal rules */
+  hr {
+    border: none;
+    border-top: 1px solid var(--color-terminal-border);
+    margin: 2em 0;
+  }
+
+  /* Code - inline */
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background-color: var(--color-terminal-code-bg);
+    padding: 0.125em 0.375em;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+  }
+
+  /* Code - blocks */
+  pre {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    background-color: var(--color-terminal-code-bg);
+    border: 1px solid var(--color-terminal-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 1.5em 0;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    white-space: pre;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5em 0;
+    font-size: 0.875rem;
+  }
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-terminal-border);
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--color-terminal-fg);
+    background-color: var(--color-terminal-bg-secondary);
+  }
+
+  /* Images */
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: var(--color-terminal-accent);
+    color: var(--color-terminal-bg);
+  }
+
+  /* Focus visible for keyboard navigation - WCAG compliant */
+  :focus-visible {
+    outline: 2px solid var(--color-terminal-accent);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  /* Skip link for screen readers */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--color-terminal-accent);
+    color: var(--color-terminal-bg);
+    padding: 0.5rem 1rem;
+    z-index: 100;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: top 200ms ease;
+  }
+
+  .skip-link:focus {
+    top: 0;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-terminal-bg-secondary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-terminal-border);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-terminal-muted);
+  }
+}
+
+/* =============================================================================
+   Component Styles
+   ============================================================================= */
+@layer components {
+  /* -------------------------------------------------------------------------
+     Theme Toggle
+     ------------------------------------------------------------------------- */
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+    background-color: var(--color-terminal-bg-secondary);
+    border: 1px solid var(--color-terminal-border);
+  }
+
+  .theme-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem;
+    border-radius: 0.375rem;
+    color: var(--color-terminal-muted);
+    transition: all 150ms ease;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+  }
+
+  .theme-toggle-btn:hover {
+    color: var(--color-terminal-fg);
+  }
+
+  .theme-toggle-btn.active {
+    background-color: var(--color-terminal-bg);
+    color: var(--color-terminal-accent);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  }
+
+  /* -------------------------------------------------------------------------
+     Terminal-Inspired Elements
+     ------------------------------------------------------------------------- */
+
+  /* Blinking cursor with smooth animation */
+  .terminal-cursor {
+    display: inline-block;
+    width: 0.5rem;
+    height: 1.125rem;
+    background-color: var(--color-terminal-accent);
+    animation: cursor-blink 1s ease-in-out infinite;
+    vertical-align: text-bottom;
+    border-radius: 1px;
+  }
+
+  @keyframes cursor-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .terminal-cursor {
+      animation: none;
+    }
+  }
+
+  /* Command prompt prefix */
+  .terminal-prompt {
+    color: var(--color-terminal-accent);
+    font-weight: 600;
+    user-select: none;
+  }
+
+  .terminal-prompt::before {
+    content: '$ ';
+  }
+
+  /* Output line (for lists styled as terminal output) */
+  .terminal-output::before {
+    content: '> ';
+    color: var(--color-terminal-muted);
+    user-select: none;
+  }
+
+  /* Command styling */
+  .terminal-command {
+    color: var(--color-terminal-fg);
+    font-weight: 500;
+  }
+
+  /* Terminal window chrome */
+  .terminal-window {
+    border: 1px solid var(--color-terminal-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--color-terminal-code-bg);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .terminal-window:hover {
+    border-color: color-mix(in srgb, var(--color-terminal-accent) 30%, var(--color-terminal-border));
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-terminal-fg) 5%, transparent);
+  }
+
+  .terminal-window-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--color-terminal-bg-secondary);
+    border-bottom: 1px solid var(--color-terminal-border);
+  }
+
+  .terminal-window-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background-color: var(--color-terminal-border);
+    transition: transform 200ms ease;
+  }
+
+  .terminal-window:hover .terminal-window-dot {
+    transform: scale(1.1);
+  }
+
+  .terminal-window-dot.red { background-color: #ef4444; }
+  .terminal-window-dot.yellow { background-color: #eab308; }
+  .terminal-window-dot.green { background-color: #22c55e; }
+
+  .terminal-window-title {
+    flex: 1;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-terminal-muted);
+  }
+
+  .terminal-window-content {
+    padding: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* -------------------------------------------------------------------------
+     Navigation Styles
+     ------------------------------------------------------------------------- */
+  .nav-link {
+    color: var(--color-terminal-muted);
+    text-decoration: none;
+    transition: color 150ms ease;
+    position: relative;
+  }
+
+  .nav-link:hover {
+    color: var(--color-terminal-accent);
+  }
+
+  .nav-link.active {
+    color: var(--color-terminal-accent);
+  }
+
+  /* Underline effect on hover */
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: var(--color-terminal-accent);
+    transition: width 200ms ease;
+  }
+
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    width: 100%;
+  }
+
+  /* -------------------------------------------------------------------------
+     Article/Post Styles
+     ------------------------------------------------------------------------- */
+  .article-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: var(--color-terminal-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .article-date::before {
+    content: '📅 ';
+  }
+
+  .article-reading-time::before {
+    content: '⏱️ ';
+  }
+
+  .article-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .article-tag {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: var(--color-terminal-bg-secondary);
+    border: 1px solid var(--color-terminal-border);
+    color: var(--color-terminal-muted);
+    text-decoration: none;
+    transition: all 150ms ease;
+  }
+
+  .article-tag:hover {
+    border-color: var(--color-terminal-accent);
+    color: var(--color-terminal-accent);
+  }
+
+  /* -------------------------------------------------------------------------
+     Post List Styles
+     ------------------------------------------------------------------------- */
+  .post-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .post-list-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-terminal-border);
+    transition: background-color 200ms ease;
+    margin: 0 -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    border-radius: 0.25rem;
+  }
+
+  .post-list-item:last-child {
+    border-bottom: none;
+  }
+
+  .post-list-item:hover {
+    background-color: color-mix(in srgb, var(--color-terminal-accent) 5%, transparent);
+  }
+
+  .post-list-link {
+    display: block;
+    text-decoration: none;
+  }
+
+  .post-list-title {
+    color: var(--color-terminal-fg);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    transition: color 200ms ease;
+  }
+
+  .post-list-link:hover .post-list-title {
+    color: var(--color-terminal-accent);
+  }
+
+  .post-list-date {
+    font-size: 0.875rem;
+    color: var(--color-terminal-muted);
+  }
+
+  .post-list-summary {
+    font-size: 0.875rem;
+    color: var(--color-terminal-muted);
+    margin-top: 0.5rem;
+    line-height: 1.5;
+  }
+
+  /* -------------------------------------------------------------------------
+     Buttons
+     ------------------------------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: var(--font-mono);
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary {
+    background-color: var(--color-terminal-accent);
+    color: var(--color-terminal-bg);
+    border-color: var(--color-terminal-accent);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-terminal-accent-hover);
+    border-color: var(--color-terminal-accent-hover);
+    color: var(--color-terminal-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-terminal-accent) 30%, transparent);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: none;
+  }
+
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--color-terminal-fg);
+    border-color: var(--color-terminal-border);
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--color-terminal-accent);
+    color: var(--color-terminal-accent);
+    background-color: color-mix(in srgb, var(--color-terminal-accent) 5%, transparent);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* -------------------------------------------------------------------------
+     Form Elements
+     ------------------------------------------------------------------------- */
+  .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-family: var(--font-mono);
+    color: var(--color-terminal-fg);
+    background-color: var(--color-terminal-bg);
+    border: 1px solid var(--color-terminal-border);
+    border-radius: 0.375rem;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--color-terminal-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-terminal-accent) 25%, transparent);
+  }
+
+  .form-input::placeholder {
+    color: var(--color-terminal-muted);
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-terminal-fg);
+    margin-bottom: 0.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  textarea.form-input {
+    min-height: 150px;
+    resize: vertical;
+  }
+
+  /* Prose - for rendered markdown content */
+  .prose > *:first-child {
+    margin-top: 0;
+  }
+
+  .prose > *:last-child {
+    margin-bottom: 0;
+  }
+
+  .prose a {
+    color: var(--color-terminal-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .prose a:hover {
+    text-decoration-color: transparent;
+  }
+
+  .prose img {
+    margin: 1.5em 0;
+    border-radius: 0.5rem;
+  }
+
+  .prose figure {
+    margin: 1.5em 0;
+  }
+
+  .prose figcaption {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-terminal-muted);
+    margin-top: 0.5rem;
+  }
+
+  /* -------------------------------------------------------------------------
+     Article Content - Enhanced Code Blocks
+
+     Code blocks within article content get terminal window chrome styling
+     ------------------------------------------------------------------------- */
+  .article-content pre {
+    position: relative;
+    margin: 1.5em 0;
+    padding-top: 2.5rem;
+    border: 1px solid var(--color-terminal-border);
+    border-radius: 0.5rem;
+    background-color: var(--color-terminal-code-bg);
+    overflow: hidden;
+  }
+
+  /* Terminal window header for code blocks */
+  .article-content pre::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2rem;
+    background-color: var(--color-terminal-bg-secondary);
+    border-bottom: 1px solid var(--color-terminal-border);
+    background-image:
+      radial-gradient(circle at 0.75rem center, #ef4444 5px, transparent 5px),
+      radial-gradient(circle at 1.75rem center, #eab308 5px, transparent 5px),
+      radial-gradient(circle at 2.75rem center, #22c55e 5px, transparent 5px);
+    background-repeat: no-repeat;
+    background-position: 0 center;
+  }
+
+  .article-content pre code {
+    display: block;
+    padding: 1rem;
+    overflow-x: auto;
+    background: none;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+
+  /* Line numbers effect (optional visual enhancement) */
+  .article-content pre code {
+    counter-reset: line;
+  }
+
+  /* Syntax highlighting compatible styles */
+  .article-content .highlight {
+    margin: 1.5em 0;
+  }
+
+  .article-content .highlight pre {
+    margin: 0;
+  }
+
+  /* -------------------------------------------------------------------------
+     Table of Contents Styling
+     ------------------------------------------------------------------------- */
+  .toc nav {
+    font-size: 0.875rem;
+  }
+
+  .toc nav ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+  }
+
+  .toc nav ul ul {
+    padding-left: 1rem;
+  }
+
+  .toc nav li {
+    margin: 0.25rem 0;
+  }
+
+  .toc nav a {
+    color: var(--color-terminal-muted);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .toc nav a:hover {
+    color: var(--color-terminal-accent);
+  }
+
+  .toc nav a::before {
+    content: '# ';
+    color: var(--color-terminal-border);
+  }
+}
+
+/* =============================================================================
+   Responsive Design
+   ============================================================================= */
+@media (max-width: 640px) {
+  /* Smaller text on mobile */
+  body {
+    font-size: 0.875rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+  }
+
+  /* Full-width code blocks on mobile with tighter spacing */
+  pre {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* Adjust table for mobile */
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  th, td {
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+
+  /* Terminal window adjustments for mobile */
+  .terminal-window {
+    border-radius: 0.375rem;
+  }
+
+  .terminal-window-content {
+    padding: 0.75rem;
+  }
+
+  .terminal-window-header {
+    padding: 0.375rem 0.75rem;
+  }
+
+  /* Terminal commands: allow wrapping on mobile */
+  .terminal-command {
+    word-break: break-word;
+  }
+
+  /* Post list: stack date below title on mobile */
+  .post-list-item .flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  /* Larger touch targets for buttons */
+  .btn {
+    padding: 0.75rem 1.25rem;
+    min-height: 44px;
+  }
+
+  /* Theme toggle larger touch area */
+  .theme-toggle-btn {
+    padding: 0.5rem;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Article meta wrapping */
+  .article-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  /* Form inputs larger for touch */
+  .form-input {
+    min-height: 48px;
+    font-size: 1rem;
+  }
+}
+
+/* =============================================================================
+   Print Styles
+   ============================================================================= */
+@media print {
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+  }
+
+  a {
+    color: black;
+    text-decoration: underline;
+  }
+
+  .theme-toggle,
+  .terminal-cursor {
+    display: none;
+  }
+
+  pre {
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+}

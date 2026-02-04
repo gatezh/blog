@@ -1,0 +1,84 @@
+{{/*
+  Header partial - Site title and navigation with terminal prompt styling
+
+  Features:
+  - Site title styled as a terminal prompt
+  - Navigation menu from hugo.yaml menu.main
+  - Theme toggle integrated on the right
+  - Responsive mobile menu
+*/}}
+<header class="w-full border-b border-terminal-border">
+  <div class="max-w-3xl mx-auto px-4 py-4">
+    <div class="flex items-center justify-between">
+      {{/* Site title as terminal prompt */}}
+      <a href="{{ "/" | relURL }}" class="flex items-center gap-2 text-terminal-fg hover:text-terminal-accent transition-colors no-underline">
+        <span class="text-terminal-accent">$</span>
+        <span class="font-semibold">{{ site.Title }}</span>
+        <span class="terminal-cursor"></span>
+      </a>
+
+      {{/* Navigation and theme toggle */}}
+      <div class="flex items-center gap-6">
+        {{/* Desktop navigation */}}
+        <nav class="hidden sm:flex items-center gap-4" aria-label="Main navigation">
+          {{ range site.Menus.main }}
+          <a
+            href="{{ .URL | relURL }}"
+            class="text-sm text-terminal-muted hover:text-terminal-accent transition-colors no-underline{{ if $.IsMenuCurrent "main" . }} text-terminal-accent{{ end }}"
+          >
+            {{ .Name }}
+          </a>
+          {{ end }}
+        </nav>
+
+        {{/* Theme toggle */}}
+        {{- partial "theme-toggle.html" . -}}
+
+        {{/* Mobile menu button */}}
+        <button
+          type="button"
+          class="sm:hidden p-2 text-terminal-muted hover:text-terminal-accent transition-colors"
+          aria-label="Toggle menu"
+          aria-expanded="false"
+          id="mobile-menu-btn"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    {{/* Mobile navigation */}}
+    <nav class="hidden mt-4 pt-4 border-t border-terminal-border sm:hidden" id="mobile-menu" aria-label="Mobile navigation" aria-hidden="true">
+      <div class="flex flex-col gap-2">
+        {{ range site.Menus.main }}
+        <a
+          href="{{ .URL | relURL }}"
+          class="py-2 text-terminal-muted hover:text-terminal-accent transition-colors no-underline{{ if $.IsMenuCurrent "main" . }} text-terminal-accent{{ end }}"
+        >
+          <span class="text-terminal-accent mr-2">></span>{{ .Name }}
+        </a>
+        {{ end }}
+      </div>
+    </nav>
+  </div>
+</header>
+
+<script>
+(function() {
+  var menuBtn = document.getElementById('mobile-menu-btn');
+  var mobileMenu = document.getElementById('mobile-menu');
+
+  if (menuBtn && mobileMenu) {
+    menuBtn.addEventListener('click', function() {
+      var isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+      menuBtn.setAttribute('aria-expanded', !isExpanded);
+      mobileMenu.classList.toggle('hidden');
+      mobileMenu.setAttribute('aria-hidden', isExpanded);
+    });
+  }
+})();
+</script>
