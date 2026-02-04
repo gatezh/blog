@@ -1,0 +1,101 @@
+{{/*
+  Head partial - Meta tags, fonts, CSS, and theme initialization
+
+  Includes:
+  - Essential meta tags
+  - JetBrains Mono font from Google Fonts
+  - Tailwind CSS via css.html partial
+  - Theme detection script (runs before body to prevent flash)
+*/}}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow">
+
+{{/* Page title */}}
+<title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
+
+{{/* Description */}}
+{{ $description := .Description | default site.Params.description }}
+{{ with $description }}
+<meta name="description" content="{{ . }}">
+{{ end }}
+
+{{/* Open Graph */}}
+<meta property="og:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
+<meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
+<meta property="og:url" content="{{ .Permalink }}">
+{{ with $description }}<meta property="og:description" content="{{ . }}">{{ end }}
+{{ with site.Title }}<meta property="og:site_name" content="{{ . }}">{{ end }}
+{{ with site.Params.ogImage }}<meta property="og:image" content="{{ . | absURL }}">{{ end }}
+
+{{/* Twitter Card */}}
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
+{{ with $description }}<meta name="twitter:description" content="{{ . }}">{{ end }}
+{{ with site.Params.ogImage }}<meta name="twitter:image" content="{{ . | absURL }}">{{ end }}
+
+{{/* Canonical URL */}}
+<link rel="canonical" href="{{ .Permalink }}">
+
+{{/* RSS Feed autodiscovery */}}
+{{ with .OutputFormats.Get "rss" -}}
+<link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">
+{{- end }}
+
+{{/* JetBrains Mono font from Google Fonts */}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+{{/* Tailwind CSS */}}
+{{- partial "css.html" . -}}
+
+{{/* Google Analytics */}}
+{{ if hugo.IsProduction }}
+{{ with site.Config.Services.GoogleAnalytics.ID }}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ . }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '{{ . }}');
+</script>
+{{ end }}
+{{ end }}
+
+{{/*
+  Theme initialization script - runs immediately to prevent flash of wrong theme
+
+  Three theme modes:
+  - light: Always light theme
+  - dark: Always dark theme
+  - system: Follow system preference (default)
+
+  The script:
+  1. Reads theme preference from localStorage
+  2. Falls back to 'system' if not set
+  3. If 'system', detects OS preference
+  4. Applies 'dark' class to <html> if needed
+*/}}
+<script>
+(function() {
+  var stored;
+  try {
+    stored = localStorage.getItem('theme');
+  } catch (e) {
+    stored = null;
+  }
+  var theme = stored || 'system';
+  var isDark;
+
+  if (theme === 'system') {
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    isDark = theme === 'dark';
+  }
+
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  }
+})();
+</script>

@@ -1,0 +1,125 @@
+{{/*
+  List template - Terminal-styled listing of posts/pages
+
+  Displays section content as a terminal file listing:
+  - Section header styled as directory listing command
+  - Optional section description from _index.md
+  - Posts displayed with file listing aesthetic
+*/}}
+{{ define "main" }}
+<article class="list-page">
+  {{/* Section Header */}}
+  <header class="mb-8">
+    <div class="terminal-window">
+      <div class="terminal-window-header">
+        <span class="terminal-window-dot red"></span>
+        <span class="terminal-window-dot yellow"></span>
+        <span class="terminal-window-dot green"></span>
+        <span class="terminal-window-title">~/{{ .Section | default .Title | lower }}</span>
+      </div>
+      <div class="terminal-window-content">
+        <div class="mb-4">
+          <span class="terminal-prompt"></span>
+          <span class="terminal-command">ls -la ./{{ .Section | default .Title | lower }}/</span>
+        </div>
+        <h1 class="text-2xl font-bold mb-2 mt-0">{{ .Title }}</h1>
+        {{ with .Content }}
+        <div class="text-terminal-muted text-sm prose">
+          {{ . }}
+        </div>
+        {{ end }}
+      </div>
+    </div>
+  </header>
+
+  {{/* Post Count and Pagination */}}
+  {{ $pages := .Pages }}
+  {{ $paginator := .Paginate $pages }}
+  {{ if $paginator.Pages }}
+  <div class="mb-6 text-terminal-muted text-sm">
+    <span class="terminal-output">total {{ $paginator.TotalNumberOfElements }} {{ if eq $paginator.TotalNumberOfElements 1 }}item{{ else }}items{{ end }}</span>
+  </div>
+
+  {{/* File Listing Style */}}
+  <div class="file-listing">
+    <ul class="post-list">
+      {{ range $paginator.Pages }}
+      <li class="post-list-item group">
+        <a href="{{ .Permalink }}" class="post-list-link block">
+          {{/* File listing row */}}
+          <div class="flex items-start gap-4">
+            {{/* File permissions indicator */}}
+            <span class="text-terminal-muted text-sm shrink-0 hidden sm:inline" aria-hidden="true">-rw-r--r--</span>
+
+            {{/* Date as timestamp */}}
+            <time class="text-terminal-muted text-sm shrink-0 w-24 hidden sm:block" datetime="{{ .Date.Format "2006-01-02" }}">
+              {{ .Date.Format "Jan 02" }}
+            </time>
+
+            {{/* Post title and summary */}}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <span class="post-list-title break-words">{{ .Title }}</span>
+                {{/* Mobile date */}}
+                <time class="post-list-date shrink-0 sm:hidden" datetime="{{ .Date.Format "2006-01-02" }}">
+                  {{ .Date.Format "Jan 02" }}
+                </time>
+              </div>
+
+              {{/* Summary */}}
+              {{ with .Summary }}
+              <p class="post-list-summary mt-1">{{ . | plainify | truncate 150 }}</p>
+              {{ end }}
+
+              {{/* Reading time for posts */}}
+              {{ if .ReadingTime }}
+              <span class="text-terminal-muted text-xs mt-1 inline-block">
+                {{ .ReadingTime }} min read
+              </span>
+              {{ end }}
+            </div>
+          </div>
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+  </div>
+  {{ else }}
+  {{/* Empty state */}}
+  <div class="text-terminal-muted py-8 text-center">
+    <p class="terminal-output">No items found in this directory.</p>
+  </div>
+  {{ end }}
+
+  {{/* Pagination if enabled */}}
+  {{ if gt $paginator.TotalPages 1 }}
+  <nav class="mt-8 pt-4 border-t border-terminal-border" aria-label="Pagination">
+    <div class="flex items-center justify-between text-sm">
+      <div>
+        {{ if $paginator.HasPrev }}
+        <a href="{{ $paginator.Prev.URL }}" class="nav-link">
+          &larr; Prev
+        </a>
+        {{ else }}
+        <span class="text-terminal-muted">&larr; Prev</span>
+        {{ end }}
+      </div>
+
+      <div class="text-terminal-muted">
+        Page {{ $paginator.PageNumber }} of {{ $paginator.TotalPages }}
+      </div>
+
+      <div>
+        {{ if $paginator.HasNext }}
+        <a href="{{ $paginator.Next.URL }}" class="nav-link">
+          Next &rarr;
+        </a>
+        {{ else }}
+        <span class="text-terminal-muted">Next &rarr;</span>
+        {{ end }}
+      </div>
+    </div>
+  </nav>
+  {{ end }}
+</article>
+{{ end }}

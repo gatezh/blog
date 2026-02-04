@@ -71,3 +71,6 @@ worker-configuration.d.ts
 .env
 .env.*
 .dev.vars
+
+# ralphex progress logs
+progress*.txt
