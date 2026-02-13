@@ -1,20 +1,59 @@
 {{/* Cloudflare Images Transformations */}}
 {{/* https://developers.cloudflare.com/images/transform-images/transform-via-url/ */}}
-{{/* It is only enabled for the production domain */}}
-{{/* so it adds suffix only in production environment */}}
+{{/* Cloudflare image optimization is only enabled for the production domain, */}}
+{{/* so the CDN prefix is added only in production environment. */}}
+{{/*
+Parameters:
+src - page resource path (required)
+alt - alt text for accessibility (required)
+caption - figcaption text, supports inline markdown (optional)
+scale - max width as % of container on wide screens (optional, default 100)
+*/}}
 
-{{- $img := .Page.Resources.GetMatch (.Get 0) -}}
-{{- $alt := .Get 1 -}}
+{{- if not (.Page.Store.Get "cfimage-style") }}
+{{- .Page.Store.Set "cfimage-style" true }}
+<style>
+  .cfimage {
+    margin: 1rem 0 2rem;
+  }
+
+  .cfimage img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .cfimage figcaption {
+    text-align: center;
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .cfimage[style*="--img-scale"] {
+      max-width: calc(var(--img-scale) * 1%);
+      margin-inline: auto;
+    }
+  }
+</style>
+{{- end }}
+
+{{- $src := .Get "src" -}}
+{{- $alt := .Get "alt" -}}
+{{- $caption := .Get "caption" -}}
+{{- $scale := .Get "scale" -}}
+
+{{- $img := .Page.Resources.GetMatch $src -}}
 
 {{- if $img }}
-  {{- $src := $img.RelPermalink -}}
+<figure class="cfimage" {{- if $scale }} style="--img-scale: {{ $scale }}" {{ end -}}>
+  {{- $imgSrc := $img.RelPermalink -}}
   {{- if eq hugo.Environment "production" -}}
-    {{- $src = print "/cdn-cgi/image/format=auto,width=auto" $src -}}
-  {{- end -}}
-  <img
-    src="{{ $src }}"
-    alt="{{ $alt | htmlEscape }}"
-    loading="lazy"
-    style="aspect-ratio: {{ $img.Width }}/{{ $img.Height }}; max-width: 100%; height: auto; background-color: #eee;"
-    >
+  {{- $imgSrc = print "/cdn-cgi/image/format=auto,width=auto" $imgSrc -}}
+  {{- end }}
+  <img src="{{ $imgSrc }}" alt="{{ $alt | htmlEscape }}" loading="lazy"
+    style="aspect-ratio: {{ $img.Width }}/{{ $img.Height }};">
+  {{- with $caption }}
+  <figcaption>{{ . | markdownify }}</figcaption>
+  {{- end }}
+</figure>
 {{- end }}
