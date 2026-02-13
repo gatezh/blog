@@ -46,7 +46,7 @@ Even though there is this $3.50/mo IPv4 VM in their pricing, you may experience 
 
 <!-- 1-Choose-Type.png -->
 
-{{< cfimage "images/1-Choose-Type.png" "Choose Type" >}}
+{{< cfimage src="images/1-Choose-Type.png" alt="Choose Type" caption="Choose Type" >}}
 
 Keep **New York** as your location in the Choose Location option. As per my communication with support:
 
@@ -54,19 +54,19 @@ Keep **New York** as your location in the Choose Location option. As per my comm
 
 <!-- 2-Choose-Location.png -->
 
-{{< cfimage "images/2-Choose-Location.png" "Choose Location" >}}
+{{< cfimage src="images/2-Choose-Location.png" alt="Choose Location" caption="Choose Location" >}}
 
 When you get to the **Choose Image** section, there is again a caveat. I initially chose Ubuntu, but Ubuntu requires at least 1GB of RAM, so it's not an option for the cheapest VM. I had to go with Debian since that's the other Linux distribution I'm familiar with. Alpine Linux or Fedora CoreOS are better suited for what I was trying to accomplish here, but again, since I wasn't familiar working with those, I decided to go with Debian. I may try to use Alpine Linux next time.
 
 <!-- 3-Choose-Image.png -->
 
-{{< cfimage "images/3-Choose-Image.png" "Choose Image" >}}
+{{< cfimage src="images/3-Choose-Image.png" alt="Choose Image" caption="Choose Image" >}}
 
 In the **Choose Plan** section, switch to the **Regular Cloud Compute** tab, and you should be able to locate the $3.50/month option second in the list.
 
 <!-- 4-Choose-Plan.png -->
 
-{{< cfimage "images/4-Choose-Plan.png" "Choose Plan" >}}
+{{< cfimage src="images/4-Choose-Plan.png" alt="Choose Plan" caption="Choose Plan" >}}
 
 I haven't picked the $2.50 per month option because, again, my ISP does not support IPv6.
 
@@ -80,13 +80,13 @@ Server added successfully! Yay!
 
 <!-- 5-Server-added-successfully.png -->
 
-{{< cfimage "images/5-Server-added-successfully.png" "Server added successfully" >}}
+{{< cfimage src="images/5-Server-added-successfully.png" alt="Server added successfully" caption="Server added successfully" >}}
 
 You can now open your terminal and establish an SSH connection by using the credentials available in your Server Details.
 
 <!-- 6-Server-Details.png -->
 
-{{< cfimage "images/6-Server-Details.png" "Server details" >}}
+{{< cfimage src="images/6-Server-Details.png" alt="Server details" caption="Server details" >}}
 
 Just type in your terminal:
 
@@ -108,13 +108,13 @@ You can create a new Firewall Group in **Products** > **Network** > **Firewall**
 
 <!-- 7-Firewall-rules.png -->
 
-{{< cfimage "images/7-Firewall-rules.png" "Firewall rules" >}}
+{{< cfimage src="images/7-Firewall-rules.png" alt="Firewall rules" caption="Firewall rules" >}}
 
 Don't forget to link those rules to your VM in the **Linked Instances** tab (or in your VM's settings) to apply them.
 
 <!-- 8-Link-firewall.png -->
 
-{{< cfimage "images/8-Link-firewall.png" "Link firewall" >}}
+{{< cfimage src="images/8-Link-firewall.png" alt="Link firewall" caption="Link firewall" >}}
 
 ### Add fail2ban
 
@@ -177,7 +177,7 @@ After installing Docker, you can test if it works with the `sudo docker run hell
 
 <!-- 9-Docker-hello-world.png -->
 
-{{< cfimage "images/9-Docker-hello-world.png" "Docker hello-world" >}}
+{{< cfimage src="images/9-Docker-hello-world.png" alt="Docker hello-world" caption="Docker hello-world" >}}
 
 Configure Docker to run containers as `linuxuser`:
 
@@ -308,13 +308,13 @@ Now you need to add an **A** record to your DNS settings, essentially creating a
 
 <!-- 10-DNS-A-record.png -->
 
-{{< cfimage "images/10-DNS-A-record.png" "DNS A record" >}}
+{{< cfimage src="images/10-DNS-A-record.png" alt="DNS A record" caption="DNS A record" >}}
 
 If you visit your newly created sub-domain name with `/web`, you should see your Remark42 comments demo page. In my case, it is `comments.gatezh.com/web`.
 
 <!-- 11-Comments-demo-page.png -->
 
-{{< cfimage "images/11-Comments-demo-page.png" "Comments demo page" >}}
+{{< cfimage src="images/11-Comments-demo-page.png" alt="Comments demo page" caption="Comments demo page" >}}
 
 Great! We're almost there. The only thing left is to add comments to your blog posts.
 
