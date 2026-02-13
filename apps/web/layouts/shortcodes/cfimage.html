@@ -1,20 +1,28 @@
 {{/* Cloudflare Images Transformations */}}
 {{/* https://developers.cloudflare.com/images/transform-images/transform-via-url/ */}}
-{{/* It is only enabled for the production domain */}}
-{{/* so it adds suffix only in production environment */}}
+{{/* Cloudflare image optimization is only enabled for the production domain, */}}
+{{/* so the CDN prefix is added only in production environment. */}}
 
-{{- $img := .Page.Resources.GetMatch (.Get 0) -}}
-{{- $alt := .Get 1 -}}
+{{- $src := .Get "src" -}}
+{{- $alt := .Get "alt" -}}
+{{- $caption := .Get "caption" -}}
+
+{{- $img := .Page.Resources.GetMatch $src -}}
 
 {{- if $img }}
-  {{- $src := $img.RelPermalink -}}
+<figure>
+  {{- $imgSrc := $img.RelPermalink -}}
   {{- if eq hugo.Environment "production" -}}
-    {{- $src = print "/cdn-cgi/image/format=auto,width=auto" $src -}}
-  {{- end -}}
+    {{- $imgSrc = print "/cdn-cgi/image/format=auto,width=auto" $imgSrc -}}
+  {{- end }}
   <img
-    src="{{ $src }}"
+    src="{{ $imgSrc }}"
     alt="{{ $alt | htmlEscape }}"
     loading="lazy"
-    style="aspect-ratio: {{ $img.Width }}/{{ $img.Height }}; max-width: 100%; height: auto; background-color: #eee;"
-    >
+    style="aspect-ratio: {{ $img.Width }}/{{ $img.Height }}; max-width: 100%; height: auto;"
+  >
+  {{- with $caption }}
+  <figcaption>{{ . | markdownify }}</figcaption>
+  {{- end }}
+</figure>
 {{- end }}
