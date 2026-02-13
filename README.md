@@ -45,10 +45,10 @@ All Hugo commands should be run from `apps/web/`:
 ```bash
 cd apps/web
 
-# Create a regular blog post
+# Create a regular blog post (page bundle with images/ directory)
 hugo new posts/name-of-a-post
 
-# Create a learning log post
+# Create a learning log post (page bundle with images/ directory)
 hugo new ever-learning/name-of-a-post
 ```
 
