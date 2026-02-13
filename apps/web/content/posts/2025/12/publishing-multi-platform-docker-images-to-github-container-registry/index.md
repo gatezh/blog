@@ -242,7 +242,7 @@ When I tried to test my GitHub Actions workflow and automatically build my image
 
 <!-- GitHub Actions permissions error.png -->
 
-{{< cfimage "images/GitHub Actions permissions error.png" "GitHub Actions permissions error" >}}
+{{< cfimage src="images/GitHub Actions permissions error.png" alt="GitHub Actions permissions error" caption="GitHub Actions permissions error" >}}
 
 Fortunately the fix is pretty simple. Since I previously created my Docker image (package) manually I just needed to:
 
@@ -252,7 +252,7 @@ Fortunately the fix is pretty simple. Since I previously created my Docker image
 
 <!-- Manage Actions access.png -->
 
-{{< cfimage "images/Manage Actions access.png" "Manage Actions access" >}}
+{{< cfimage src="images/Manage Actions access.png" alt="Manage Actions access" caption="Manage Actions access" >}}
 
 That did the trick and the following updates were built and published to my registry automatically. Nice 😎
 
