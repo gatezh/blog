@@ -1,0 +1,33 @@
+{
+  "name": "gatezh.com",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "runArgs": [
+    "--hostname=gatezh-com"
+  ],
+  "mounts": [
+    "source=${localWorkspaceFolderBasename}-root-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=${localWorkspaceFolderBasename}-www-node_modules,target=${containerWorkspaceFolder}/services/www/node_modules,type=volume",
+    "source=${localWorkspaceFolderBasename}-worker-node_modules,target=${containerWorkspaceFolder}/services/email-worker/node_modules,type=volume"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "extensions.ignoreRecommendations": true
+      },
+      "extensions": [
+        "oven.bun-vscode",
+        "bradlc.vscode-tailwindcss",
+        "stivo.tailwind-fold",
+        "akmittal.hugofy",
+        "budparr.language-hugo-vscode",
+        "kaellarkin.hugo-shortcode-syntax",
+        "oxc.oxc-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "bun install"
+}
