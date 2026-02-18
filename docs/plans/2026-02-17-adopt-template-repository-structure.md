@@ -43,12 +43,12 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 - Modify: `.github/workflows/deploy-web.yml` (use mise-action instead of hardcoded versions)
 - Modify: `.github/workflows/deploy-email-worker.yml` (use mise-action instead of hardcoded versions)
 
-- [ ] Create `.mise.toml` with bun and hugo versions (no node needed for this project):
+- [x] Create `.mise.toml` with bun and hugo versions (no node needed for this project):
     - `bun = "1.3.2"` (current version used in CI)
     - `hugo = "0.152.2"` (current version used in CI)
-- [ ] Update `deploy-web.yml`: replace `oven-sh/setup-bun` and `peaceiris/actions-hugo` with `jdx/mise-action@v2`, remove hardcoded `HUGO_VERSION` and `BUN_VERSION` env vars
-- [ ] Update `deploy-email-worker.yml`: replace `oven-sh/setup-bun` with `jdx/mise-action@v2`, remove hardcoded `BUN_VERSION` env var
-- [ ] Update path triggers in workflows from `apps/` to `services/`
+- [x] Update `deploy-web.yml`: replace `oven-sh/setup-bun` and `peaceiris/actions-hugo` with `jdx/mise-action@v2`, remove hardcoded `HUGO_VERSION` and `BUN_VERSION` env vars
+- [x] Update `deploy-email-worker.yml`: replace `oven-sh/setup-bun` with `jdx/mise-action@v2`, remove hardcoded `BUN_VERSION` env var
+- [x] Update path triggers in workflows from `apps/` to `services/`
 
 ### Task 3: Modernize devcontainer with Dockerfile + mise
 
