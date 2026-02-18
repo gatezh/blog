@@ -6,8 +6,8 @@ Personal blog and portfolio website built with Hugo and deployed to Cloudflare W
 
 This is a Bun monorepo containing:
 
-- **apps/web** - Hugo static website using custom terminal theme
-- **apps/email-worker** - Cloudflare Worker for contact form emails
+- **services/www** - Hugo static website using custom terminal theme
+- **services/email-worker** - Cloudflare Worker for contact form emails
 
 ## Quick Start
 
@@ -40,10 +40,10 @@ bun run build
 
 ### Adding Content
 
-All Hugo commands should be run from `apps/web/`:
+All Hugo commands should be run from `services/www/`:
 
 ```bash
-cd apps/web
+cd services/www
 
 # Create a regular blog post (page bundle with images/ directory)
 hugo new posts/name-of-a-post

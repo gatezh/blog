@@ -122,15 +122,15 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 - Modify: `docs/DEPLOYMENT.md`
 - Modify: `docs/README.md`
 
-- [ ] Update CLAUDE.md:
+- [x] Update CLAUDE.md:
     - Change all `apps/web` references to `services/www`
     - Change all `apps/email-worker` references to `services/email-worker`
     - Update monorepo structure diagram
     - Replace Prettier references with OXC
     - Update Hugo/Bun version sync section to reference `.mise.toml` as single source of truth
     - Add linting to pre-completion checks
-- [ ] Update `docs/DEPLOYMENT.md`: change all `apps/` paths to `services/`
-- [ ] Update `docs/README.md` if it references directory paths
+- [x] Update `docs/DEPLOYMENT.md`: change all `apps/` paths to `services/`
+- [x] Update `docs/README.md` if it references directory paths
 
 ### Task 8: Verify everything works
 
