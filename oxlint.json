@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "typescript", "unicorn"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "ignorePatterns": [
+    "**/node_modules",
+    "**/dist",
+    "**/.wrangler",
+    "**/public",
+    "services/www/themes",
+    "services/www/static"
+  ]
+}

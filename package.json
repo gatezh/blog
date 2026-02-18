@@ -11,9 +11,9 @@
     "deploy:web": "bun run --cwd services/www deploy",
     "deploy:worker": "bun run --cwd services/email-worker deploy",
     "deploy": "bun run deploy:web && bun run deploy:worker",
-    "prettier": "bunx prettier . --write"
+    "lint": "bunx oxlint"
   },
   "devDependencies": {
-    "prettier": "3.5.3"
+    "oxlint": "1.48.0"
   }
 }

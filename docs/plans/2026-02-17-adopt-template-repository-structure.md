@@ -73,19 +73,19 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 - Modify: `services/www/package.json` (remove prettier dependencies)
 - Remove: `services/www/prettier.yml` (prettier config)
 
-- [ ] Create `oxlint.json` at project root, adapted from template (remove react-specific rules since this project has no React):
+- [x] Create `oxlint.json` at project root, adapted from template (remove react-specific rules since this project has no React):
     ```json
     {
       "rules": { "typescript": "warn", "import": "warn", "unicorn": "warn" },
       "ignorePatterns": ["**/node_modules", "**/dist", "**/.wrangler", "**/public", "services/www/themes", "services/www/static"]
     }
     ```
-- [ ] Update root `package.json`: replace `prettier` devDep with `oxlint` (pinned exact version), replace `prettier` script with `lint` script
-- [ ] Remove `prettier` and `prettier-plugin-go-template` and `prettier-plugin-tailwindcss` from `services/www/package.json` devDependencies
-- [ ] Delete `services/www/prettier.yml`
-- [ ] Add `lint` script to `services/email-worker/package.json`: `"lint": "oxlint src"`
-- [ ] Run `bun install` to update lockfile
-- [ ] Run `bunx oxlint` to verify linting works
+- [x] Update root `package.json`: replace `prettier` devDep with `oxlint` (pinned exact version), replace `prettier` script with `lint` script
+- [x] Remove `prettier` and `prettier-plugin-go-template` and `prettier-plugin-tailwindcss` from `services/www/package.json` devDependencies
+- [x] Delete `services/www/prettier.yml`
+- [x] Add `lint` script to `services/email-worker/package.json`: `"lint": "oxlint src"`
+- [x] Run `bun install` to update lockfile
+- [x] Run `bunx oxlint` to verify linting works
 
 ### Task 5: Add root tsconfig.json and .claude/settings.json
 
