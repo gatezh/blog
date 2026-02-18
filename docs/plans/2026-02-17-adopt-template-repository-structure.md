@@ -57,13 +57,13 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 - Create: `.devcontainer/devcontainer.json` (replace hugo-dev/devcontainer.json as root config)
 - Remove: `.devcontainer/hugo-dev/` directory (replaced by new setup)
 
-- [ ] Create `.devcontainer/Dockerfile` based on template (debian:trixie-slim, install mise, read tool versions from .mise.toml)
-- [ ] Create new `.devcontainer/devcontainer.json` with:
+- [x] Create `.devcontainer/Dockerfile` based on template (debian:trixie-slim, install mise, read tool versions from .mise.toml)
+- [x] Create new `.devcontainer/devcontainer.json` with:
     - Build from Dockerfile (no pre-built image dependency)
     - Volume mounts for node_modules (services/www, services/email-worker)
     - VS Code extensions: bun, tailwind CSS, hugo extensions, OXC
     - postCreateCommand: `bun install`
-- [ ] Remove `.devcontainer/hugo-dev/` directory
+- [x] Remove `.devcontainer/hugo-dev/` directory
 
 ### Task 4: Replace Prettier with OXC (oxlint)
 
