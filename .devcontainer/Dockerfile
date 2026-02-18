@@ -21,7 +21,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 USER $USERNAME
 
 # Install mise (tool version manager)
-RUN curl https://mise.run | sh
+RUN curl --proto '=https' --tlsv1.2 -sSf https://mise.run | sh
 ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
 
 # Copy .mise.toml and install tools

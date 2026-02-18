@@ -56,6 +56,11 @@ Before finishing any feature or change, **ALWAYS run verification**:
 │   ├── deploy-web.yml          # Website deployment (path: services/www/**)
 │   └── deploy-email-worker.yml # Email worker deployment (path: services/email-worker/**)
 │
+├── .claude/
+│   └── settings.json           # Claude Code permissions
+├── .devcontainer/
+│   ├── Dockerfile              # Dev container image (debian + mise)
+│   └── devcontainer.json       # VS Code devcontainer config
 ├── docs/                       # Documentation and ADRs
 ├── .mise.toml                  # Tool versions (bun, hugo)
 ├── oxlint.json                 # OXC linter configuration

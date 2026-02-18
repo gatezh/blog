@@ -29,5 +29,5 @@
       ]
     }
   },
-  "postCreateCommand": "bun install"
+  "postCreateCommand": "mise install && bun install"
 }
