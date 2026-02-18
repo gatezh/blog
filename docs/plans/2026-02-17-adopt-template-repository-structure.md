@@ -109,7 +109,7 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 **Files:**
 - Modify: `.gitignore`
 
-- [ ] Modernize `.gitignore` to match template patterns:
+- [x] Modernize `.gitignore` to match template patterns:
     - Add: `dist/`, `.wrangler/`, `*.tsbuildinfo`, `coverage/`
     - Keep: Hugo-specific ignores, macOS ignores, ralphex progress logs
     - Remove: generated toptal.com boilerplate comments, `.aider*` (no longer used)
