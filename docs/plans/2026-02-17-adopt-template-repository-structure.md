@@ -134,8 +134,8 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 
 ### Task 8: Verify everything works
 
-- [ ] Run `bun install` from root
-- [ ] Run `bun run build` (Hugo build)
-- [ ] Run `bun run build:worker` (email worker build)
-- [ ] Run `bunx tsc --noEmit` in services/email-worker
-- [ ] Run `bunx oxlint` from root
+- [x] Run `bun install` from root
+- [x] Run `bun run build` (Hugo build)
+- [x] Run `bun run build:worker` (email worker build)
+- [x] Run `bunx tsc --noEmit` in services/email-worker
+- [x] Run `bunx oxlint` from root
