@@ -93,8 +93,8 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 - Create: `tsconfig.json` (root)
 - Create: `.claude/settings.json`
 
-- [ ] Create root `tsconfig.json` matching template (ES2022 target, ESNext module, bundler resolution, strict mode)
-- [ ] Create `.claude/settings.json` with allowed bash commands matching template pattern:
+- [x] Create root `tsconfig.json` matching template (ES2022 target, ESNext module, bundler resolution, strict mode)
+- [x] Create `.claude/settings.json` with allowed bash commands matching template pattern:
     ```json
     {
       "permissions": {
@@ -102,7 +102,7 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
       }
     }
     ```
-- [ ] Run `bunx tsc --noEmit` in services/email-worker to verify TypeScript works with root tsconfig
+- [x] Run `bunx tsc --noEmit` in services/email-worker to verify TypeScript works with root tsconfig
 
 ### Task 6: Update .gitignore
 
