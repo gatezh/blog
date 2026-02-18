@@ -26,6 +26,9 @@ bun run build
 
 ### Prerequisites
 
+- [mise](https://mise.run) - Tool version manager (installs correct Bun and Hugo versions from `.mise.toml`)
+
+Or install tools manually:
 - [Bun](https://bun.sh) (v1.3.2+)
 - [Hugo](https://gohugo.io) Extended (v0.152.2+)
 
@@ -36,6 +39,7 @@ bun run build
 | `bun run dev` | Start Hugo development server |
 | `bun run dev:worker` | Start email worker locally |
 | `bun run build` | Build Hugo site for production |
+| `bun run lint` | Run oxlint linter |
 | `bun run deploy` | Deploy both web and worker |
 
 ### Adding Content
