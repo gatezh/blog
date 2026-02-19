@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded - Replaced by custom terminal theme implementation in `apps/web/themes/terminal/layouts/partials/comments.html`
+Superseded - Replaced by custom terminal theme implementation in `services/www/themes/terminal/layouts/partials/comments.html`
 
 ## Context
 

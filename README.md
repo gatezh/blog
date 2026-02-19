@@ -6,8 +6,8 @@ Personal blog and portfolio website built with Hugo and deployed to Cloudflare W
 
 This is a Bun monorepo containing:
 
-- **apps/web** - Hugo static website using custom terminal theme
-- **apps/email-worker** - Cloudflare Worker for contact form emails
+- **services/www** - Hugo static website using custom terminal theme
+- **services/email-worker** - Cloudflare Worker for contact form emails
 
 ## Quick Start
 
@@ -26,6 +26,9 @@ bun run build
 
 ### Prerequisites
 
+- [mise](https://mise.run) - Tool version manager (installs correct Bun and Hugo versions from `.mise.toml`)
+
+Or install tools manually:
 - [Bun](https://bun.sh) (v1.3.2+)
 - [Hugo](https://gohugo.io) Extended (v0.152.2+)
 
@@ -36,14 +39,15 @@ bun run build
 | `bun run dev` | Start Hugo development server |
 | `bun run dev:worker` | Start email worker locally |
 | `bun run build` | Build Hugo site for production |
-| `bun run deploy` | Deploy both web and worker |
+| `bun run lint` | Run oxlint linter |
+| `bun run deploy` | Deploy both www and worker |
 
 ### Adding Content
 
-All Hugo commands should be run from `apps/web/`:
+All Hugo commands should be run from `services/www/`:
 
 ```bash
-cd apps/web
+cd services/www
 
 # Create a regular blog post (page bundle with images/ directory)
 hugo new posts/name-of-a-post

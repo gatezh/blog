@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ensure default node user has access to /usr/local/share
-RUN mkdir -p /usr/local/share/npm-global && \
+RUN mkdir -p /usr/local/share/npm-global/lib && \
   chown -R node:node /usr/local/share
 
 ARG USERNAME=node
@@ -78,12 +78,29 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
   -x
 
-# Install Claude
+# Install Bun (version from .mise.toml — single source of truth)
+COPY --chown=node:node .mise.toml /tmp/.mise.toml
+RUN BUN_VERSION=$(grep 'bun' /tmp/.mise.toml | sed 's/.*"\(.*\)"/\1/') \
+    && curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}" \
+    && rm /tmp/.mise.toml
+
+# Add Bun to PATH
+ENV BUN_INSTALL="/home/node/.bun"
+ENV PATH="$BUN_INSTALL/bin:$PATH"
+
+# Install Playwright browser dependencies (as root) and headless shell (as node)
+# Using --only-shell for headless-only testing (smaller download, all we need for CI/testing)
+ARG PLAYWRIGHT_VERSION=1.57.0
+USER root
+RUN npx -y playwright@${PLAYWRIGHT_VERSION} install-deps chromium
+USER node
+RUN npx -y playwright@${PLAYWRIGHT_VERSION} install --only-shell
+
+# Install Claude Code
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
-
 # Copy and set up firewall script
-COPY init-firewall.sh /usr/local/bin/
+COPY .devcontainer/claude-node-bun/init-firewall.sh /usr/local/bin/
 USER root
 RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
