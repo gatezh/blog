@@ -17,7 +17,7 @@
 {{ with site.Params.author }}<meta name="author" content="{{ . }}">{{ end }}
 
 {{/* Description */}}
-{{ $description := .Description | default site.Params.description }}
+{{ $description := .Description | default (.Summary | plainify | truncate 160) | default site.Params.description }}
 {{ with $description }}
 <meta name="description" content="{{ . }}">
 {{ end }}
