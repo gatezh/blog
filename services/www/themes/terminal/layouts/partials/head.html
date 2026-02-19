@@ -37,6 +37,9 @@
 {{/* Canonical URL */}}
 <link rel="canonical" href="{{ .Permalink }}">
 
+{{/* JSON-LD structured data */}}
+{{- partial "seo.html" . -}}
+
 {{/* RSS Feed autodiscovery */}}
 {{ with .OutputFormats.Get "rss" -}}
 <link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">

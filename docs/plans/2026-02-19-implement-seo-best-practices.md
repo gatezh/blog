@@ -43,12 +43,12 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 - Create: `services/www/themes/terminal/layouts/partials/seo.html`
 - Modify: `services/www/themes/terminal/layouts/partials/head.html`
 
-- [ ] Create a new `seo.html` partial containing JSON-LD structured data
-- [ ] On the homepage: output a Person schema (name: "Serge Gatezh", url, jobTitle: "Front-end Engineer", address.addressLocality: "Calgary", address.addressRegion: "Alberta", address.addressCountry: "Canada", sameAs with GitHub https://github.com/gatezh and LinkedIn https://linkedin.com/in/gatezh) and a WebSite schema (name, url, description)
-- [ ] On article pages: output an Article schema with headline, datePublished, dateModified, author (Person reference), description, url, and publisher
-- [ ] On other pages: output a WebPage schema with name, url, and description
-- [ ] Include the `seo.html` partial from `head.html`
-- [ ] Run `bun run build` and inspect the generated HTML to verify JSON-LD output is valid
+- [x] Create a new `seo.html` partial containing JSON-LD structured data
+- [x] On the homepage: output a Person schema (name: "Serge Gatezh", url, jobTitle: "Front-end Engineer", address.addressLocality: "Calgary", address.addressRegion: "Alberta", address.addressCountry: "Canada", sameAs with GitHub https://github.com/gatezh and LinkedIn https://linkedin.com/in/gatezh) and a WebSite schema (name, url, description)
+- [x] On article pages: output an Article schema with headline, datePublished, dateModified, author (Person reference), description, url, and publisher
+- [x] On other pages: output a WebPage schema with name, url, and description
+- [x] Include the `seo.html` partial from `head.html`
+- [x] Run `bun run build` and inspect the generated HTML to verify JSON-LD output is valid
 
 ### Task 3: Enhance head.html meta tags
 
