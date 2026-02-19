@@ -2,18 +2,19 @@
   "name": "gatezh-com-monorepo",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": ["services/*"],
   "scripts": {
-    "dev": "bun run --cwd apps/web dev",
-    "dev:worker": "bun run --cwd apps/email-worker dev",
-    "build": "bun run --cwd apps/web build",
-    "build:worker": "bun run --cwd apps/email-worker build",
-    "deploy:web": "bun run --cwd apps/web deploy",
-    "deploy:worker": "bun run --cwd apps/email-worker deploy",
-    "deploy": "bun run deploy:web && bun run deploy:worker",
-    "prettier": "bunx prettier . --write"
+    "dev": "bun run --cwd services/www dev",
+    "dev:worker": "bun run --cwd services/email-worker dev",
+    "build": "bun run --cwd services/www build",
+    "build:worker": "bun run --cwd services/email-worker build",
+    "deploy:www": "bun run --cwd services/www deploy",
+    "deploy:worker": "bun run --cwd services/email-worker deploy",
+    "deploy": "bun run deploy:www && bun run deploy:worker",
+    "typecheck": "bun --filter '*' typecheck",
+    "lint": "bun --filter '*' lint"
   },
   "devDependencies": {
-    "prettier": "3.5.3"
+    "oxlint": "1.48.0"
   }
 }

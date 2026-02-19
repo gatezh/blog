@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "plugins": ["import", "typescript", "unicorn"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "ignorePatterns": [
+    "**/node_modules",
+    "**/dist",
+    "**/.wrangler",
+    "**/public",
+    "services/www/themes",
+    "services/www/static",
+    "services/www/layouts",
+    "services/www/content"
+  ]
+}
