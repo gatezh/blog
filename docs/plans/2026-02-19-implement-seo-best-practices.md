@@ -68,9 +68,9 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 **Files:**
 - Modify: `services/www/themes/terminal/layouts/_default/single.html`
 
-- [ ] Add an author byline in the article metadata section (below the date) displaying the author name with `itemprop="author"` and `itemscope itemtype="https://schema.org/Person"` markup
-- [ ] Add `itemprop="dateModified"` using `.Lastmod` when available
-- [ ] Run `bun run build` to verify
+- [x] Add an author byline in the article metadata section (below the date) displaying the author name with `itemprop="author"` and `itemscope itemtype="https://schema.org/Person"` markup
+- [x] Add `itemprop="dateModified"` using `.Lastmod` when available
+- [x] Run `bun run build` to verify
 
 ### Task 5: Add meta descriptions to existing posts
 
