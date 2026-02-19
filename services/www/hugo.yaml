@@ -2,6 +2,7 @@ baseURL: https://gatezh.com/
 languageCode: en-us
 title: Serge Gatezh
 theme: terminal
+enableRobotsTXT: true
 
 # Build configuration for Tailwind CSS v4
 build:
