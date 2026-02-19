@@ -108,9 +108,9 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 - Create: `services/www/layouts/robots.txt`
 - Modify: `services/www/hugo.yaml`
 
-- [ ] Create a Hugo robots.txt template that allows all crawlers and includes a Sitemap directive pointing to `{{ site.BaseURL }}sitemap.xml`
-- [ ] Add `enableRobotsTXT: true` to hugo.yaml so Hugo generates robots.txt from the template
-- [ ] Run `bun run build` and verify `public/robots.txt` exists with correct content
+- [x] Create a Hugo robots.txt template that allows all crawlers and includes a Sitemap directive pointing to `{{ site.BaseURL }}sitemap.xml`
+- [x] Add `enableRobotsTXT: true` to hugo.yaml so Hugo generates robots.txt from the template
+- [x] Run `bun run build` and verify `public/robots.txt` exists with correct content
 
 ### Task 8: Create llms.txt for AI/LLM discoverability
 
