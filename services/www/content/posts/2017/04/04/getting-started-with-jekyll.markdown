@@ -2,6 +2,7 @@
 layout: post
 title: "Getting started with Jekyll"
 date: 2017-04-04 19:54:55 -0400
+description: "Step-by-step guide to setting up a Jekyll blog on GitHub Pages with Ruby, custom domains, and CNAME configuration."
 permalink: /getting-started-with-jekyll.html
 categories: angular github
 aliases:

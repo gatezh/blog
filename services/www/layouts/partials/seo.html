@@ -1,0 +1,72 @@
+{{/*
+  SEO partial - JSON-LD structured data
+
+  Outputs schema.org structured data as JSON-LD:
+  - Homepage: Person + WebSite schemas
+  - Article pages (posts): Article schema
+  - Other pages: WebPage schema
+*/}}
+
+{{- $description := .Description | default site.Params.description -}}
+{{- $author := site.Params.author -}}
+
+{{ if .IsHome -}}
+{{- $person := dict
+  "@context" "https://schema.org"
+  "@type" "Person"
+  "name" $author
+  "url" (site.BaseURL | strings.TrimRight "/")
+  "jobTitle" "Front-end Engineer"
+  "address" (dict
+    "@type" "PostalAddress"
+    "addressLocality" "Calgary"
+    "addressRegion" "Alberta"
+    "addressCountry" "Canada"
+  )
+  "sameAs" (slice "https://github.com/gatezh" "https://linkedin.com/in/gatezh")
+-}}
+<script type="application/ld+json">
+{{- $person | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+{{- $website := dict
+  "@context" "https://schema.org"
+  "@type" "WebSite"
+  "name" site.Title
+  "url" (site.BaseURL | strings.TrimRight "/")
+  "description" $description
+-}}
+<script type="application/ld+json">
+{{- $website | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+
+{{- else if and .IsPage (eq .Section "posts") -}}
+{{- $articleDescription := .Description | default (.Summary | plainify | truncate 160) | default site.Params.description -}}
+{{- $authorPerson := dict "@type" "Person" "name" $author "url" (site.BaseURL | strings.TrimRight "/") -}}
+{{- $article := dict
+  "@context" "https://schema.org"
+  "@type" "Article"
+  "headline" .Title
+  "datePublished" (.Date.Format "2006-01-02T15:04:05Z07:00")
+  "dateModified" (.Lastmod.Format "2006-01-02T15:04:05Z07:00")
+  "author" $authorPerson
+  "description" $articleDescription
+  "url" .Permalink
+  "publisher" $authorPerson
+-}}
+<script type="application/ld+json">
+{{- $article | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+
+{{- else -}}
+{{- $pageDescription := .Description | default (.Summary | plainify | truncate 160) | default site.Params.description | default site.Title -}}
+{{- $page := dict
+  "@context" "https://schema.org"
+  "@type" "WebPage"
+  "name" .Title
+  "url" .Permalink
+  "description" $pageDescription
+-}}
+<script type="application/ld+json">
+{{- $page | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+{{- end }}

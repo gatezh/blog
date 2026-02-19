@@ -1,6 +1,7 @@
 ---
 title: 'Publishing Multi-Platform Docker Images to Github Container Registry'
 date: '2025-12-05T20:41:18Z'
+description: "Guide to building and publishing multi-platform Docker images to GitHub Container Registry using buildx and PATs."
 ShowToc: true
 TocOpen: true
 ---

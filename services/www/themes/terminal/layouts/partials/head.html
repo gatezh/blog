@@ -9,33 +9,48 @@
 */}}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="index, follow">
 
 {{/* Page title */}}
 <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
 
+{{/* Author */}}
+{{ with site.Params.author }}<meta name="author" content="{{ . }}">{{ end }}
+
 {{/* Description */}}
-{{ $description := .Description | default site.Params.description }}
+{{ $description := .Description | default (.Summary | plainify | truncate 160) | default site.Params.description }}
 {{ with $description }}
 <meta name="description" content="{{ . }}">
 {{ end }}
 
+{{/* Keywords */}}
+{{ $keywords := .Params.keywords | default site.Params.keywords }}
+{{ with $keywords }}<meta name="keywords" content="{{ . }}">{{ end }}
+
 {{/* Open Graph */}}
 <meta property="og:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
-<meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
+<meta property="og:type" content="{{ if and .IsPage (eq .Section "posts") }}article{{ else }}website{{ end }}">
 <meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:locale" content="en_US">
 {{ with $description }}<meta property="og:description" content="{{ . }}">{{ end }}
 {{ with site.Title }}<meta property="og:site_name" content="{{ . }}">{{ end }}
 {{ with site.Params.ogImage }}<meta property="og:image" content="{{ . | absURL }}">{{ end }}
+{{- if and .IsPage (eq .Section "posts") }}
+{{ with .Date }}<meta property="article:published_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
+{{ with .Lastmod }}<meta property="article:modified_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
+{{ with site.Params.author }}<meta property="article:author" content="{{ . }}">{{ end }}
+{{- end }}
 
 {{/* Twitter Card */}}
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="{{ if site.Params.ogImage }}summary_large_image{{ else }}summary{{ end }}">
 <meta name="twitter:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
 {{ with $description }}<meta name="twitter:description" content="{{ . }}">{{ end }}
 {{ with site.Params.ogImage }}<meta name="twitter:image" content="{{ . | absURL }}">{{ end }}
 
 {{/* Canonical URL */}}
 <link rel="canonical" href="{{ .Permalink }}">
+
+{{/* JSON-LD structured data */}}
+{{- partial "seo.html" . -}}
 
 {{/* RSS Feed autodiscovery */}}
 {{ with .OutputFormats.Get "rss" -}}
