@@ -1,6 +1,6 @@
 ---
-title: 'Protecting SSH Keys with macOS Secure Enclave (Native Approach)'
-date: '2026-02-12T22:41:55Z'
+title: "Protecting SSH Keys with macOS Secure Enclave (Native Approach)"
+date: "2026-02-12T22:41:55Z"
 draft: false
 ---
 
@@ -37,12 +37,12 @@ When you SSH somewhere, your Mac asks the Secure Enclave to sign the authenticat
 
 The workflow is surprisingly similar to regular SSH keys:
 
-| Aspect | Regular SSH Key | Secure Enclave Key |
-|--------|-----------------|-------------------|
-| Where private key lives | `~/.ssh/id_ed25519` (a file) | Secure Enclave chip |
-| What's on disk | Actual private key | Just a reference (useless without this Mac) |
-| Setup on remote server | Copy public key to `authorized_keys` | Same |
-| Connecting | Just works | Touch ID prompt, then works |
+| Aspect                  | Regular SSH Key                      | Secure Enclave Key                          |
+| ----------------------- | ------------------------------------ | ------------------------------------------- |
+| Where private key lives | `~/.ssh/id_ed25519` (a file)         | Secure Enclave chip                         |
+| What's on disk          | Actual private key                   | Just a reference (useless without this Mac) |
+| Setup on remote server  | Copy public key to `authorized_keys` | Same                                        |
+| Connecting              | Just works                           | Touch ID prompt, then works                 |
 
 ## Setting It Up
 
@@ -55,6 +55,7 @@ sc_auth create-ctk-identity -l "ssh-MacBook" -k p-256-ne -t bio
 ```
 
 Breaking this down:
+
 - `-l "ssh-MacBook"` — a label for your reference (only visible locally)
 - `-k p-256-ne` — NIST P-256 curve, **n**on-**e**xportable (the key can never leave Secure Enclave)
 - `-t bio` — require **bio**metric (Touch ID) for every use
@@ -66,8 +67,8 @@ You'll be prompted for Touch ID to create the key.
 When I first ran this command, I got a scary error:
 
 ```
-Error: Error Domain=NSOSStatusErrorDomain Code=-25293 "Failed to generate keypair" 
-(errKCAuthFailed / errSecAuthFailed: / Authorization/Authentication failed.) 
+Error: Error Domain=NSOSStatusErrorDomain Code=-25293 "Failed to generate keypair"
+(errKCAuthFailed / errSecAuthFailed: / Authorization/Authentication failed.)
 UserInfo={..., NSUnderlyingError=... "Failed to get bio catacomb UUID for user 502." ...}
 ```
 
@@ -80,6 +81,7 @@ sc_auth list-ctk-identities
 ```
 
 Output:
+
 ```
 Key Type Public Key Hash                          Prot Label       Common Name  Valid To          Valid
 p-256-ne A71277F0BC5825A7B3576D014F31282A866EF3BC bio  ssh-MacBook ssh-MacBook  2027-01-26, 10:18 YES
@@ -134,6 +136,7 @@ cat ~/.ssh/id_ecdsa_sk_rk.pub
 ```
 
 Output:
+
 ```
 sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTIt... ssh:
 ```
@@ -189,7 +192,7 @@ You should get a Touch ID prompt, then connect. 🎉
 
 ## The Ugly Touch ID Prompt
 
-{{< cfimage "images/Touch ID prompt.png" "Touch ID prompt" >}}
+{{< cfimage src="images/Touch ID prompt.png" alt="Touch ID prompt" caption="Touch ID prompt" scale="60" >}}
 
 One thing I'm not thrilled about: the Touch ID dialog says **"ctccardtoken needs to authenticate to continue"** instead of something friendly like "SSH wants to use your key."
 
@@ -216,6 +219,7 @@ The solution isn't backing up the key — it's having multiple keys. Add your Se
 It seems to be a proper way to store your SSH keys securely, and it is way better than storing them on your hard drive.
 
 With the implementation above you get:
+
 - ✅ Private key literally cannot be stolen (it's in hardware)
 - ✅ Every SSH operation requires Touch ID (I know when my key is used)
 - ✅ No third-party apps needed
@@ -227,4 +231,4 @@ And I would need to continue my experiments anyway, because I need a backup opti
 
 ---
 
-*Have questions or run into different issues? Let me know in the comments!*
+_Have questions or run into different issues? Let me know in the comments!_
