@@ -7,10 +7,6 @@
     "nodejs_compat"
   ],
   "vars": {
-    // Email recipient - where contact form submissions are sent
-    "TO_EMAIL": "hello@example.com",
-    // Email sender - must be from a verified domain in Resend
-    "FROM_EMAIL": "contact@example.com",
     // Allowed CORS origin for the contact form
     "ALLOWED_ORIGIN": "https://gatezh.com"
   },
@@ -23,4 +19,6 @@
   // Secrets (set via `wrangler secret put`):
   // - RESEND_API_KEY: Your Resend API key
   // - TURNSTILE_SECRET_KEY: Your Cloudflare Turnstile secret key
+  // - TO_EMAIL: Email recipient for contact form submissions
+  // - FROM_EMAIL: Email sender (must be from a verified domain in Resend)
 }
