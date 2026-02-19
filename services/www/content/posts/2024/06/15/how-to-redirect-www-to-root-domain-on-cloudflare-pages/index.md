@@ -15,7 +15,7 @@ draft: false
 
 Recently, I was talking to people and at some point, I mentioned having my website. What stumbled me was that first, some people are still using `www` when typing the name of the website. And second, it turns out my website didn't work with `www` in front of it. I was pretty sure it was set up a long time ago, but apparently, when I was moving my website and DNS records to Cloudflare, something went wrong.
 
-![Connection timed out](/images/post-fixing-www/1-Connection-timed-out.png)
+{{< cfimage src="images/1-Connection-timed-out.png" alt="Connection timed out" caption="Connection timed out" >}}
 
 When I started to look into how to fix it, I didn't find anything useful. So I decided that the Internet deserves yet another tutorial on how to fix the `www` DNS record for your website using Cloudflare.
 
@@ -35,11 +35,11 @@ Then select **Custom domains** at the top. Here you press the **Set up a custom 
 
 If you already had a CNAME record in your DNS settings pointing to your Cloudflare pages.dev website, it will just show you that record, notifying you that it will replace it with... exactly the same record.
 
-![Adding www custom subdomain](/images/post-fixing-www/2-Adding-www-custom-subdomain.png)
+{{< cfimage src="images/2-Adding-www-custom-subdomain.png" alt="Adding www custom subdomain" caption="Adding www custom subdomain" >}}
 
 The only difference is that it is going to work now. Hit the **Activate domain** button and it will work pretty much immediately.
 
-![Custom domain verification](/images/post-fixing-www/3-Custom-domain-verification.png)
+{{< cfimage src="images/3-Custom-domain-verification.png" alt="Custom domain verification" caption="Custom domain verification" >}}
 
 ## Step 2: Redirect to a Root Domain
 
@@ -47,15 +47,15 @@ I want to redirect users to `gatezh.com` when they try to access `www.gatezh.com
 
 There are many posts out there about how to make it happen with Cloudflare, but it seems like all of the posts out there are outdated. They suggest using **Page Rules**, but if you locate it in your website's settings panel to the left, there will be a nice red **Legacy** label next to it.
 
-![Page Rules (legacy)](</images/post-fixing-www/4-Page-Rules-(legacy).png>)
+{{< cfimage src="images/4-Page-Rules-(legacy).png" alt="Page Rules (legacy)" caption="Page Rules (legacy)" >}}
 
 Not to worry. Cloudflare has very useful documentation describing how to make this change in a new way. There is even an example exactly for the case we need to [Migrate Forwarding URL: Example #1: Redirect `www` to root domain](https://developers.cloudflare.com/rules/reference/page-rules-migration/#migrate-forwarding-url). There is even a _Visual guide_ on how settings should look for your website.
 
-![Setting up redirect](/images/post-fixing-www/5-Setting-up-redirect.png)
+{{< cfimage src="images/5-Setting-up-redirect.png" alt="Setting up redirect" caption="Setting up redirect" >}}
 
 Just follow along and deploy your changes. Works as expected!
 
-![Successful redirect](/images/post-fixing-www/6-Successful-redirect.png)
+{{< cfimage src="images/6-Successful-redirect.png" alt="Successful redirect" caption="Successful redirect" >}}
 
 > **Note** that if you made the `www` version of your website work by following the first part of this tutorial, it won't be opening anymore since, well... it now redirects to your non-www version.
 
