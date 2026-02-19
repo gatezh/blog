@@ -41,23 +41,24 @@
 
 {{- else if and .IsPage (eq .Section "posts") -}}
 {{- $articleDescription := $description | default (.Summary | plainify | truncate 160) -}}
+{{- $authorPerson := dict "@type" "Person" "name" $author "url" (site.BaseURL | strings.TrimRight "/") -}}
 {{- $article := dict
   "@context" "https://schema.org"
   "@type" "Article"
   "headline" .Title
   "datePublished" (.Date.Format "2006-01-02T15:04:05Z07:00")
   "dateModified" (.Lastmod.Format "2006-01-02T15:04:05Z07:00")
-  "author" (dict "@type" "Person" "name" $author "url" (site.BaseURL | strings.TrimRight "/"))
+  "author" $authorPerson
   "description" $articleDescription
   "url" .Permalink
-  "publisher" (dict "@type" "Person" "name" $author "url" (site.BaseURL | strings.TrimRight "/"))
+  "publisher" $authorPerson
 -}}
 <script type="application/ld+json">
 {{- $article | jsonify (dict "indent" "  ") | safeJS -}}
 </script>
 
-{{- else if .IsPage -}}
-{{- $pageDescription := $description | default (.Summary | plainify | truncate 160) -}}
+{{- else -}}
+{{- $pageDescription := $description | default (.Summary | plainify | truncate 160) | default site.Title -}}
 {{- $page := dict
   "@context" "https://schema.org"
   "@type" "WebPage"
@@ -67,18 +68,5 @@
 -}}
 <script type="application/ld+json">
 {{- $page | jsonify (dict "indent" "  ") | safeJS -}}
-</script>
-
-{{- else -}}
-{{- $listDescription := $description | default site.Title -}}
-{{- $listPage := dict
-  "@context" "https://schema.org"
-  "@type" "WebPage"
-  "name" .Title
-  "url" .Permalink
-  "description" $listDescription
--}}
-<script type="application/ld+json">
-{{- $listPage | jsonify (dict "indent" "  ") | safeJS -}}
 </script>
 {{- end }}
