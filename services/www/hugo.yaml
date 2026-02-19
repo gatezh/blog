@@ -2,6 +2,7 @@ baseURL: https://gatezh.com/
 languageCode: en-us
 title: Serge Gatezh
 theme: terminal
+enableRobotsTXT: true
 
 # Build configuration for Tailwind CSS v4
 build:
@@ -31,6 +32,10 @@ menu:
       weight: 30
 
 params:
+  description: "Personal blog of Serge Gatezh, Front-end Engineer based in Calgary, Alberta. Posts about web development, React, TypeScript, DevOps, and software engineering."
+  author: "Serge Gatezh"
+  keywords: "Serge Gatezh, front-end engineer, web development, React, TypeScript, Calgary"
+
   comments: true
 
   # Contact form configuration
