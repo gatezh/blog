@@ -2,6 +2,7 @@
 layout: post
 title: "Using Anki to study programming"
 date: 2017-07-16 20:04:19 -0400
+description: "How to use Anki and spaced repetition to memorize programming syntax and concepts with custom cloze deletion cards."
 permalink: /using-anki-to-study-programming.html
 categories:
 aliases:

@@ -40,7 +40,7 @@
 </script>
 
 {{- else if and .IsPage (eq .Section "posts") -}}
-{{- $articleDescription := $description | default (.Summary | plainify | truncate 160) -}}
+{{- $articleDescription := .Description | default (.Summary | plainify | truncate 160) | default site.Params.description -}}
 {{- $authorPerson := dict "@type" "Person" "name" $author "url" (site.BaseURL | strings.TrimRight "/") -}}
 {{- $article := dict
   "@context" "https://schema.org"
@@ -58,7 +58,7 @@
 </script>
 
 {{- else -}}
-{{- $pageDescription := $description | default (.Summary | plainify | truncate 160) | default site.Title -}}
+{{- $pageDescription := .Description | default (.Summary | plainify | truncate 160) | default site.Params.description | default site.Title -}}
 {{- $page := dict
   "@context" "https://schema.org"
   "@type" "WebPage"
