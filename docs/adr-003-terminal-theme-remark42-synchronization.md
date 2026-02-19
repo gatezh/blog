@@ -84,9 +84,9 @@ The initial theme must be known before Remark42 loads (in `remark_config`), so w
 ## Implementation
 
 - **Files Modified:**
-  - `apps/web/themes/terminal/layouts/partials/comments.html` (created)
-  - `apps/web/themes/terminal/layouts/partials/theme-toggle.html` (created)
-  - `apps/web/themes/terminal/layouts/partials/head.html` (created)
+  - `services/www/themes/terminal/layouts/partials/comments.html` (created)
+  - `services/www/themes/terminal/layouts/partials/theme-toggle.html` (created)
+  - `services/www/themes/terminal/layouts/partials/head.html` (created)
 
 ---
 
