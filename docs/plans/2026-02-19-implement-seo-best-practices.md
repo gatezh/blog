@@ -128,6 +128,6 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 
 ### Task 9: Verify all changes and build
 
-- [ ] Run `bun run build` to ensure production build succeeds
-- [ ] Run `bunx oxlint` from root to check for lint errors
-- [ ] Spot-check generated HTML in `public/` to confirm: JSON-LD is present on homepage, article pages have Article schema, meta descriptions are populated, robots.txt exists with sitemap reference, author meta tags are present, llms.txt exists at root with correct format
+- [x] Run `bun run build` to ensure production build succeeds
+- [x] Run `bunx oxlint` from root to check for lint errors
+- [x] Spot-check generated HTML in `public/` to confirm: JSON-LD is present on homepage, article pages have Article schema, meta descriptions are populated, robots.txt exists with sitemap reference, author meta tags are present, llms.txt exists at root with correct format
