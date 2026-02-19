@@ -117,14 +117,14 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 **Files:**
 - Create: `services/www/static/llms.txt`
 
-- [ ] Create `services/www/static/llms.txt` following the llmstxt.org specification format:
+- [x] Create `services/www/static/llms.txt` following the llmstxt.org specification format:
   - H1 header: "gatezh.com"
   - Blockquote summary: concise description of the site and author (e.g., "Personal blog of Serge Gatezh, a Front-end Engineer based in Calgary, Alberta, Canada. Covers web development, React, TypeScript, DevOps, Docker, Cloudflare, and software engineering.")
   - H2 "About" section with a link to the about page and a short description
   - H2 "Blog Posts" section listing each published post as a markdown link with a colon-separated description (e.g., `- [How to Redirect www to Root Domain on Cloudflare Pages](https://gatezh.com/posts/...): Step-by-step guide...`)
   - H2 "Links" section with GitHub and LinkedIn profile URLs
-- [ ] Keep the file under 10KB and serve as plain text (Hugo static files are served as-is with correct MIME type based on extension)
-- [ ] Run `bun run build` and verify `public/llms.txt` exists at the root
+- [x] Keep the file under 10KB and serve as plain text (Hugo static files are served as-is with correct MIME type based on extension)
+- [x] Run `bun run build` and verify `public/llms.txt` exists at the root
 
 ### Task 9: Verify all changes and build
 
