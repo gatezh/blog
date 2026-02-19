@@ -36,6 +36,17 @@
       <time class="article-date" datetime="{{ .Date.Format "2006-01-02" }}" itemprop="datePublished">
         {{ .Date.Format "January 2, 2006" }}
       </time>
+      {{ if not .Lastmod.IsZero }}
+      <meta itemprop="dateModified" content="{{ .Lastmod.Format "2006-01-02" }}" />
+      {{ end }}
+      {{ end }}
+
+      {{/* Author */}}
+      {{ with site.Params.author }}
+      <span itemprop="author" itemscope itemtype="https://schema.org/Person">
+        <span class="text-terminal-muted">by</span>
+        <span itemprop="name">{{ . }}</span>
+      </span>
       {{ end }}
 
       {{/* Reading time */}}
