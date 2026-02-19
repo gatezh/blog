@@ -1,6 +1,7 @@
 ---
 title: "GraphQL schema: use it in a sentence"
 date: 2020-06-22T19:53:28-04:00
+description: "Best practices for naming fields in GraphQL schemas. Avoid redundant prefixes and write queries that read like natural sentences."
 aliases:
   - /posts/2020/06/22/graphql-schema-use-it-in-a-sentence
 ---

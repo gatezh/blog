@@ -2,6 +2,7 @@
 title: "How to Redirect www to Root Domain on Cloudflare Pages"
 date: 2024-06-15T16:35:02-06:00
 lastmod: 2025-08-13T18:26:02-06:00
+description: "Step-by-step guide to redirecting www to your root domain on Cloudflare Pages using DNS records and redirect rules."
 aliases:
   - /posts/2024/06/15/posts/fixing-www-issue-for-cloudflare-pages-website
 draft: false
