@@ -89,8 +89,8 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 **Files:**
 - Modify: `services/www/content/about.md`
 
-- [ ] Add a `description` field to front matter: "About Serge Gatezh - Front-end Engineer based in Calgary, Alberta, specializing in React, TypeScript, and modern web development."
-- [ ] Rewrite the page content with a professional bio that includes:
+- [x] Add a `description` field to front matter: "About Serge Gatezh - Front-end Engineer based in Calgary, Alberta, specializing in React, TypeScript, and modern web development."
+- [x] Rewrite the page content with a professional bio that includes:
   - Full name: Serge Gatezh
   - Job title: Front-end Engineer
   - Location: Calgary, Alberta, Canada
@@ -99,8 +99,8 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
   - Open source involvement: mention active GitHub presence (hugo-tailwindcss-starter, devcontainer-bun-template, and other projects)
   - Professional links: LinkedIn (linkedin.com/in/gatezh), GitHub (github.com/gatezh)
   - TN visa eligibility and openness to US roles (as noted on LinkedIn)
-- [ ] Keep the wishlist section at the bottom as-is
-- [ ] Run `bun run build` to verify
+- [x] Keep the wishlist section at the bottom as-is
+- [x] Run `bun run build` to verify
 
 ### Task 7: Create a robots.txt template with sitemap reference
 
