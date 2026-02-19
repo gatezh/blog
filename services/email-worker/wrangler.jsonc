@@ -12,7 +12,7 @@
     // Email sender - must be from a verified domain in Resend
     "FROM_EMAIL": "contact@example.com",
     // Allowed CORS origin for the contact form
-    "ALLOWED_ORIGIN": "https://example.com"
+    "ALLOWED_ORIGIN": "https://gatezh.com"
   },
   "observability": {
     "enabled": false,

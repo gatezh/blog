@@ -19,7 +19,7 @@ This is a Bun monorepo for gatezh.com containing:
 - Tool versions are managed centrally in `.mise.toml` (single source of truth)
 - Hugo and Bun versions are read from `.mise.toml` by:
   - `.devcontainer/Dockerfile` (via mise)
-  - `.github/workflows/deploy-web.yml` (via `jdx/mise-action`)
+  - `.github/workflows/deploy-www.yml` (via `jdx/mise-action`)
   - `.github/workflows/deploy-email-worker.yml` (via `jdx/mise-action`)
 - When updating tool versions, only edit `.mise.toml`
 
@@ -53,7 +53,7 @@ Before finishing any feature or change, **ALWAYS run verification**:
 │       └── tsconfig.json       # TypeScript configuration
 │
 ├── .github/workflows/          # GitHub Actions
-│   ├── deploy-web.yml          # Website deployment (path: services/www/**)
+│   ├── deploy-www.yml          # Website deployment (path: services/www/**)
 │   └── deploy-email-worker.yml # Email worker deployment (path: services/email-worker/**)
 │
 ├── .claude/
