@@ -6,12 +6,12 @@ on:
       - master
     paths:
       - 'services/www/**'
-      - '.github/workflows/deploy-web.yml'
+      - '.github/workflows/deploy-www.yml'
   workflow_dispatch:
 
 # Allow only one concurrent deployment
 concurrency:
-  group: "deploy-web"
+  group: "deploy-www"
   cancel-in-progress: false
 
 jobs:

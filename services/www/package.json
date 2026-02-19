@@ -6,7 +6,8 @@
     "dev": "test -n \"$CODESPACE_NAME\" && hugo server --buildDrafts --appendPort=false --baseURL / --bind 0.0.0.0 || hugo server --buildDrafts --bind 0.0.0.0",
     "preview": "hugo server --appendPort=false --baseURL / --bind 0.0.0.0",
     "build": "hugo --minify",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "lint": "oxlint ."
   },
   "devDependencies": {
     "@tailwindcss/cli": "4.1.18",

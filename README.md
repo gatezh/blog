@@ -40,7 +40,7 @@ Or install tools manually:
 | `bun run dev:worker` | Start email worker locally |
 | `bun run build` | Build Hugo site for production |
 | `bun run lint` | Run oxlint linter |
-| `bun run deploy` | Deploy both web and worker |
+| `bun run deploy` | Deploy both www and worker |
 
 ### Adding Content
 
