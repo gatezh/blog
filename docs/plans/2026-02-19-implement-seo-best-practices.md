@@ -80,9 +80,9 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 - Modify: `services/www/content/posts/2024/06/15/how-to-redirect-www-to-root-domain-on-cloudflare-pages/index.md`
 - Modify: `services/www/content/posts/2020/06/22/graphql-schema-use-it-in-a-sentence.md`
 
-- [ ] Add a concise, keyword-rich `description` field (under 160 characters) to each post's front matter that is missing one
-- [ ] Ensure descriptions naturally include "Serge Gatezh" or relevant technical terms for discoverability
-- [ ] Run `bun run build` to verify
+- [x] Add a concise, keyword-rich `description` field (under 160 characters) to each post's front matter that is missing one
+- [x] Ensure descriptions naturally include "Serge Gatezh" or relevant technical terms for discoverability
+- [x] Run `bun run build` to verify
 
 ### Task 6: Enrich the About page with professional bio
 
