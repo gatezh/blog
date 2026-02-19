@@ -55,13 +55,13 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 **Files:**
 - Modify: `services/www/themes/terminal/layouts/partials/head.html`
 
-- [ ] Add `<meta name="author" content="...">` using `site.Params.author`
-- [ ] Add `<meta name="keywords" content="...">` using page-level keywords with fallback to site-level `params.keywords`
-- [ ] Add `og:locale` meta tag (en_US)
-- [ ] For article pages, add `article:published_time` and `article:modified_time` Open Graph tags
-- [ ] For article pages, add `article:author` Open Graph tag
-- [ ] Change Twitter card from "summary" to "summary_large_image" when an og:image is available
-- [ ] Run `bun run build` to verify
+- [x] Add `<meta name="author" content="...">` using `site.Params.author`
+- [x] Add `<meta name="keywords" content="...">` using page-level keywords with fallback to site-level `params.keywords`
+- [x] Add `og:locale` meta tag (en_US)
+- [x] For article pages, add `article:published_time` and `article:modified_time` Open Graph tags
+- [x] For article pages, add `article:author` Open Graph tag
+- [x] Change Twitter card from "summary" to "summary_large_image" when an og:image is available
+- [x] Run `bun run build` to verify
 
 ### Task 4: Add author markup to single post template
 
