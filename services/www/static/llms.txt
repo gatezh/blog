@@ -13,6 +13,10 @@
 - [Add Remark42 comments to Hugo website](https://gatezh.com/posts/add-remark42-comments-to-hugo-website/): A step-by-step guide on replacing Disqus with Remark42 for a privacy-respecting comment system on your Hugo blog.
 - [How to Redirect www to Root Domain on Cloudflare Pages](https://gatezh.com/posts/how-to-redirect-www-to-root-domain-on-cloudflare-pages/): Step-by-step guide to redirecting www to your root domain on Cloudflare Pages using DNS records and redirect rules.
 - [GraphQL schema: use it in a sentence](https://gatezh.com/posts/graphql-schema-use-it-in-a-sentence/): Best practices for naming fields in GraphQL schemas. Avoid redundant prefixes and write queries that read like natural sentences.
+- [Using Anki to study programming](https://gatezh.com/posts/using-anki-to-study-programming/): How to use Anki and spaced repetition to memorize programming syntax and concepts with custom cloze deletion cards.
+- [Host your personal blog on GitHub Pages](https://gatezh.com/posts/host-your-personal-blog-on-github-pages/): A guide to hosting a personal blog on GitHub Pages with Jekyll, covering setup, deployment, and custom domain configuration.
+- [Getting started with Jekyll](https://gatezh.com/posts/getting-started-with-jekyll/): Step-by-step guide to setting up a Jekyll blog on GitHub Pages with Ruby, custom domains, and CNAME configuration.
+- [How to host Angular application on GitHub Pages](https://gatezh.com/posts/how-to-host-angular-application-on-github-pages/): How to deploy an Angular application to GitHub Pages using angular-cli-ghpages with custom domain and routing support.
 
 ## Links
 
