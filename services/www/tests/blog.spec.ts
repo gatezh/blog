@@ -35,8 +35,8 @@ test.describe("Posts list page", () => {
     await expect(firstTitle).toBeVisible();
     await expect(firstTitle).not.toBeEmpty();
 
-    // Each card should have a date
-    const firstDate = posts.first().locator("time");
+    // Each card should have a date (desktop and mobile variants exist)
+    const firstDate = posts.first().locator("time").first();
     await expect(firstDate).toBeVisible();
     expect(await firstDate.getAttribute("datetime")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
