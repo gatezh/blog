@@ -39,8 +39,10 @@ Thumbs.db
 *.log
 
 ### Playwright ###
+screenshots/
 test-results/
 playwright-report/
+.playwright-browsers/
 
 ### Ralphex ###
 progress*.txt
