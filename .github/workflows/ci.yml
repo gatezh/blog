@@ -1,0 +1,132 @@
+name: CI
+run-name: "CI: ${{ github.event.pull_request.title }}"
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Cache Bun global cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Lint and type check
+        run: bun run check
+
+  test-browser:
+    name: Test (Browser)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Cache Bun global cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Extract Playwright version
+        id: playwright-version
+        run: |
+          PLAYWRIGHT_VERSION=$(node -e "const pkg = require('./package.json'); console.log(pkg.devDependencies['@playwright/test'])")
+          if [ -z "$PLAYWRIGHT_VERSION" ] || [ "$PLAYWRIGHT_VERSION" = "undefined" ]; then
+            echo "::error::Failed to extract Playwright version from package.json"
+            exit 1
+          fi
+          echo "version=$PLAYWRIGHT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        working-directory: services/www
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        working-directory: services/www
+        run: npx playwright install-deps chromium
+
+      - name: Run browser tests
+        run: bun run test
+
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Cache Bun global cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build production bundle
+        run: bun run build

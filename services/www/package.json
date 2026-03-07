@@ -3,15 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "test -n \"$CODESPACE_NAME\" && hugo server --buildDrafts --appendPort=false --baseURL / --bind 0.0.0.0 || hugo server --buildDrafts --bind 0.0.0.0",
-    "preview": "hugo server --appendPort=false --baseURL / --bind 0.0.0.0",
-    "build": "hugo --minify",
-    "deploy": "wrangler deploy",
-    "lint": "oxlint ."
+    "dev": "test -n \"$CODESPACE_NAME\" && bun --env-file=../../.env.local x hugo server --buildDrafts --appendPort=false --baseURL / --bind 0.0.0.0 --port ${WWW_PORT:-1313} || bun --env-file=../../.env.local x hugo server --buildDrafts --bind 0.0.0.0 --port ${WWW_PORT:-1313}",
+    "preview": "bun --env-file=../../.env.local x hugo server --appendPort=false --baseURL / --bind 0.0.0.0",
+    "build": "bun --env-file=../../.env.local x hugo --minify",
+    "deploy": "bun run build && bunx wrangler deploy",
+    "lint": "oxlint .",
+    "test": "bunx playwright test",
+    "test:ui": "bunx playwright test --ui",
+    "test:report": "bunx playwright show-report"
   },
   "devDependencies": {
     "@tailwindcss/cli": "4.1.18",
-    "tailwindcss": "4.1.18",
-    "wrangler": "4.14.1"
+    "tailwindcss": "4.1.18"
   }
 }
