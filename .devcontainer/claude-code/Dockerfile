@@ -1,7 +1,5 @@
-FROM node:20
-
-ARG TZ
-ENV TZ="$TZ"
+# Debian Trixie base (GLIBC 2.41) — required for RTK binary compatibility
+FROM node:20-trixie
 
 ARG CLAUDE_CODE_VERSION=latest
 
@@ -27,15 +25,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   vim \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Ensure default node user has access to /usr/local/share
+# Ensure npm global directory structure exists with proper permissions
+# CRITICAL: NPM_CONFIG_PREFIX below is set to /usr/local/share/npm-global, which means npm
+# expects the /lib subdirectory to exist (npm installs to $PREFIX/lib/node_modules).
+# Pre-creating /lib prevents "ENOENT: no such file or directory" errors when running npx
+# commands during build (e.g., npx playwright install-deps). See: error.log history.
 RUN mkdir -p /usr/local/share/npm-global/lib && \
   chown -R node:node /usr/local/share
 
 ARG USERNAME=node
 
 # Persist bash history.
-RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
-  && mkdir /commandhistory \
+RUN mkdir /commandhistory \
   && touch /commandhistory/.bash_history \
   && chown -R $USERNAME /commandhistory
 
@@ -78,29 +79,45 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
   -x
 
-# Install Bun (version from .mise.toml — single source of truth)
-COPY --chown=node:node .mise.toml /tmp/.mise.toml
-RUN BUN_VERSION=$(grep 'bun' /tmp/.mise.toml | sed 's/.*"\(.*\)"/\1/') \
-    && curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}" \
-    && rm /tmp/.mise.toml
+# Install mise (polyglot version manager — reads .mise.toml for bun, hugo, ralphex, rtk)
+USER root
+RUN curl https://mise.run | sh \
+    && cp /root/.local/bin/mise /usr/local/bin/mise
 
-# Add Bun to PATH
-ENV BUN_INSTALL="/home/node/.bun"
-ENV PATH="$BUN_INSTALL/bin:$PATH"
+# Install tools from .mise.toml as node user so shims land in /home/node/
+# Explicit tool list — node is provided by the base image (node:20-trixie);
+# if node is listed in .mise.toml, mise's shims would shadow the base
+# image's npx and Playwright installation hangs (npm 11.x issue)
+USER node
+COPY --chown=node:node .mise.toml /tmp/.mise.toml
+RUN cd /tmp \
+    && mise trust . \
+    && mise install bun hugo-extended "github:umputun/ralphex" "github:rtk-ai/rtk" \
+    && mise reshim \
+    && mkdir -p /home/node/.config/mise && cp .mise.toml /home/node/.config/mise/config.toml \
+    && rm .mise.toml
+ENV PATH="/home/node/.local/share/mise/shims:$PATH"
+
+# Trust workspace so mise doesn't prompt when the repo is bind-mounted at runtime
+ENV MISE_TRUSTED_CONFIG_PATHS="/workspace"
 
 # Install Playwright browser dependencies (as root) and headless shell (as node)
+# Version extracted from root package.json — no hardcoded version
 # Using --only-shell for headless-only testing (smaller download, all we need for CI/testing)
-ARG PLAYWRIGHT_VERSION=1.57.0
+COPY --chown=node:node package.json /tmp/package.json
 USER root
-RUN npx -y playwright@${PLAYWRIGHT_VERSION} install-deps chromium
+RUN PLAYWRIGHT_VERSION=$(node -p "require('/tmp/package.json').devDependencies['@playwright/test']") \
+    && npx -y playwright@${PLAYWRIGHT_VERSION} install-deps chromium
 USER node
-RUN npx -y playwright@${PLAYWRIGHT_VERSION} install --only-shell
+RUN PLAYWRIGHT_VERSION=$(node -p "require('/tmp/package.json').devDependencies['@playwright/test']") \
+    && npx -y playwright@${PLAYWRIGHT_VERSION} install --only-shell \
+    && rm /tmp/package.json
 
 # Install Claude Code
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 # Copy and set up firewall script
-COPY .devcontainer/claude-node-bun/init-firewall.sh /usr/local/bin/
+COPY .devcontainer/claude-code/init-firewall.sh /usr/local/bin/
 USER root
 RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \

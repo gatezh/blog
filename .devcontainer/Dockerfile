@@ -23,7 +23,8 @@ ENV PATH="/root/.local/bin:$PATH"
 
 # Install tools from .mise.toml (single source of truth)
 # Also set as global config so mise shims resolve in any directory during build
-# Node is required for VS Code extensions (OXC, Playwright, etc.)
+# Node is required to run Playwright (bunx hangs on arm64)
+# See: https://github.com/oven-sh/bun/issues/16708
 COPY .mise.toml /tmp/.mise.toml
 RUN cd /tmp && mise trust . && mise install \
     && mkdir -p ~/.config/mise && cp .mise.toml ~/.config/mise/config.toml \
@@ -36,7 +37,18 @@ ENV MISE_TRUSTED_CONFIG_PATHS="/workspace"
 # Ensure bun global installs work correctly
 ENV BUN_INSTALL_BIN=/usr/local/bin
 
-# Install Powerlevel10k (zsh theme)
+# Install Playwright browser dependencies and headless shell
+# Version extracted from root package.json — no hardcoded version
+# Using --only-shell for headless-only testing (smaller download, all we need for CI/testing)
+# agent-browser below installs its own full chromium separately
+COPY package.json /tmp/package.json
+RUN PLAYWRIGHT_VERSION=$(node -p "require('/tmp/package.json').devDependencies['@playwright/test']") \
+    && npx -y playwright@${PLAYWRIGHT_VERSION} install-deps chromium
+RUN PLAYWRIGHT_VERSION=$(node -p "require('/tmp/package.json').devDependencies['@playwright/test']") \
+    && npx -y playwright@${PLAYWRIGHT_VERSION} install --only-shell \
+    && rm /tmp/package.json
+
+# Install Powerlevel10k (zsh theme) — after Playwright for better layer caching
 RUN git clone --depth=1 https://github.com/romkatv/powerlevel10k.git /usr/share/powerlevel10k
 
 # Configure zsh with Powerlevel10k (wizard disabled)
