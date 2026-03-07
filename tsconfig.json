@@ -3,13 +3,11 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022"],
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true,
+    "esModuleInterop": true,
     "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "verbatimModuleSyntax": true,
+    "noEmit": true
   }
 }
