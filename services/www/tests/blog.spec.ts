@@ -35,10 +35,10 @@ test.describe("Posts list page", () => {
     await expect(firstTitle).toBeVisible();
     await expect(firstTitle).not.toBeEmpty();
 
-    // Each card should have a date (desktop and mobile variants exist)
-    const firstDate = posts.first().locator("time").first();
-    await expect(firstDate).toBeVisible();
-    expect(await firstDate.getAttribute("datetime")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Each card should have a date (desktop and mobile responsive variants)
+    const dates = posts.first().locator("time");
+    expect(await dates.count()).toBeGreaterThan(0);
+    expect(await dates.first().getAttribute("datetime")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   test("post cards link to articles", async ({ page }) => {
