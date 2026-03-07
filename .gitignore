@@ -3,51 +3,46 @@
 **/resources/_gen/
 **/assets/jsconfig.json
 hugo_stats.json
-hugo.exe
-hugo.darwin
-hugo.linux
 **/.hugo_build.lock
-**/_vendor/
 
-### macOS ###
-.DS_Store
-.AppleDouble
-.LSOverride
-Icon
-
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-*.icloud
-
-### Node ###
+### Dependencies ###
 node_modules/
+
+### Build ###
+dist/
+.wrangler/
+coverage/
 
 ### TypeScript ###
 *.tsbuildinfo
 
-### Cloudflare ###
-.wrangler/
-**/dist/
-worker-configuration.d.ts
-
-### Build ###
-coverage/
-
 ### Environment ###
 .env
-.env.*
+.env.local
 .dev.vars
+.devcontainer/.env
+
+### IDE ###
+.idea/
+.vscode/
+*.swp
+*.swo
+
+### Claude Code ###
+.claude/settings.local.json
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Logs ###
+*.log
+
+### Playwright ###
+screenshots/
+test-results/
+playwright-report/
+.playwright-browsers/
 
 ### Ralphex ###
 progress*.txt

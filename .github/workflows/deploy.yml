@@ -1,0 +1,145 @@
+name: Deploy
+run-name: "Deploy: ${{ github.event.head_commit.message }}"
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+      - "LICENSE"
+      - ".github/release.yml"
+      - ".devcontainer/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Cache Bun global cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Check
+        run: bun run check
+
+  deploy-www:
+    needs: check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build Hugo site
+        run: bun run --cwd services/www build
+
+      - name: Deploy WWW
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/www
+          packageManager: bun
+
+  deploy-email-worker:
+    needs: check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Deploy Email Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/email-worker
+          packageManager: bun
+
+  verify:
+    needs: [deploy-www, deploy-email-worker]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify deployment
+        run: |
+          echo "Waiting 5s for deployment to propagate..."
+          sleep 5
+
+          SITE_URL="https://gatezh.com"
+
+          echo "Checking site at ${SITE_URL}..."
+          if ! curl -sf --max-time 15 "${SITE_URL}" > /dev/null; then
+            echo "Site not responding, waiting 10s and retrying..."
+            sleep 10
+            if ! curl -sf --max-time 15 "${SITE_URL}" > /dev/null; then
+              echo "::error::Site health check failed after retry"
+              exit 1
+            fi
+          fi
+          echo "Site is responding."
+          echo "Deployment verified successfully."
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| | |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | [\`${GITHUB_SHA::7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${GITHUB_SHA}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Message** | $(echo '${{ github.event.head_commit.message }}' | head -1) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **WWW** | https://gatezh.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployed at** | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
