@@ -4,17 +4,22 @@
   "private": true,
   "workspaces": ["services/*"],
   "scripts": {
-    "dev": "bun run --cwd services/www dev",
-    "dev:worker": "bun run --cwd services/email-worker dev",
-    "build": "bun run --cwd services/www build",
-    "build:worker": "bun run --cwd services/email-worker build",
-    "deploy:www": "bun run --cwd services/www deploy",
-    "deploy:worker": "bun run --cwd services/email-worker deploy",
+    "dev": "bun --env-file=.env.local --filter www dev",
+    "dev:worker": "bun --env-file=.env.local --filter email-worker dev",
+    "build": "bun --env-file=.env.local --filter www build",
+    "build:worker": "bun --env-file=.env.local --filter email-worker build",
+    "deploy:www": "bun --filter www deploy",
+    "deploy:worker": "bun --filter email-worker deploy",
     "deploy": "bun run deploy:www && bun run deploy:worker",
     "typecheck": "bun --filter '*' typecheck",
+    "format": "oxlint . --fix",
+    "check": "bun lint && bun typecheck",
     "lint": "bun --filter '*' lint"
   },
   "devDependencies": {
-    "oxlint": "1.48.0"
+    "@types/node": "22.15.21",
+    "oxlint": "1.48.0",
+    "typescript": "5.8.3",
+    "wrangler": "4.59.1"
   }
 }
