@@ -1,22 +1,59 @@
+// For format details, see https://aka.ms/devcontainer.json
 {
-  "name": "gatezh.com",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
+  "name": "Local Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "containerEnv": {
+    "TZ": "${localEnv:TZ:America/Edmonton}",
+    "DEVCONTAINER": "true",
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/root/.claude"
   },
-  "runArgs": [
-    "--hostname=gatezh-com"
-  ],
-  "mounts": [
-    "source=${localWorkspaceFolderBasename}-root-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
-    "source=${localWorkspaceFolderBasename}-www-node_modules,target=${containerWorkspaceFolder}/services/www/node_modules,type=volume",
-    "source=${localWorkspaceFolderBasename}-worker-node_modules,target=${containerWorkspaceFolder}/services/email-worker/node_modules,type=volume"
-  ],
+  // Configure tool-specific properties.
   "customizations": {
     "vscode": {
+      "extensions": [
+        // **Disabled user extensions** (prevent syncing from host)
+        // GitHub Pull Requests - requires SSH keys not available in container
+        "-github.vscode-pull-request-github",
+        // **AI Agents**
+        // Claude Code - AI-powered coding assistant
+        "anthropic.claude-code",
+        // **General**
+        // OXC - Linting and formatting
+        "oxc.oxc-vscode",
+        // Code Spell Checker - Spell checking
+        "streetsidesoftware.code-spell-checker",
+        // YAML - YAML support
+        "redhat.vscode-yaml",
+        // Markdown Preview Github Styles - Markdown preview
+        "bierner.markdown-preview-github-styles",
+        // Docker extension
+        "ms-azuretools.vscode-docker",
+        // **JS/TS**
+        // Bun - runtime and package manager support
+        "oven.bun-vscode",
+        // NPM Intellisense - NPM package intellisense
+        "christian-kohler.npm-intellisense",
+        // TS Error Translator - Translates TypeScript errors
+        "mattpocock.ts-error-translator",
+        // **Hugo**
+        // Hugo language support
+        "budparr.language-hugo-vscode",
+        // Hugo shortcode syntax
+        "kaellarkin.hugo-shortcode-syntax",
+        // **CSS**
+        // Tailwind CSS IntelliSense
+        "bradlc.vscode-tailwindcss",
+        // Tailwind Fold
+        "stivo.tailwind-fold",
+        // **Testing**
+        // Playwright - E2E test runner and debugger
+        "ms-playwright.playwright"
+      ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "extensions.ignoreRecommendations": true,
+        "window.title": "${localWorkspaceFolderBasename}",
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "oxc.oxc-vscode",
         "editor.codeActionsOnSave": {
@@ -27,23 +64,13 @@
         "[html]": {
           "editor.defaultFormatter": null,
           "editor.formatOnSave": false
-        }
-      },
-      "extensions": [
-        // Bun - runtime and package manager
-        "oven.bun-vscode",
-        // Tailwind CSS IntelliSense
-        "bradlc.vscode-tailwindcss",
-        // Tailwind Fold
-        "stivo.tailwind-fold",
-        // Hugo extensions
-        "akmittal.hugofy",
-        "budparr.language-hugo-vscode",
-        "kaellarkin.hugo-shortcode-syntax",
-        // OXC - linter and formatter
-        "oxc.oxc-vscode"
-      ]
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
     }
   },
-  "postCreateCommand": "mise install && bun install"
+  // Install dependencies and initialize Claude Code skills
+  "postCreateCommand": "bun install && bash .devcontainer/init-plugins.sh",
+  // Symlink .codex to home dir so Codex extension can find custom prompts (it only reads ~/.codex)
+  "postStartCommand": "ln -sfn /workspace/.codex ~/.codex"
 }
