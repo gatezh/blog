@@ -1,6 +1,8 @@
 [tools]
 bun = "1.3.10"
 # node is needed for VS Code extensions (OXC, Playwright, etc.) that spawn node
-# Version matches the devcontainer base image
+# Version matches the claude-code container base image (node:20-trixie)
 node = "20"
 hugo-extended = "0.157.0"
+"github:umputun/ralphex" = "0.20.0"  # Claude Code devcontainer only
+"github:rtk-ai/rtk" = "0.25.0"      # Claude Code devcontainer only
