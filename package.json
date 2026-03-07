@@ -4,9 +4,11 @@
   "private": true,
   "workspaces": ["services/*"],
   "scripts": {
-    "dev": "bun --env-file=.env.local --filter www dev",
+    "dev": "bun --env-file=.env.local run --parallel --filter '*' dev",
+    "dev:www": "bun --env-file=.env.local --filter www dev",
     "dev:worker": "bun --env-file=.env.local --filter email-worker dev",
-    "build": "bun --env-file=.env.local --filter www build",
+    "build": "bun --env-file=.env.local run --parallel --filter '*' build",
+    "build:www": "bun --env-file=.env.local --filter www build",
     "build:worker": "bun --env-file=.env.local --filter email-worker build",
     "deploy:www": "bun --filter www deploy",
     "deploy:worker": "bun --filter email-worker deploy",
@@ -14,9 +16,13 @@
     "typecheck": "bun --filter '*' typecheck",
     "format": "oxlint . --fix",
     "check": "bun lint && bun typecheck",
-    "lint": "bun --filter '*' lint"
+    "lint": "bun --filter '*' lint",
+    "test": "bun run --cwd services/www test",
+    "test:ui": "bun run --cwd services/www test:ui",
+    "test:report": "bun run --cwd services/www test:report"
   },
   "devDependencies": {
+    "@playwright/test": "1.57.0",
     "@types/node": "22.15.21",
     "oxlint": "1.48.0",
     "typescript": "5.8.3",
