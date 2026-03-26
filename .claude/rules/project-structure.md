@@ -29,8 +29,8 @@ This is a Bun monorepo for gatezh.com:
 │       └── tsconfig.json       # TypeScript configuration
 │
 ├── .github/workflows/          # GitHub Actions
-│   ├── deploy-www.yml          # Website deployment
-│   └── deploy-email-worker.yml # Email worker deployment
+│   ├── ci.yml                  # CI checks (lint, typecheck, build)
+│   └── deploy.yml              # Deployment (www + email worker)
 │
 ├── .claude/                    # Claude Code configuration
 │   ├── CLAUDE.md               # Critical rules
