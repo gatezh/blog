@@ -1,68 +1,39 @@
 # Default Development Container
 
-Debian-based devcontainer for local development with mise as the version manager for core tools.
+Pre-built devcontainer image from [gatezh/devcontainer-images](https://github.com/gatezh/devcontainer-images) for local development.
 
-## Stack
+## Image
 
-- **OS**: Debian Trixie (slim)
-- **Package Manager**: Mise (polyglot version manager)
-- **Tools**:
-  - **Bun**: JavaScript runtime and package manager
-  - **Node**: Required by VS Code extensions (OXC, Playwright)
-  - **Hugo**: Static site generator (extended)
-- **Additional**:
-  - Playwright (for browser testing)
-  - Claude Code CLI
-  - agent-browser (headless browser automation for AI agents)
-  - Powerlevel10k (zsh theme)
+Uses `ghcr.io/gatezh/devcontainer-images/claude-code:latest` which includes:
+
+- **OS**: Debian with Node.js 24
+- **Tools**: Bun, Hugo (via mise from `.mise.toml`), Git, GitHub CLI
+- **AI**: Claude Code CLI, agent-browser
+- **Testing**: Playwright
+- **Shell**: Zsh with Starship prompt, Fish shell, Git Delta
 
 ## Version Management
 
-All tool versions are centrally managed in [/.mise.toml](../../.mise.toml):
-
-```toml
-[tools]
-bun = "1.3.10"
-node = "20"
-hugo-extended = "0.157.0"
-"github:umputun/ralphex" = "0.20.0"  # Claude Code devcontainer only
-"github:rtk-ai/rtk" = "0.25.0"      # Claude Code devcontainer only
-```
-
-Ralphex and RTK are only installed in the Claude Code devcontainer (via mise), not in this one.
-
-Playwright version is extracted from root `package.json` (`@playwright/test` devDependency) at build time.
+Tool versions are centrally managed in [/.mise.toml](../../.mise.toml). The pre-built image includes mise, which reads `.mise.toml` at runtime to activate the correct versions of bun, hugo, and other tools.
 
 ## Usage
 
-### Local Development
+Open this project in VS Code with the Dev Containers extension. The container will pull the pre-built image and run `bun install` automatically.
 
 ```bash
-# From project root
-bun dev          # Start all services in parallel
-bun dev:www      # Start Hugo dev server only
-bun dev:worker   # Start email worker only
-bun build        # Build all services
+bun run dev          # Start Hugo dev server
+bun run dev:worker   # Start email worker locally
+bun run build        # Build all services
 ```
 
-## Docker Compose Services
+## Persistence
 
-| Service | Image | Purpose |
-|---------|-------|---------|
-| `app` | Built from this Dockerfile | Main dev container |
-
-## Image Publishing
-
-The image can be built and pushed to GHCR for use as a pre-built devcontainer. Triggers for rebuild:
-- `.devcontainer/Dockerfile`
-- `.mise.toml`
-- `package.json` (Playwright version)
-
-To use the pre-built image, update `docker-compose.yml`:
-```yaml
-image: ghcr.io/gatezh/blog/devcontainer:latest
-```
+Named Docker volumes persist across container rebuilds:
+- **Command history** - shell history retained between sessions
+- **Claude config** - auth tokens and settings preserved
 
 ## Customization
 
-Edit `.mise.toml` to update Bun, Node, or Hugo versions. All environments (this devcontainer, Claude Code devcontainer, CI) pick up the change automatically.
+- Edit `.mise.toml` to update tool versions (bun, hugo)
+- Edit `devcontainer.json` to modify VS Code extensions or settings
+- Edit `init-plugins.sh` to add Claude Code plugin installations

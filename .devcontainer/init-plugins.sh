@@ -1,15 +1,12 @@
 #!/bin/bash
-# Initialize Claude Code skills for the devcontainer
+# Initialize Claude Code plugins for the devcontainer
 # This script is idempotent - safe to run multiple times
 
 set -euo pipefail
 
-echo "=== Claude Code Skill Initialization ==="
+echo "=== Claude Code Plugin Initialization ==="
 
-# Install agent-browser skill via Vercel skills CLI
-echo "Installing agent-browser skill..."
-npx -y skills add vercel-labs/agent-browser --skill agent-browser -a claude-code -y || {
-    echo "Note: agent-browser install failed or unavailable - continuing"
-}
+# Currently no plugins to install - agent-browser is pre-installed in the image.
+# Add future plugin installations here.
 
-echo "=== Skill initialization complete ==="
+echo "=== Plugin initialization complete ==="

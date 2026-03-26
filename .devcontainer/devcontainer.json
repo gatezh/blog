@@ -1,16 +1,8 @@
 // For format details, see https://aka.ms/devcontainer.json
 {
   "name": "Local Development",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "app",
-  "workspaceFolder": "/workspace",
-  "containerEnv": {
-    "TZ": "${localEnv:TZ:America/Edmonton}",
-    "DEVCONTAINER": "true",
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "CLAUDE_CONFIG_DIR": "/root/.claude"
-  },
-  // Configure tool-specific properties.
+  // Pre-built image from GitHub Container Registry
+  "image": "ghcr.io/gatezh/devcontainer-images/claude-code:latest",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -60,7 +52,7 @@
           "source.fixAll.oxc": "explicit",
           "source.organizeImports.oxc": "explicit"
         },
-        // Hugo HTML templates use Go template syntax ({{ }}) — disable OXC formatting
+        // Hugo HTML templates use Go template syntax ({{ }}) - disable OXC formatting
         "[html]": {
           "editor.defaultFormatter": null,
           "editor.formatOnSave": false
@@ -69,6 +61,19 @@
       }
     }
   },
-  // Install dependencies and initialize Claude Code skills
+  "remoteUser": "node",
+  "mounts": [
+    "source=dev-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=dev-claude-config-${devcontainerId},target=/home/node/.claude,type=volume"
+  ],
+  "containerEnv": {
+    "TZ": "${localEnv:TZ:America/Edmonton}",
+    "DEVCONTAINER": "true",
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  // Install dependencies and initialize Claude Code plugins
   "postCreateCommand": "bun install && bash .devcontainer/init-plugins.sh"
 }

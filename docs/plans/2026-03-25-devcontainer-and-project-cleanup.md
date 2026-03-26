@@ -49,10 +49,10 @@
 - [x] Verify no remaining references to `.codex`, `openai`, or `AGENTS.md` in the project
 
 ### Task 3: Migrate default devcontainer to pre-built image
-- [ ] Remove `.devcontainer/Dockerfile` (local build no longer needed)
-- [ ] Remove `.devcontainer/docker-compose.yml` (no longer needed with image-based setup)
-- [ ] Remove `.devcontainer/.env.example` (OAUTH token for local build)
-- [ ] Rewrite `.devcontainer/devcontainer.json` to use `image: ghcr.io/gatezh/devcontainer-images/claude-code:latest`
+- [x] Remove `.devcontainer/Dockerfile` (local build no longer needed)
+- [x] Remove `.devcontainer/docker-compose.yml` (no longer needed with image-based setup)
+- [x] Remove `.devcontainer/.env.example` (OAUTH token for local build)
+- [x] Rewrite `.devcontainer/devcontainer.json` to use `image: ghcr.io/gatezh/devcontainer-images/claude-code:latest`
   - Keep VS Code extensions (remove agent-browser since it's only in Dockerfile now)
   - Keep editor settings (OXC formatter, formatOnSave, etc.)
   - Keep containerEnv (TZ, NODE_OPTIONS, CLAUDE_CONFIG_DIR)
@@ -60,9 +60,9 @@
   - Set workspace mount and folder
   - Keep postCreateCommand for `bun install` and plugin init
   - Set remoteUser to `node` (matching upstream image)
-- [ ] Update `.devcontainer/init-plugins.sh` — remove agent-browser install (not available in sandbox), keep Claude plugin installs
-- [ ] Update `.devcontainer/README.md` to reflect pre-built image setup
-- [ ] Verify devcontainer.json is valid JSONC
+- [x] Update `.devcontainer/init-plugins.sh` — remove agent-browser install (not available in sandbox), keep Claude plugin installs
+- [x] Update `.devcontainer/README.md` to reflect pre-built image setup
+- [x] Verify devcontainer.json is valid JSONC
 
 ### Task 4: Migrate claude-code sandbox devcontainer to pre-built image
 - [ ] Remove `.devcontainer/claude-code/Dockerfile` (using pre-built sandbox image)
