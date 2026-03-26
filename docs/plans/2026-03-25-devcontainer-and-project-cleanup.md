@@ -96,9 +96,9 @@
 - [x] Verify all content from original CLAUDE.md is preserved across the new files
 
 ### Task 7: Update .gitignore and final cleanup
-- [ ] Update `.gitignore` — keep `progress*.txt` pattern for ralphex, remove any stale entries
-- [ ] Verify no orphaned references to old Dockerfile, docker-compose.yml, or `.agents/` anywhere in the project
-- [ ] Run `bunx oxlint` from root to check for lint errors (if applicable to config files)
+- [x] Update `.gitignore` — keep `progress*.txt` pattern for ralphex, remove any stale entries
+- [x] Verify no orphaned references to old Dockerfile, docker-compose.yml, or `.agents/` anywhere in the project
+- [x] Run `bunx oxlint` from root to check for lint errors (if applicable to config files)
 
 ### Task 8: Verify acceptance criteria
 - [ ] All devcontainer JSON files are valid JSONC
