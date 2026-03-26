@@ -101,14 +101,14 @@
 - [x] Run `bunx oxlint` from root to check for lint errors (if applicable to config files)
 
 ### Task 8: Verify acceptance criteria
-- [ ] All devcontainer JSON files are valid JSONC
-- [ ] No references to old Dockerfiles, docker-compose.yml, `.agents/`, `.codex`, or OpenAI remain
-- [ ] `.claude/CLAUDE.md` exists with critical rules
-- [ ] `.claude/rules/` contains modular topic files
-- [ ] Root `CLAUDE.md` is deleted
-- [ ] Progress files moved to `.ralphex/progress/`
-- [ ] `build-devcontainer.yml` workflow removed
-- [ ] `sandbox-fetch-docs` skill exists in `.claude/skills/`
+- [x] All devcontainer JSON files are valid JSONC
+- [x] No references to old Dockerfiles, docker-compose.yml, `.agents/`, `.codex`, or OpenAI remain
+- [x] `.claude/CLAUDE.md` exists with critical rules
+- [x] `.claude/rules/` contains modular topic files
+- [x] Root `CLAUDE.md` is deleted
+- [x] Progress files moved to `.ralphex/progress/`
+- [x] `build-devcontainer.yml` workflow removed
+- [x] `sandbox-fetch-docs` skill exists in `.claude/skills/`
 
 *Note: ralphex automatically moves completed plans to `docs/plans/completed/`*
 
