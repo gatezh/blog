@@ -8,7 +8,7 @@ Uses `ghcr.io/gatezh/devcontainer-images/claude-code:latest` which includes:
 
 - **OS**: Debian with Node.js 24
 - **Tools**: Bun, Hugo (via mise from `.mise.toml`), Git, GitHub CLI
-- **AI**: Claude Code CLI, agent-browser
+- **AI**: Claude Code CLI
 - **Testing**: Playwright
 - **Shell**: Zsh with Starship prompt, Fish shell, Git Delta
 

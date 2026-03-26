@@ -6,7 +6,7 @@ set -euo pipefail
 
 echo "=== Claude Code Plugin Initialization ==="
 
-# Currently no plugins to install - agent-browser is pre-installed in the image.
+# Currently no plugins to install.
 # Add future plugin installations here.
 
 echo "=== Plugin initialization complete ==="

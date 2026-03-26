@@ -35,7 +35,6 @@
         "christian-kohler.npm-intellisense",
         // TS Error Translator - Translates TypeScript errors
         "mattpocock.ts-error-translator",
-        // **Linting/Formatting**
         // **CSS**
         // Tailwind CSS IntelliSense
         "bradlc.vscode-tailwindcss",
@@ -81,7 +80,6 @@
     "DEVCONTAINER": "true",
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
-    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
