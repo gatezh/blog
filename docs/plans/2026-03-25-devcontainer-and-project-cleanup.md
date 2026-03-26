@@ -82,18 +82,18 @@
 - [x] Verify `.github/workflows/ci.yml` and `deploy.yml` don't reference the removed workflow or devcontainer Dockerfile
 
 ### Task 6: Modernize CLAUDE.md into .claude/ structure
-- [ ] Create `.claude/CLAUDE.md` with minimal critical rules only:
+- [x] Create `.claude/CLAUDE.md` with minimal critical rules only:
   - Package manager (bun only, pin exact versions)
   - Tool version sync (.mise.toml as source of truth)
   - Pre-completion checks (tsc, oxlint, build, test)
   - Import references to rules files
-- [ ] Create `.claude/rules/project-structure.md` — monorepo structure, configuration formats
-- [ ] Create `.claude/rules/hugo-theme.md` — theme conventions, Tailwind CSS, layouts (path-scoped to `services/www/**`)
-- [ ] Create `.claude/rules/seo.md` — SEO configuration, robots.txt, llms.txt (path-scoped to `services/www/**`)
-- [ ] Create `.claude/rules/deployment.md` — build commands, deployment, GitHub secrets/variables
-- [ ] Create `.claude/rules/contact-form.md` — contact form configuration, worker secrets (path-scoped to `services/email-worker/**`)
-- [ ] Delete root `CLAUDE.md`
-- [ ] Verify all content from original CLAUDE.md is preserved across the new files
+- [x] Create `.claude/rules/project-structure.md` — monorepo structure, configuration formats
+- [x] Create `.claude/rules/hugo-theme.md` — theme conventions, Tailwind CSS, layouts (path-scoped to `services/www/**`)
+- [x] Create `.claude/rules/seo.md` — SEO configuration, robots.txt, llms.txt (path-scoped to `services/www/**`)
+- [x] Create `.claude/rules/deployment.md` — build commands, deployment, GitHub secrets/variables
+- [x] Create `.claude/rules/contact-form.md` — contact form configuration, worker secrets (path-scoped to `services/email-worker/**`)
+- [x] Delete root `CLAUDE.md`
+- [x] Verify all content from original CLAUDE.md is preserved across the new files
 
 ### Task 7: Update .gitignore and final cleanup
 - [ ] Update `.gitignore` — keep `progress*.txt` pattern for ralphex, remove any stale entries
