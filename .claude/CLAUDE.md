@@ -13,8 +13,7 @@
 - Tool versions are managed centrally in `.mise.toml` (single source of truth)
 - Hugo and Bun versions are read from `.mise.toml` by:
   - Pre-built devcontainer images (via mise)
-  - `.github/workflows/deploy-www.yml` (via `jdx/mise-action`)
-  - `.github/workflows/deploy-email-worker.yml` (via `jdx/mise-action`)
+  - `.github/workflows/deploy.yml` (via `jdx/mise-action`)
 - When updating tool versions, only edit `.mise.toml`
 
 ## Pre-Completion Checks
