@@ -84,7 +84,7 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
   // Initialize Claude Code plugins (runs once when container is created)
-  "postCreateCommand": "bash /workspace/.devcontainer/claude-code/init-plugins.sh",
+  "postCreateCommand": "bun install && bash /workspace/.devcontainer/claude-code/init-plugins.sh",
   // Initialize firewall from bind-mounted workspace script
   "postStartCommand": "sudo bash /workspace/.devcontainer/claude-code/init-firewall.sh",
   "waitFor": "postStartCommand"
