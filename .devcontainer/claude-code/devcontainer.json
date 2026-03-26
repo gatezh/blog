@@ -1,17 +1,8 @@
+// For format details, see https://aka.ms/devcontainer.json
 {
   "name": "Claude Code Sandbox",
-  // Pre-built image from GitHub Container Registry
-  // To build locally instead: comment out "image" and uncomment "build"
-  // "image": "ghcr.io/gatezh/blog/devcontainer-claude:latest",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": "../..",
-    "args": {
-      "CLAUDE_CODE_VERSION": "latest",
-      "GIT_DELTA_VERSION": "0.18.2",
-      "ZSH_IN_DOCKER_VERSION": "1.2.0"
-    }
-  },
+  // Pre-built image from GitHub Container Registry (sandbox variant with firewall support)
+  "image": "ghcr.io/gatezh/devcontainer-images/claude-code-sandbox:latest",
   "runArgs": [
     "--cap-add=NET_ADMIN",
     "--cap-add=NET_RAW"
@@ -20,40 +11,43 @@
     "vscode": {
       "extensions": [
         // **Disabled user extensions** (prevent syncing from host)
-        // GitHub Pull Requests - PR management (requires SSH keys not available in container)
+        // GitHub Pull Requests - requires SSH keys not available in container
         "-github.vscode-pull-request-github",
         // **Theme**
         // Claude Theme - VS Code color theme by Sami Hindi
         "SamiHindi.claude-theme-sami-hindi",
         // **AI Agents**
-        // Claude Code
+        // Claude Code - AI-powered coding assistant
         "anthropic.claude-code",
         // **General**
+        // OXC - Linting and formatting
+        "oxc.oxc-vscode",
         // Code Spell Checker - Spell checking
         "streetsidesoftware.code-spell-checker",
         // YAML - YAML support
         "redhat.vscode-yaml",
         // Markdown Preview Github Styles - Markdown preview
         "bierner.markdown-preview-github-styles",
-        // **JS**
-        // Bun VS Code
+        // **JS/TS**
+        // Bun - runtime and package manager support
         "oven.bun-vscode",
         // NPM Intellisense - NPM package intellisense
         "christian-kohler.npm-intellisense",
         // TS Error Translator - Translates TypeScript errors
         "mattpocock.ts-error-translator",
         // **Linting/Formatting**
-        // OXC - Rust-based linter and formatter
-        "oxc.oxc-vscode",
         // **CSS**
+        // Tailwind CSS IntelliSense
+        "bradlc.vscode-tailwindcss",
+        // Tailwind Fold
+        "stivo.tailwind-fold",
         // Color Info - Provides color information
         "bierner.color-info",
         // Colorize - Colorizes code
         "kamikillerto.vscode-colorize",
-        // Tailwind Fold - Tailwind CSS utility
-        "stivo.tailwind-fold",
-        // Tailwind CSS IntelliSense - Tailwind CSS support
-        "bradlc.vscode-tailwindcss"
+        // **Testing**
+        // Playwright - E2E test runner and debugger
+        "ms-playwright.playwright"
       ],
       "settings": {
         "window.title": "${localWorkspaceFolderBasename}",
@@ -68,16 +62,12 @@
           "source.fixAll.oxc": "explicit",
           "source.organizeImports.oxc": "explicit"
         },
-        "terminal.integrated.defaultProfile.linux": "zsh",
-        "terminal.integrated.profiles.linux": {
-          "bash": {
-            "path": "bash",
-            "icon": "terminal-bash"
-          },
-          "zsh": {
-            "path": "zsh"
-          }
-        }
+        // Hugo HTML templates use Go template syntax ({{ }}) - disable OXC formatting
+        "[html]": {
+          "editor.defaultFormatter": null,
+          "editor.formatOnSave": false
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh"
       }
     }
   },
@@ -88,6 +78,7 @@
   ],
   "containerEnv": {
     "TZ": "${localEnv:TZ:America/Edmonton}",
+    "DEVCONTAINER": "true",
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
@@ -96,6 +87,7 @@
   "workspaceFolder": "/workspace",
   // Initialize Claude Code plugins (runs once when container is created)
   "postCreateCommand": "bash /workspace/.devcontainer/claude-code/init-plugins.sh",
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  // Initialize firewall from bind-mounted workspace script
+  "postStartCommand": "sudo bash /workspace/.devcontainer/claude-code/init-firewall.sh",
   "waitFor": "postStartCommand"
 }

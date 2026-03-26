@@ -65,17 +65,17 @@
 - [x] Verify devcontainer.json is valid JSONC
 
 ### Task 4: Migrate claude-code sandbox devcontainer to pre-built image
-- [ ] Remove `.devcontainer/claude-code/Dockerfile` (using pre-built sandbox image)
-- [ ] Rewrite `.devcontainer/claude-code/devcontainer.json` to use `image: ghcr.io/gatezh/devcontainer-images/claude-code-sandbox:latest`
+- [x] Remove `.devcontainer/claude-code/Dockerfile` (using pre-built sandbox image)
+- [x] Rewrite `.devcontainer/claude-code/devcontainer.json` to use `image: ghcr.io/gatezh/devcontainer-images/claude-code-sandbox:latest`
   - Keep NET_ADMIN/NET_RAW capabilities for firewall
   - Keep VS Code extensions (minus OpenAI — already removed in Task 2)
   - Keep editor settings, containerEnv, mounts
   - Keep postCreateCommand for plugin init
   - Keep postStartCommand for firewall init (use bind-mounted script)
   - Set remoteUser to `node`
-- [ ] Update `.devcontainer/claude-code/README.md` to reflect pre-built image
-- [ ] Add `sandbox-fetch-docs` skill from upstream: create `.claude/skills/sandbox-fetch-docs/SKILL.md`
-- [ ] Verify devcontainer.json is valid JSONC
+- [x] Update `.devcontainer/claude-code/README.md` to reflect pre-built image
+- [x] Add `sandbox-fetch-docs` skill from upstream: create `.claude/skills/sandbox-fetch-docs/SKILL.md`
+- [x] Verify devcontainer.json is valid JSONC
 
 ### Task 5: Update GitHub Actions workflow
 - [ ] Remove `.github/workflows/build-devcontainer.yml` (no longer building images locally — images built in devcontainer-images repo)
