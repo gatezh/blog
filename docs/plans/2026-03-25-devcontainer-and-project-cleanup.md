@@ -78,8 +78,8 @@
 - [x] Verify devcontainer.json is valid JSONC
 
 ### Task 5: Update GitHub Actions workflow
-- [ ] Remove `.github/workflows/build-devcontainer.yml` (no longer building images locally — images built in devcontainer-images repo)
-- [ ] Verify `.github/workflows/ci.yml` and `deploy.yml` don't reference the removed workflow or devcontainer Dockerfile
+- [x] Remove `.github/workflows/build-devcontainer.yml` (no longer building images locally — images built in devcontainer-images repo)
+- [x] Verify `.github/workflows/ci.yml` and `deploy.yml` don't reference the removed workflow or devcontainer Dockerfile
 
 ### Task 6: Modernize CLAUDE.md into .claude/ structure
 - [ ] Create `.claude/CLAUDE.md` with minimal critical rules only:
