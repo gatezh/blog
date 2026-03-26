@@ -30,7 +30,7 @@ bun run build
 
 Or install tools manually:
 - [Bun](https://bun.sh) (v1.3.10+)
-- [Hugo](https://gohugo.io) (v0.157.0+)
+- [Hugo Extended](https://gohugo.io) (v0.157.0+)
 
 ### Available Scripts
 
