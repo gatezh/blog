@@ -28,8 +28,6 @@
         // **AI Agents**
         // Claude Code
         "anthropic.claude-code",
-        // OpenAI Codex
-        "openai.chatgpt",
         // **General**
         // Code Spell Checker - Spell checking
         "streetsidesoftware.code-spell-checker",
@@ -98,7 +96,6 @@
   "workspaceFolder": "/workspace",
   // Initialize Claude Code plugins (runs once when container is created)
   "postCreateCommand": "bash /workspace/.devcontainer/claude-code/init-plugins.sh",
-  // Symlink .codex to home dir so Codex extension can find custom prompts (it only reads ~/.codex)
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && ln -sfn /workspace/.codex ~/.codex",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
   "waitFor": "postStartCommand"
 }

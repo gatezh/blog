@@ -40,13 +40,13 @@
 - [x] Verify files exist in `.ralphex/progress/` and are removed from root
 
 ### Task 2: Remove non-Claude agent configuration
-- [ ] Delete `.agents/` directory entirely (agent-browser skill, references, templates)
-- [ ] Remove `.codex` symlink reference from `.devcontainer/devcontainer.json` postStartCommand
-- [ ] Remove `.codex` symlink reference from `.devcontainer/claude-code/devcontainer.json` postStartCommand
-- [ ] Remove OpenAI Codex extension (`openai.chatgpt`) from `.devcontainer/claude-code/devcontainer.json`
-- [ ] Remove OpenAI/Codex domains (`auth.openai.com`, `api.openai.com`, `chatgpt.com`) from `init-firewall.sh` allowlist
-- [ ] Remove the "added permissions for Codex" comment from `init-firewall.sh`
-- [ ] Verify no remaining references to `.codex`, `openai`, or `AGENTS.md` in the project
+- [x] Delete `.agents/` directory entirely (agent-browser skill, references, templates)
+- [x] Remove `.codex` symlink reference from `.devcontainer/devcontainer.json` postStartCommand
+- [x] Remove `.codex` symlink reference from `.devcontainer/claude-code/devcontainer.json` postStartCommand
+- [x] Remove OpenAI Codex extension (`openai.chatgpt`) from `.devcontainer/claude-code/devcontainer.json`
+- [x] Remove OpenAI/Codex domains (`auth.openai.com`, `api.openai.com`, `chatgpt.com`) from `init-firewall.sh` allowlist
+- [x] Remove the "added permissions for Codex" comment from `init-firewall.sh`
+- [x] Verify no remaining references to `.codex`, `openai`, or `AGENTS.md` in the project
 
 ### Task 3: Migrate default devcontainer to pre-built image
 - [ ] Remove `.devcontainer/Dockerfile` (local build no longer needed)

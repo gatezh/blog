@@ -70,7 +70,5 @@
     }
   },
   // Install dependencies and initialize Claude Code skills
-  "postCreateCommand": "bun install && bash .devcontainer/init-plugins.sh",
-  // Symlink .codex to home dir so Codex extension can find custom prompts (it only reads ~/.codex)
-  "postStartCommand": "ln -sfn /workspace/.codex ~/.codex"
+  "postCreateCommand": "bun install && bash .devcontainer/init-plugins.sh"
 }

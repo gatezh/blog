@@ -64,7 +64,6 @@ while read -r cidr; do
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
 # Resolve and add other allowed domains
-# added permissions for Codex
 for domain in \
     "registry.npmjs.org" \
     "api.anthropic.com" \
@@ -73,10 +72,7 @@ for domain in \
     "statsig.com" \
     "marketplace.visualstudio.com" \
     "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com" \
-    "auth.openai.com" \
-    "api.openai.com" \
-    "chatgpt.com"; do
+    "update.code.visualstudio.com"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then

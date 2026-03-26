@@ -52,7 +52,6 @@ This container runs with a **default-deny firewall** (`init-firewall.sh`). Only 
 - npm registry
 - GitHub
 - Claude API
-- OpenAI/Codex API
 - VS Code Marketplace
 - DNS and SSH connections
 
