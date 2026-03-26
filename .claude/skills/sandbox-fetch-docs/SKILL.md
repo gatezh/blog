@@ -11,16 +11,17 @@ This project's Claude Code sandbox container runs a default-deny firewall. Only 
 
 1. **Prefer local sources first**: Check if documentation exists in `node_modules/`, project files, or `docs/`
 2. **Use GitHub raw content**: Most library docs are on GitHub, which is whitelisted. Use raw.githubusercontent.com URLs
-3. **Use npm registry**: Package metadata is available via `npm view <package> --json`
+3. **Use npm registry**: Package metadata is available via `curl -s https://registry.npmjs.org/<package>/latest`
 4. **Avoid blocked domains**: General websites (MDN, Stack Overflow, official doc sites) are not accessible from the sandbox
 
 ## Fetching strategies
 
 ### For npm packages
 ```bash
-# Package info and README
-npm view <package> readme
-npm view <package> --json
+# Package README (via npm registry API - bun has no equivalent of npm view)
+# Package metadata as JSON
+curl -s https://registry.npmjs.org/<package> | jq -r ".readme"
+curl -s https://registry.npmjs.org/<package>/latest
 ```
 
 ### For GitHub-hosted docs
