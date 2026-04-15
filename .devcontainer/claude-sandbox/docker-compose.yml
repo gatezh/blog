@@ -1,0 +1,8 @@
+# Project name — must match the default variant's project name with -sandbox suffix
+name: blog-sandbox
+services:
+  devcontainer:
+    image: ghcr.io/gatezh/devcontainers/claude-code-sandbox:latest
+    pull_policy: always
+    volumes:
+      - ../..:/workspace:cached

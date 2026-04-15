@@ -1,9 +1,11 @@
 // For format details, see https://aka.ms/devcontainer.json
 {
-  "name": "Local Development",
+  "name": "Claude Code Sandbox",
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
+  // Capabilities required for iptables firewall setup
+  "capAdd": ["NET_ADMIN", "NET_RAW"],
   "init": true,
   "updateRemoteUserUID": true,
   "remoteUser": "node",
@@ -65,7 +67,11 @@
         // Hugo language support - syntax highlighting for Hugo templates
         "budparr.language-hugo-vscode",
         // Hugo shortcode syntax - syntax highlighting for Hugo shortcodes
-        "kaellarkin.hugo-shortcode-syntax"
+        "kaellarkin.hugo-shortcode-syntax",
+
+        // **Sandbox Theme**
+        // Claude Theme - provides "Claude Dark" referenced by workbench.colorTheme
+        "SamiHindi.claude-theme-sami-hindi"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "fish",
@@ -73,12 +79,7 @@
           "fish": { "path": "fish" },
           "bash": { "path": "bash", "icon": "terminal-bash" }
         },
-        // Suppress extension recommendation prompts
         "extensions.ignoreRecommendations": true,
-        // ── Formatter settings (customize per project) ──────────────────
-        // Change "editor.defaultFormatter" to match your tooling:
-        //   Biome: "biomejs.biome"  |  Prettier: "esbenp.prettier-vscode"
-        //   OXC:   "oxc.oxc-vscode" |  None: remove these three settings
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "oxc.oxc-vscode",
         "editor.codeActionsOnSave": {
@@ -90,8 +91,15 @@
           "editor.defaultFormatter": null,
           "editor.formatOnSave": false
         },
-        // Show workspace folder name in window title
-        "window.title": "${localWorkspaceFolderBasename}"
+        "window.title": "${localWorkspaceFolderBasename}",
+        // Sandbox visual identity — Claude Dark theme with coral remote indicator
+        "workbench.colorTheme": "Claude Dark",
+        "workbench.colorCustomizations": {
+          "statusBarItem.remoteBackground": "#C15F3C",
+          "statusBarItem.remoteForeground": "#ffffff"
+        },
+        // Allow Claude Code to skip permission prompts in sandbox
+        "claudeCode.allowDangerouslySkipPermissions": true
       }
     }
   },
@@ -104,19 +112,25 @@
     "source=blog-node-modules-email-worker-${localWorkspaceFolderBasename},target=/workspace/services/email-worker/node_modules,type=volume",
     // ── Persistent config ──────────────────────────────────────────────
     "source=blog-claude-config-${localWorkspaceFolderBasename},target=/home/node/.claude,type=volume",
-    "source=blog-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume"
+    "source=blog-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume",
+    // ── Firewall script ────────────────────────────────────────────────
+    // The image provides iptables/ipset packages and sudo rule but NOT the script itself.
+    // Each project provides its own script via bind mount to customize the domain allowlist.
+    "source=${localWorkspaceFolder}/.devcontainer/claude-sandbox/init-firewall.sh,target=/usr/local/bin/init-firewall.sh,type=bind"
   ],
   "containerEnv": {
     "TZ": "${localEnv:TZ:America/Edmonton}",
     "DEVCONTAINER": "true",
     "NODE_OPTIONS": "--max-old-space-size=4096",
-    "CLAUDE_CONFIG_DIR": "/home/node/.claude"
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    // Required — the sandbox firewall blocks OAuth login, so the token must be
+    // injected from the host. See "Sandbox Authentication" section in README.
+    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
   },
-  // sudo chown fixes volume ownership — safety net in case Docker volume population didn't apply.
+  // Runs before postStartCommand (firewall), so network is still available for browser downloads.
   // The find command chowns all node_modules volume mount points in one pass.
-  // mise install reads .mise.toml and installs project-specific tool versions.
-  // playwright install ensures the correct browser binary for the project's @playwright/test version
-  // (idempotent — skips download if the image's cached binary already matches).
-  "updateContentCommand": "sudo find /workspace -maxdepth 4 -name node_modules -type d -exec chown node {} + && sudo chown -R node /home/node/.claude && mise install && bun install && npx playwright install --only-shell chromium && bash .devcontainer/init-plugins.sh",
-  "waitFor": "postCreateCommand"
+  "postCreateCommand": "sudo find /workspace -maxdepth 4 -name node_modules -type d -exec chown node {} + && sudo chown -R node /home/node/.claude && mise install && bun install && npx playwright install --only-shell chromium && bash .devcontainer/init-plugins.sh",
+  // Firewall init — script is bind-mounted from the project
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "waitFor": "postStartCommand"
 }
