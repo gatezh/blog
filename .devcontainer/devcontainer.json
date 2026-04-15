@@ -2,75 +2,121 @@
 {
   "name": "Local Development",
   "dockerComposeFile": "docker-compose.yml",
-  "service": "app",
+  "service": "devcontainer",
   "workspaceFolder": "/workspace",
-  "containerEnv": {
-    "TZ": "${localEnv:TZ:America/Edmonton}",
-    "DEVCONTAINER": "true",
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "CLAUDE_CONFIG_DIR": "/root/.claude"
-  },
-  // Configure tool-specific properties.
+  "init": true,
+  "updateRemoteUserUID": true,
+  "remoteUser": "node",
+  "otherPortsAttributes": { "onAutoForward": "silent" },
   "customizations": {
     "vscode": {
       "extensions": [
-        // **Disabled user extensions** (prevent syncing from host)
-        // GitHub Pull Requests - requires SSH keys not available in container
-        "-github.vscode-pull-request-github",
         // **AI Agents**
-        // Claude Code - AI-powered coding assistant
+        // Claude Code - AI coding assistant with chat, inline edits, and terminal integration
         "anthropic.claude-code",
-        // **General**
-        // OXC - Linting and formatting
-        "oxc.oxc-vscode",
-        // Code Spell Checker - Spell checking
-        "streetsidesoftware.code-spell-checker",
-        // YAML - YAML support
-        "redhat.vscode-yaml",
-        // Markdown Preview Github Styles - Markdown preview
-        "bierner.markdown-preview-github-styles",
-        // Docker extension
-        "ms-azuretools.vscode-docker",
-        // **JS/TS**
-        // Bun - runtime and package manager support
+
+        // **Runtime**
+        // Bun - Bun runtime support (debugging, lockfile viewer, bundler integration)
         "oven.bun-vscode",
-        // NPM Intellisense - NPM package intellisense
-        "christian-kohler.npm-intellisense",
-        // TS Error Translator - Translates TypeScript errors
-        "mattpocock.ts-error-translator",
-        // **Hugo**
-        // Hugo language support
-        "budparr.language-hugo-vscode",
-        // Hugo shortcode syntax
-        "kaellarkin.hugo-shortcode-syntax",
-        // **CSS**
-        // Tailwind CSS IntelliSense
+
+        // **Code Quality**
+        // OXC - Fast linter and formatter for JavaScript/TypeScript (Rust-based)
+        "oxc.oxc-vscode",
+
+        // **Tailwind**
+        // Tailwind CSS IntelliSense - autocomplete, syntax highlighting, linting for Tailwind classes
         "bradlc.vscode-tailwindcss",
-        // Tailwind Fold
+        // Tailwind Fold - collapse long Tailwind class strings in the editor for readability
         "stivo.tailwind-fold",
+
+        // **General**
+        // YAML - YAML language support (for workflows and docker-compose)
+        "redhat.vscode-yaml",
+        // Markdown Preview Github Styles - renders Markdown preview with GitHub's CSS
+        "bierner.markdown-preview-github-styles",
+        // Docker - Dockerfile and Compose syntax, linting, and image management
+        "ms-azuretools.vscode-docker",
+
+        // **Spelling**
+        // Code Spell Checker - catches typos in code and comments
+        "streetsidesoftware.code-spell-checker",
+
+        // **JavaScript / TypeScript**
+        // npm IntelliSense - autocomplete npm imports in import statements
+        "christian-kohler.npm-intellisense",
+        // TypeScript Error Translator - human-readable TS error messages
+        "mattpocock.ts-error-translator",
+
+        // **CSS / Colors**
+        // Color Info - preview CSS colors on hover
+        "bierner.color-info",
+        // Colorize - visualize CSS colors inline in the editor
+        "kamikillerto.vscode-colorize",
+
+        // **Frameworks**
+        // Drizzle ORM Snippets - code snippets for Drizzle ORM
+        "drizzle-team.drizzle-orm-snippets",
+
         // **Testing**
-        // Playwright - E2E test runner and debugger
-        "ms-playwright.playwright"
+        // Playwright - run, debug, and generate Playwright tests from VS Code
+        "ms-playwright.playwright",
+
+        // **Hugo** (project-specific)
+        // Hugo language support - syntax highlighting for Hugo templates
+        "budparr.language-hugo-vscode",
+        // Hugo shortcode syntax - syntax highlighting for Hugo shortcodes
+        "kaellarkin.hugo-shortcode-syntax"
       ],
       "settings": {
-        "window.title": "${localWorkspaceFolderBasename}",
+        "terminal.integrated.defaultProfile.linux": "fish",
+        "terminal.integrated.profiles.linux": {
+          "fish": { "path": "fish" },
+          "bash": { "path": "bash", "icon": "terminal-bash" }
+        },
+        // Suppress extension recommendation prompts
+        "extensions.ignoreRecommendations": true,
+        // ── Formatter settings (customize per project) ──────────────────
+        // Change "editor.defaultFormatter" to match your tooling:
+        //   Biome: "biomejs.biome"  |  Prettier: "esbenp.prettier-vscode"
+        //   OXC:   "oxc.oxc-vscode" |  None: remove these three settings
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "oxc.oxc-vscode",
         "editor.codeActionsOnSave": {
-          "source.fixAll.oxc": "explicit",
-          "source.organizeImports.oxc": "explicit"
+          "source.fixAll": "explicit",
+          "source.organizeImports": "explicit"
         },
-        // Hugo HTML templates use Go template syntax ({{ }}) — disable OXC formatting
+        // Hugo HTML templates use Go template syntax ({{ }}) - disable OXC formatting
         "[html]": {
           "editor.defaultFormatter": null,
           "editor.formatOnSave": false
         },
-        "terminal.integrated.defaultProfile.linux": "zsh"
+        // Show workspace folder name in window title
+        "window.title": "${localWorkspaceFolderBasename}"
       }
     }
   },
-  // Install dependencies and initialize Claude Code skills
-  "postCreateCommand": "bun install && bash .devcontainer/init-plugins.sh",
-  // Symlink .codex to home dir so Codex extension can find custom prompts (it only reads ~/.codex)
-  "postStartCommand": "ln -sfn /workspace/.codex ~/.codex"
+  // Named volumes keep node_modules OFF the host machine and persist across rebuilds.
+  // Uses ${localWorkspaceFolderBasename} so default and sandbox variants share volumes.
+  "mounts": [
+    // ── node_modules isolation (one per workspace) ─────────────────────
+    "source=blog-node-modules-root-${localWorkspaceFolderBasename},target=/workspace/node_modules,type=volume",
+    "source=blog-node-modules-www-${localWorkspaceFolderBasename},target=/workspace/services/www/node_modules,type=volume",
+    "source=blog-node-modules-email-worker-${localWorkspaceFolderBasename},target=/workspace/services/email-worker/node_modules,type=volume",
+    // ── Persistent config ──────────────────────────────────────────────
+    "source=blog-claude-config-${localWorkspaceFolderBasename},target=/home/node/.claude,type=volume",
+    "source=blog-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume"
+  ],
+  "containerEnv": {
+    "TZ": "${localEnv:TZ:America/Edmonton}",
+    "DEVCONTAINER": "true",
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude"
+  },
+  // sudo chown fixes volume ownership — safety net in case Docker volume population didn't apply.
+  // The find command chowns all node_modules volume mount points in one pass.
+  // mise install reads .mise.toml and installs project-specific tool versions.
+  // playwright install ensures the correct browser binary for the project's @playwright/test version
+  // (idempotent — skips download if the image's cached binary already matches).
+  "updateContentCommand": "sudo find /workspace -maxdepth 4 -name node_modules -type d -exec chown node {} + && sudo chown -R node /home/node/.claude && mise install && bun install && npx playwright install --only-shell chromium && bash .devcontainer/init-plugins.sh",
+  "waitFor": "postCreateCommand"
 }
