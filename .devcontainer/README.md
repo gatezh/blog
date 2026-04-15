@@ -1,16 +1,16 @@
 # Default Development Container
 
-Pre-built devcontainer image from [gatezh/devcontainer-images](https://github.com/gatezh/devcontainer-images) for local development.
+Pre-built devcontainer image from [gatezh/devcontainers](https://github.com/gatezh/devcontainers) for local development.
 
 ## Image
 
-Uses `ghcr.io/gatezh/devcontainer-images/claude-code:latest` which includes:
+Uses `ghcr.io/gatezh/devcontainers/claude-code:latest` which includes:
 
 - **OS**: Debian with Node.js 24
 - **Tools**: Bun, Hugo (via mise from `.mise.toml`), Git, GitHub CLI
-- **AI**: Claude Code CLI
+- **AI**: Claude Code CLI, agent-browser
 - **Testing**: Playwright
-- **Shell**: Zsh with Starship prompt, Fish shell, Git Delta
+- **Shell**: Fish with Starship prompt, Git Delta
 
 ## Version Management
 
@@ -18,7 +18,7 @@ Tool versions are centrally managed in [/.mise.toml](../../.mise.toml). The pre-
 
 ## Usage
 
-Open this project in VS Code with the Dev Containers extension. The container will pull the pre-built image and run `bun install` automatically.
+Open this project in VS Code with the Dev Containers extension. The container will pull the pre-built image and run setup automatically.
 
 ```bash
 bun run dev          # Start Hugo dev server
@@ -29,8 +29,9 @@ bun run build        # Build all services
 ## Persistence
 
 Named Docker volumes persist across container rebuilds:
-- **Command history** - shell history retained between sessions
+- **node_modules** - isolated per workspace directory (root, services/www, services/email-worker)
 - **Claude config** - auth tokens and settings preserved
+- **Fish data** - shell history and completions retained
 
 ## Customization
 

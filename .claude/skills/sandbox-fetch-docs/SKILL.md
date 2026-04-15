@@ -39,5 +39,5 @@ cat node_modules/<package>/README.md
 ## If a domain is blocked
 
 If you need to fetch from a blocked domain, inform the user. They can either:
-- Add the domain to `.devcontainer/claude-code/init-firewall.sh` and restart the container
+- Add the domain to `.devcontainer/claude-sandbox/init-firewall.sh` and restart the container
 - Provide the documentation content directly

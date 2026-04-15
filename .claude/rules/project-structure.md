@@ -38,7 +38,8 @@ This is a Bun monorepo for gatezh.com:
 │   └── rules/                  # Modular topic rules
 ├── .devcontainer/              # Dev container configs (pre-built GHCR images)
 │   ├── devcontainer.json       # Default devcontainer
-│   └── claude-code/            # Sandbox variant (network-restricted)
+│   ├── docker-compose.yml      # Default compose (image + pull_policy)
+│   └── claude-sandbox/         # Sandbox variant (network-restricted)
 ├── docs/                       # Documentation and ADRs
 ├── .mise.toml                  # Tool versions (bun, hugo)
 ├── oxlint.json                 # OXC linter configuration
