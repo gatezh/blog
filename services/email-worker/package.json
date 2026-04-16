@@ -11,7 +11,7 @@
     "lint": "oxlint ."
   },
   "dependencies": {
-    "hono": "4.12.5",
+    "hono": "4.12.14",
     "resend": "6.9.3"
   },
   "devDependencies": {}
