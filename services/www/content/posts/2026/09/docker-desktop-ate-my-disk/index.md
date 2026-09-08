@@ -119,7 +119,7 @@ pkill -f "com.docker.backend"
 
 The VM came back in about 90 seconds.
 
-## Where 53 GB Actually Went
+## Where the Space Actually Went
 
 With the daemon alive again, `docker system df` finally talked:
 
@@ -139,6 +139,8 @@ docker system df -v
 ```
 
 One volume was **23.5 GB**. It's called `vscode`, and I never created it.
+
+{{< cfimage src="images/Where the disk space went.png" alt="Stacked bar breaking down 50.9 GB of Docker disk: vscode volume 23.5 GB (46%), images 9.5 GB, other volumes 7.7 GB, container layers 6.3 GB, build cache 3.9 GB. A second bar breaks the vscode volume into 17 VS Code Server installs (11.1 GB), 275 cached extension versions (11.0 GB) and 109 orphaned .vsix downloads (819 MB)." caption="After the first prune pass, with the easy wins already gone. A volume I never created was still the single largest thing on the disk." >}}
 
 ### The `vscode` Volume
 
@@ -300,6 +302,8 @@ cat ~/Library/Group\ Containers/group.com.docker/settings-store.json
 ```
 
 No `DiskSizeMiB` key. None. Docker Desktop had never been given a disk limit, so it used the default — the 1 TB virtual maximum from earlier.
+
+{{< cfimage src="images/Docker default disk limit.png" alt="Docker's default disk limit of 1,006 GB shown against a dashed line marking this Mac's entire 460 GB disk — the limit is more than twice the machine. Below it, the limit after the fix: 64 GB." caption="The default ceiling was **2.2× the size of the whole machine**, so Docker could never reach it — macOS ran out first." >}}
 
 On a 460 GB Mac, a 1 TB ceiling means Docker's effective limit is **the entire machine**. That's why the failure was so violent. Instead of Docker hitting its own wall and returning a normal `no space left on device` to whatever was writing, it kept growing until macOS itself ran out — and the VM died mid-write.
 
