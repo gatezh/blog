@@ -134,12 +134,20 @@ jobs:
           echo "Deployment verified successfully."
 
       - name: Deployment summary
+        env:
+          # Bound as data, never interpolated into the script: a commit message
+          # is untrusted input, and an apostrophe alone breaks the shell.
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          echo "## Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| | |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | [\`${GITHUB_SHA::7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${GITHUB_SHA}) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Message** | $(echo '${{ github.event.head_commit.message }}' | head -1) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **WWW** | https://gatezh.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Deployed at** | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+          # Escape pipes so a message containing "|" cannot break the table.
+          SUBJECT=$(printf '%s' "${COMMIT_MESSAGE}" | head -1 | sed 's/|/\\|/g')
+          {
+            echo "## Deployment"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Commit** | [\`${GITHUB_SHA::7}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}) |"
+            echo "| **Message** | ${SUBJECT} |"
+            echo "| **WWW** | https://gatezh.com |"
+            echo "| **Deployed at** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+          } >> "$GITHUB_STEP_SUMMARY"
