@@ -417,16 +417,32 @@ Settings → Resources → Advanced → **Disk usage limit**. Pick a number *bel
 ### 5. If freed space doesn't appear
 
 ```bash
-tmutil listlocalsnapshots /
-tmutil thinlocalsnapshots / 30000000000 4
+tmutil listlocalsnapshots /                    # list them first
+tmutil thinlocalsnapshots / 30000000000 4      # then release ~30 GB of them
 ```
 
-### Never run these
+The second line deletes **local** snapshots — the on-disk "restore from earlier
+today" copies. Time Machine backups on an external or network disk are not
+touched. Run the first line on its own if you just want to look.
 
-```bash
-docker system prune -a --volumes    # destroys databases and credential volumes
-docker volume prune -a              # same
-```
+### ⛔ Do NOT run these
+
+**These are here so you recognise them, not so you run them.** Both turn up
+constantly in answers about reclaiming Docker space, and both will delete data
+that has no backup. They are deliberately not written as a copyable block.
+
+| Command | What it takes with it |
+| --- | --- |
+| `docker system prune` with `-a --volumes` | Every volume not attached to a **running** container. Databases, credential volumes, anything a stopped container owned. |
+| `docker volume prune` with `-a` | The same set of volumes, without even the images to show for it. |
+
+The trap is that "not attached to a running container" sounds narrow and isn't.
+Stop a devcontainer, run either of these, and its Postgres data and stored
+credentials are gone.
+
+To release one project's volumes deliberately, use `docker compose down -v` in
+that project's folder instead. It is scoped to the thing you are actually
+finished with.
 
 ## Final Thoughts
 
