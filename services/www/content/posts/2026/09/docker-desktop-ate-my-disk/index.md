@@ -44,7 +44,7 @@ There it was. Docker Desktop had been sitting on a "Disk full" dialog whose only
 
 ⚠️ **Note:** If `docker` commands hang instead of failing, don't waste time on the CLI. Go straight to `com.docker.backend.log`.
 
-## 🚨 Problem #1: macOS Lies About Free Space
+## 🚨 Problem #1: `df` Doesn't Mean What You Think on APFS
 
 Naturally I checked how much disk I had left:
 
@@ -57,9 +57,24 @@ Filesystem      Size   Used  Avail Capacity  Mounted on
 /dev/disk3s1s1  460Gi   17Gi   16Gi    53%   /
 ```
 
-53% used! Plenty of room. Except that's completely wrong.
+Stare at that row for a second, because on its face it's gibberish. 17 GB used plus 16 GB available is 33 GB, not 460 GB. And 17 out of 460 is 4%, nowhere near 53%.
 
-On modern macOS, `/` is a **sealed, read-only system snapshot**. Your actual files live on a separate APFS volume, and that's the number you want:
+Nothing is broken. That's just how `df` reports an APFS volume, and the row mixes two different frames of reference:
+
+| Column | What it actually refers to |
+| --- | --- |
+| `Size` | the whole APFS **container**, shared by every volume on the disk |
+| `Used` | what **this one volume** holds |
+| `Avail` | free space in the **shared pool** |
+| `Capacity` | `Used / (Used + Avail)` — **not** `Used / Size` |
+
+So the percentage is `17 / (17 + 16)` ≈ 52%, which lands on 53% once you use the exact byte counts behind those rounded figures. `Size` plays no part in it. You can confirm the formula yourself:
+
+```bash
+df -k / /System/Volumes/Data | awk 'NR>1 {printf "%-24s %.1f%% (reported %s)\n", $9, 100*$3/($3+$4), $5}'
+```
+
+Then there's the second trap on top of the first: on modern macOS `/` is a **sealed, read-only system snapshot** holding just the OS. Your actual files live on a separate volume:
 
 ```bash
 df -h /System/Volumes/Data
@@ -70,7 +85,11 @@ Filesystem      Size   Used  Avail Capacity  Mounted on
 /dev/disk3s5   460Gi  404Gi   16Gi    97%   /System/Volumes/Data
 ```
 
-97%. All APFS volumes share one storage pool, so the "Avail" figure is the same — but the capacity percentage from `df -h /` is meaningless and will happily convince you nothing is wrong.
+97%, and there's the real story.
+
+Note that both lines report the **same** `Avail` — 16 GB — because all APFS volumes draw from one shared pool. So `df -h /` never actually hid the free space from me; it was right there. What it hid was *how full the disk was*. A tidy "53%" sitting next to "460Gi" reads as half a terabyte, half empty, and I moved on. The number that mattered was on the other volume.
+
+**Always check `/System/Volumes/Data`, and read the `Avail` column rather than the percentage.**
 
 ## 🚨 Problem #2: The Sparse File Trap
 
@@ -130,6 +149,8 @@ With the daemon alive again, `docker system df` finally talked:
 | Local Volumes | 31.2 GB | 0.9 GB |
 | Build Cache | 10.0 GB | 5.3 GB |
 
+_Don't bother adding those up against the 80 GB file — they won't reconcile. `docker system df` reports logical sizes per category, where a layer shared between images is counted in each, while `Docker.raw` is physical allocation that also includes free space inside the VM's filesystem waiting to be trimmed._
+
 The safe stuff came off easily — `docker image prune -a -f` and `docker builder prune -f` gave back 12.9 GB, and removing devcontainers that had been idle for over three weeks freed another 10.5 GB.
 
 But the volumes column bothered me. 31 GB, almost nothing reclaimable. So I looked closer:
@@ -155,7 +176,7 @@ Here's what was inside mine:
 
 **Seventeen** copies of the VS Code Server. One directory per VS Code release, 470 MB–1.3 GB each, going back about nine months. Nothing ever deletes the old ones.
 
-Why seventeen and not nine? Because I run both Debian-based and Alpine-based devcontainers, and every VS Code release gets installed **twice** — once as `linux-arm64`, once as `alpine-arm64`. Mixing base image families silently doubles this cache.
+Why seventeen and not nine? Because I run both Debian-based and Alpine-based devcontainers, and those need different builds — so most releases are installed **twice**, once as `linux-arm64` and once as `alpine-arm64` (nine of the former, eight of the latter). Mixing base image families comes close to doubling this cache.
 
 Then the extensions cache, which was the real surprise:
 
