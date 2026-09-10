@@ -323,7 +323,7 @@ cat ~/Library/Group\ Containers/group.com.docker/settings-store.json
 
 No `DiskSizeMiB` key. None. Docker Desktop had never been given a disk limit, so it used the default — the 1 TB virtual maximum from earlier.
 
-{{< cfimage src="images/Docker default disk limit.png" alt="Docker's default limit of 1,006 GB drawn as a bar that crosses a labelled dashed line at 460 GB — this Mac's whole disk — and keeps going. Below it, the limit after the fix: a 64 GB bar that stops well short of the line." caption="The dashed line is the size of the entire Mac. The default ceiling runs straight past it — **2.2× the whole machine** — so Docker could never reach its own limit; macOS ran out first." >}}
+{{< cfimage src="images/Docker default disk limit.png" alt="Three bars on one scale: this Mac's whole disk at 460 GB, Docker's default limit at 1,006 GB — more than twice as long — and the limit after the fix at 64 GB." caption="All three on one scale. Docker's default ceiling is more than twice the size of the machine it runs on, so it could never be reached — macOS ran out first." >}}
 
 On a 460 GB Mac, a 1 TB ceiling means Docker's effective limit is **the entire machine**. That's why the failure was so violent. Instead of Docker hitting its own wall and returning a normal `no space left on device` to whatever was writing, it kept growing until macOS itself ran out — and the VM died mid-write.
 
