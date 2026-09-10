@@ -1,6 +1,6 @@
 ---
 title: 'Docker Desktop Ate My Disk: The Setting That Was Never Set'
-date: '2026-09-08T19:20:00Z'
+date: '2026-09-09T18:59:09-06:00'
 description: "Docker Desktop's VM died with 'no space left on device' and took every container with it. The root cause was a default disk limit of 1 TB — and a VS Code cache nothing prunes."
 ShowToc: true
 TocOpen: true
