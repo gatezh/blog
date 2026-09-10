@@ -16,12 +16,36 @@ else
     echo '{"hasCompletedOnboarding":true}' > "$HOME/.claude/.claude.json"
 fi
 
+# ── Claude Code session retention ───────────────────────────────────────────
+# Session transcripts live in ~/.claude/projects, which is a named volume — so a
+# fresh volume starts on the 30-day default and silently drops older history.
+# Seed a longer retention, but only when unset, so a deliberate local value wins.
+SETTINGS="$HOME/.claude/settings.json"
+if [ -f "$SETTINGS" ]; then
+    current=$(jq -r '.cleanupPeriodDays // "unset"' "$SETTINGS" 2>/dev/null || echo unset)
+    if [ "$current" = "unset" ]; then
+        if jq '.cleanupPeriodDays = 365' "$SETTINGS" > /tmp/.claude-settings.json \
+            && mv /tmp/.claude-settings.json "$SETTINGS"; then
+            echo "✔ Session retention seeded: cleanupPeriodDays=365"
+        else
+            echo "⚠ Failed to seed cleanupPeriodDays" >&2
+        fi
+    fi
+else
+    mkdir -p "$HOME/.claude"
+    echo '{"cleanupPeriodDays":365}' > "$SETTINGS"
+    echo "✔ Session retention seeded: cleanupPeriodDays=365"
+fi
+
 # ── Claude Code marketplaces ────────────────────────────────────────────────
 # The official marketplace is auto-configured on first interactive launch, but
 # postCreateCommand runs before that — register explicitly so plugin install works.
 MARKETPLACES=(
     "anthropics/claude-plugins-official"
     "umputun/ralphex"
+    "GoogleChrome/modern-web-guidance"
+    "AgriciDaniel/claude-seo"
+    "cloudflare/skills"
 )
 
 for marketplace in "${MARKETPLACES[@]}"; do
@@ -46,6 +70,13 @@ PLUGINS=(
     "claude-code-setup@claude-plugins-official"
     "posthog@claude-plugins-official"
     "ralphex@ralphex"
+    "modern-web-guidance@googlechrome"
+    # SEO toolkit — technical SEO, schema, E-E-A-T, GEO/AEO. Relevant: this repo
+    # ships JSON-LD, llms.txt, and per-post SEO front matter.
+    "claude-seo@agricidaniel-claude-seo"
+    # Cloudflare's own marketplace: current Workers/Wrangler skills + MCP server.
+    # The claude-plugins-official copy is a stale snapshot.
+    "cloudflare@cloudflare"
 )
 
 for plugin in "${PLUGINS[@]}"; do
@@ -56,28 +87,23 @@ for plugin in "${PLUGINS[@]}"; do
     fi
 done
 
-# ── Playwright MCP: use Chromium on ARM64 (#64) ─────────────────────────────
-# @playwright/mcp defaults to --browser chrome, which has no Linux ARM64 builds.
-# Patch the plugin config to use chromium instead. No-op on AMD64.
-# Plugins run from the cache dir (~/.claude/plugins/cache), not the marketplace
-# source dir. The cache path includes a version hash — resolve via find.
-if [ "$(uname -m)" = "aarch64" ]; then
-    PLAYWRIGHT_MCP_CONFIG=$(find "$HOME/.claude/plugins/cache" \
-        -path "*/playwright*/.mcp.json" -print -quit 2>/dev/null)
-    if [ -n "$PLAYWRIGHT_MCP_CONFIG" ]; then
-        jq '.playwright.args = ["@playwright/mcp@latest", "--browser", "chromium"]' \
-            "$PLAYWRIGHT_MCP_CONFIG" > /tmp/playwright-mcp.json \
-            && mv /tmp/playwright-mcp.json "$PLAYWRIGHT_MCP_CONFIG"
-        echo "✔ Playwright MCP patched for ARM64 Chromium"
-    fi
-fi
+# ── Playwright MCP: route every cached .mcp.json to system chromium ─────────
+# Universal across arches (no Chrome stable binary in either default or sandbox).
+# The patch binary is baked into the image and also runs from postStartCommand
+# and a Claude Code SessionStart hook — the hook is what closes the gap when the
+# plugin auto-updates mid-container-run. It loops over every cache dir, unlike
+# the old ARM64-only `find -print -quit` which left newer dirs unpatched.
+# See gatezh/devcontainers#64, #85, #87, #98.
+/usr/local/bin/patch-playwright-mcp
 
 # ── rtk init (token-optimized CLI proxy) ────────────────────────────────────
 # Global hook-first mode: installs only the PreToolUse rewrite hook to ~/.claude/,
 # no workspace artifacts (CLAUDE.md, .rtk/). Safe to run multiple times.
-# WORKAROUND: RTK ≥0.36.0 added a GDPR telemetry consent prompt that hangs in
-# non-interactive environments. timeout + RTK_TELEMETRY_DISABLED work around it.
-# Remove when upstream fixes it: https://github.com/rtk-ai/rtk/issues/1307
+# RTK_TELEMETRY_DISABLED=1 is the supported opt-out, not a workaround: since
+# rtk-ai/rtk#2477 (v0.44.0+) it short-circuits the telemetry consent prompt that
+# would otherwise block on stdin here. rtk's own TTY check is not enough — a
+# devcontainer postCreateCommand gets a pseudo-TTY, so the prompt believes it is
+# interactive. timeout stays as a backstop against a future init-time hang.
 if command -v rtk &>/dev/null; then
     RTK_TELEMETRY_DISABLED=1 timeout 10 rtk init -g --hook-only --auto-patch 2>/dev/null || true
 fi

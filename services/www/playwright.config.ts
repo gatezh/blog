@@ -36,6 +36,14 @@ export default defineConfig({
 
     /* Take screenshot on failure */
     screenshot: "only-on-failure",
+
+    /* The devcontainer image ships Chromium via apt at /usr/bin/chromium and sets
+       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1, so Playwright-managed browsers are never
+       downloaded there. Point at the system binary when the image exports the path;
+       undefined on the host and in CI, where Playwright uses its own browser. */
+    launchOptions: {
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+    },
   },
 
   /* Configure projects for different viewports and color schemes */

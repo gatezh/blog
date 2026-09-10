@@ -1,8 +1,12 @@
 # Project name — must match the default variant's project name with -sandbox suffix
-name: blog-sandbox
+name: gatezh-com-sandbox
 services:
   devcontainer:
+    # Image freshness is handled by the host-side `initializeCommand` pull in
+    # devcontainer.json (keep the image reference in sync). Do NOT add
+    # `pull_policy: always` here — on Linux/WSL2 `updateRemoteUserUID` builds a
+    # local-only image and Compose would then try to pull it, breaking the
+    # container launch with "pull access denied" (see gatezh/devcontainers#109).
     image: ghcr.io/gatezh/devcontainers/claude-code-sandbox:latest
-    pull_policy: always
     volumes:
       - ../..:/workspace:cached
