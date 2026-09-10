@@ -4,6 +4,13 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
+  // Pull the prebuilt image on the HOST before the build, so "Rebuild Without
+  // Cache" always layers on the freshest base. Replaces `pull_policy: always` in
+  // docker-compose.yml, which breaks on Linux/WSL2 when `updateRemoteUserUID`
+  // builds a local-only image (gatezh/devcontainers#109). `|| exit 0` keeps
+  // offline opens working (valid in POSIX sh and Windows cmd.exe).
+  // Keep in sync with the image in docker-compose.yml.
+  "initializeCommand": "docker pull ghcr.io/gatezh/devcontainers/claude-code-sandbox:latest || exit 0",
   // Capabilities required for iptables firewall setup
   "capAdd": ["NET_ADMIN", "NET_RAW"],
   "init": true,
@@ -55,10 +62,6 @@
         // Colorize - visualize CSS colors inline in the editor
         "kamikillerto.vscode-colorize",
 
-        // **Frameworks**
-        // Drizzle ORM Snippets - code snippets for Drizzle ORM
-        "drizzle-team.drizzle-orm-snippets",
-
         // **Testing**
         // Playwright - run, debug, and generate Playwright tests from VS Code
         "ms-playwright.playwright",
@@ -107,12 +110,12 @@
   // Uses ${localWorkspaceFolderBasename} so default and sandbox variants share volumes.
   "mounts": [
     // ── node_modules isolation (one per workspace) ─────────────────────
-    "source=blog-node-modules-root-${localWorkspaceFolderBasename},target=/workspace/node_modules,type=volume",
-    "source=blog-node-modules-www-${localWorkspaceFolderBasename},target=/workspace/services/www/node_modules,type=volume",
-    "source=blog-node-modules-email-worker-${localWorkspaceFolderBasename},target=/workspace/services/email-worker/node_modules,type=volume",
+    "source=gatezh-com-node-modules-root-${localWorkspaceFolderBasename},target=/workspace/node_modules,type=volume",
+    "source=gatezh-com-node-modules-www-${localWorkspaceFolderBasename},target=/workspace/services/www/node_modules,type=volume",
+    "source=gatezh-com-node-modules-email-worker-${localWorkspaceFolderBasename},target=/workspace/services/email-worker/node_modules,type=volume",
     // ── Persistent config ──────────────────────────────────────────────
-    "source=blog-claude-config-${localWorkspaceFolderBasename},target=/home/node/.claude,type=volume",
-    "source=blog-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume",
+    "source=gatezh-com-claude-config-${localWorkspaceFolderBasename},target=/home/node/.claude,type=volume",
+    "source=gatezh-com-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume",
     // ── Firewall script ────────────────────────────────────────────────
     // The image provides iptables/ipset packages and sudo rule but NOT the script itself.
     // Each project provides its own script via bind mount to customize the domain allowlist.
@@ -127,10 +130,18 @@
     // injected from the host. See "Sandbox Authentication" section in README.
     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
   },
-  // Runs before postStartCommand (firewall), so network is still available for browser downloads.
+  // Runs before postStartCommand (firewall), so the network is still available
+  // for mise install, bun install, and plugin installation.
   // The find command chowns all node_modules volume mount points in one pass.
-  "postCreateCommand": "sudo find /workspace -maxdepth 4 -name node_modules -type d -exec chown node {} + && sudo chown -R node /home/node/.claude && mise install && bun install && npx playwright install --only-shell chromium && bash .devcontainer/init-plugins.sh",
-  // Firewall init — script is bind-mounted from the project
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  // Chromium is baked into the sandbox image — the firewall would block a
+  // runtime `playwright install` anyway. services/www/playwright.config.ts
+  // reads PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.
+  "postCreateCommand": "sudo find /workspace -maxdepth 4 -name node_modules -type d -exec chown node {} + && sudo chown -R node /home/node/.claude && mise install && bun install && bash .devcontainer/init-plugins.sh",
+  // Firewall init (script is bind-mounted from the project), then re-patch the
+  // Playwright MCP plugin's .mcp.json. The patch is a pure jq/find script, so
+  // running it after the firewall is fine. Defense in depth alongside the
+  // SessionStart hook in /etc/claude-code/managed-settings.json.
+  // See gatezh/devcontainers#85, #87, #98.
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && /usr/local/bin/patch-playwright-mcp",
   "waitFor": "postStartCommand"
 }
