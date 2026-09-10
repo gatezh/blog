@@ -458,7 +458,7 @@ Where I landed:
 - ✅ Volume backups verified with checksums, because I'll need them next time I resize
 - ✅ No custom scripts, no scheduled jobs, nothing to maintain
 
-If you use devcontainers on a Mac, go and check two things right now: your disk usage limit, and the size of your `vscode` volume. It takes thirty seconds and it's the difference between an annoying afternoon and losing every container you have.
+If you run Docker Desktop on a Mac, go and check two things right now: your disk usage limit, and — if you use devcontainers — the size of your `vscode` volume. It takes thirty seconds and it's the difference between an annoying afternoon and losing every container you have.
 
 ---
 
