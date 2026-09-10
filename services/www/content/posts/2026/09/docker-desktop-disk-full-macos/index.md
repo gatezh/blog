@@ -6,7 +6,7 @@ toc: true
 draft: false
 ---
 
-**TL;DR:** Docker Desktop ships with a **1 TB** virtual disk limit by default. On a 460 GB Mac that means Docker's real limit is your entire machine, so a full disk doesn't produce a Docker error — it kills the VM. Set a real limit (Settings → Resources → Advanced → Disk usage limit). If you just want commands, jump to the **[Quick Reference](#quick-reference)**.
+**TL;DR:** Docker Desktop ships with a **1 TB** virtual disk limit by default. On a 460 GB Mac that means Docker's real limit is your entire machine, so a full disk doesn't produce a Docker error — it kills the VM. Set a real limit ([Settings → Resources → Advanced → Disk usage limit](https://docs.docker.com/desktop/settings-and-maintenance/settings/)). If you just want commands, jump to the **[Quick Reference](#quick-reference)**.
 
 This is the third time macOS has warned me about low disk space and the answer turned out to be Docker. The first two times I pruned some images, felt clever, and moved on. This time Docker didn't give me the chance — it died first.
 
@@ -148,7 +148,7 @@ With the daemon alive again, `docker system df` finally talked:
 | Local Volumes | 31.2 GB | 0.9 GB |
 | Build Cache | 10.0 GB | 5.3 GB |
 
-_Don't bother adding those up against the 80 GB file — they won't reconcile. `docker system df` reports logical sizes per category, where a layer shared between images is counted in each, while `Docker.raw` is physical allocation that also includes free space inside the VM's filesystem waiting to be trimmed._
+_Don't bother adding those up against the 80 GB file — they won't reconcile. [`docker system df`](https://docs.docker.com/reference/cli/docker/system/df/) reports logical sizes per category, where a layer shared between images is counted in each, while `Docker.raw` is physical allocation that also includes free space inside the VM's filesystem waiting to be trimmed._
 
 The safe stuff came off easily — `docker image prune -a -f` and `docker builder prune -f` gave back 12.9 GB, and removing devcontainers that had been idle for over three weeks freed another 10.5 GB.
 
@@ -164,7 +164,7 @@ One volume was **23.5 GB**. It's called `vscode`, and I never created it.
 
 ### The `vscode` Volume
 
-If you use Dev Containers, you have this volume. The extension creates it automatically to cache the VS Code Server across container rebuilds — nothing in your `devcontainer.json` mounts it, it just appears.
+If you use [Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers), you have this volume. The extension creates it automatically to cache the VS Code Server across container rebuilds — nothing in your `devcontainer.json` mounts it, it just appears.
 
 Here's what was inside mine:
 
@@ -213,7 +213,7 @@ These snapshots expire on their own within roughly 24 hours, and sure enough, th
 tmutil thinlocalsnapshots / 30000000000 4
 ```
 
-⚠️ **Note:** This only removes *local* snapshots. Time Machine backups on an external or network disk are untouched.
+⚠️ **Note:** This only removes *local* snapshots. [Time Machine](https://support.apple.com/guide/mac-help/back-up-your-mac-with-time-machine-mh35860/mac) backups on an external or network disk are untouched.
 
 ## 🚨 Problem #4: After a Crash, `container prune` Is a Trap
 
@@ -268,7 +268,7 @@ Then I deleted the script.
 
 Two things, both of which existed the whole time.
 
-**First**, there's an official setting. The Dev Containers extension ships `dev.containers.cacheVolume`, default `true`: *"Controls whether a Docker volume should be used to cache the VS Code server and extensions."* Set it to `false` and the shared volume doesn't exist at all — the server lives in each container's writable layer, which `docker container prune` reclaims.
+**First**, there's an official setting. The [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) ships `dev.containers.cacheVolume`, default `true`: *"Controls whether a Docker volume should be used to cache the VS Code server and extensions."* Set it to `false` and the shared volume doesn't exist at all — the server lives in each container's writable layer, which `docker container prune` reclaims.
 
 I don't recommend it for my setup, since my devcontainers pull `:latest` on open and get recreated often, so each recreation would re-download the server. But it's there, and I built a cleaner for a cache that has an off switch.
 
@@ -280,7 +280,7 @@ docker volume rm vscode
 
 That's it. The extension recreates the volume containing only the current server. One stock command reclaims the same ~23 GB my 200-line script did surgically. The script's only advantage was avoiding a one-time re-download.
 
-⚠️ **Note:** Verified against the docs and the extension manifest — VS Code ships **no** automatic cleanup for this cache and no setting to bound its size. There's nothing you're failing to enable. It just needs occasional emptying.
+⚠️ **Note:** Verified against [the docs](https://code.visualstudio.com/docs/devcontainers/tips-and-tricks) and the extension manifest — VS Code ships **no** automatic cleanup for this cache and no setting to bound its size. There's nothing you're failing to enable. It just needs occasional emptying.
 
 ### 🚨 Problem #5: "Volume Is in Use"
 
@@ -367,9 +367,9 @@ Restore was 29 of 29, no failures.
 
 While I was in `~/.docker/daemon.json` anyway, one more thing worth fixing.
 
-Every line your containers write to stdout goes to a log file on disk. The default `json-file` driver has `max-size` set to `-1` — **unlimited**, with no rotation at all. A chatty dev server or a database logging every query grows that file forever, and it appears nowhere in `docker system df`.
+Every line your containers write to stdout goes to a log file on disk. The default [`json-file`](https://docs.docker.com/engine/logging/drivers/json-file/) driver has `max-size` set to `-1` — **unlimited**, with no rotation at all. A chatty dev server or a database logging every query grows that file forever, and it appears nowhere in `docker system df`.
 
-| | `json-file` (default) | `local` |
+| | [`json-file`](https://docs.docker.com/engine/logging/drivers/json-file/) (default) | [`local`](https://docs.docker.com/engine/logging/drivers/local/) |
 |---|---|---|
 | Rotation | none | 20 MB × 5 files |
 | Compression | no | yes |
@@ -396,6 +396,8 @@ docker system df -v | grep -i vscode
 
 ### 2. Safe reclaim, in order
 
+Docker's own [pruning guide](https://docs.docker.com/engine/manage-resources/pruning/) covers what each of these removes.
+
 ```bash
 docker image prune -f       # dangling only
 docker builder prune -f
@@ -412,7 +414,7 @@ docker volume rm vscode
 
 ### 4. Set a real disk limit (destroys everything — back up first)
 
-Settings → Resources → Advanced → **Disk usage limit**. Pick a number *below* your typical free space; mine is 64 GB against a steady-state need of ~25 GB.
+[Settings → Resources → Advanced](https://docs.docker.com/desktop/settings-and-maintenance/settings/) → **Disk usage limit**. Pick a number *below* your typical free space; mine is 64 GB against a steady-state need of ~25 GB.
 
 ### 5. If freed space doesn't appear
 
