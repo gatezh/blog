@@ -8,10 +8,23 @@ Uses `ghcr.io/gatezh/devcontainers/claude-code-sandbox:latest` which includes:
 
 - **OS**: Debian with Node.js 24
 - **Tools**: Bun, Hugo (via mise from `.mise.toml`), Git, GitHub CLI
-- **AI**: Claude Code CLI
-- **Testing**: Playwright
+- **AI**: Claude Code CLI, rtk, ralphex (no agent-browser — default variant only)
+- **Testing**: system Chromium at `/usr/bin/chromium`
 - **Shell**: Fish with Starship prompt, Git Delta
 - **Firewall**: iptables/ipset packages for network sandboxing
+
+## Image Freshness
+
+`devcontainer.json` runs a host-side `initializeCommand`:
+
+```jsonc
+"initializeCommand": "docker pull ghcr.io/gatezh/devcontainers/claude-code-sandbox:latest || exit 0"
+```
+
+> **Do not add `pull_policy: always` to `docker-compose.yml`.** On Linux/WSL2,
+> `updateRemoteUserUID` builds a local-only derived image; Compose would then try
+> to pull that non-existent tag and fail with `pull access denied`
+> ([gatezh/devcontainers#109](https://github.com/gatezh/devcontainers/issues/109)).
 
 ## Network Sandbox
 
@@ -27,6 +40,11 @@ This container runs with a **default-deny firewall** (`init-firewall.sh`). Only 
 The firewall script is bind-mounted from the project and runs via `postStartCommand`. The container requires `NET_ADMIN` and `NET_RAW` capabilities.
 
 See `init-firewall.sh` for the full allowlist.
+
+Setup runs in `postCreateCommand`, **before** the firewall comes up in
+`postStartCommand` — so `mise install`, `bun install`, and plugin installation
+still have unrestricted network access. Chromium is baked into the image for the
+same reason: the firewall would block a runtime download.
 
 ## Authentication
 
@@ -54,7 +72,8 @@ bun run build        # Build all services
 
 ## Persistence
 
-Named Docker volumes persist across container rebuilds and are shared with the default variant:
+Named Docker volumes (prefixed `gatezh-com-`) persist across container rebuilds
+and are shared with the default variant:
 - **node_modules** - isolated per workspace directory (root, services/www, services/email-worker)
 - **Claude config** - auth tokens and settings preserved
 - **Fish data** - shell history and completions retained
@@ -69,3 +88,4 @@ Named Docker volumes persist across container rebuilds and are shared with the d
 - Edit `.mise.toml` to update tool versions (bun, hugo)
 - Edit `devcontainer.json` to modify VS Code extensions or settings
 - Edit `init-firewall.sh` to modify the network allowlist
+- Edit `../init-plugins.sh` to change the marketplace/plugin list (shared with the default variant)

@@ -37,8 +37,9 @@ This is a Bun monorepo for gatezh.com:
 │   ├── settings.json           # Permissions
 │   └── rules/                  # Modular topic rules
 ├── .devcontainer/              # Dev container configs (pre-built GHCR images)
-│   ├── devcontainer.json       # Default devcontainer
-│   ├── docker-compose.yml      # Default compose (image + pull_policy)
+│   ├── devcontainer.json       # Default devcontainer ("Local Development")
+│   ├── docker-compose.yml      # Default compose (image only; pull via initializeCommand)
+│   ├── init-plugins.sh         # Claude Code marketplaces, plugins, rtk (postCreateCommand)
 │   └── claude-sandbox/         # Sandbox variant (network-restricted)
 ├── docs/                       # Documentation and ADRs
 ├── .mise.toml                  # Tool versions (bun, hugo)

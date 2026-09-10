@@ -4,6 +4,13 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
+  // Pull the prebuilt image on the HOST before the build, so "Rebuild Without
+  // Cache" always layers on the freshest base. Replaces `pull_policy: always` in
+  // docker-compose.yml, which breaks on Linux/WSL2 when `updateRemoteUserUID`
+  // builds a local-only image (gatezh/devcontainers#109). `|| exit 0` keeps
+  // offline opens working (valid in POSIX sh and Windows cmd.exe).
+  // Keep in sync with the image in docker-compose.yml.
+  "initializeCommand": "docker pull ghcr.io/gatezh/devcontainers/claude-code:latest || exit 0",
   "init": true,
   "updateRemoteUserUID": true,
   "remoteUser": "node",
@@ -53,10 +60,6 @@
         // Colorize - visualize CSS colors inline in the editor
         "kamikillerto.vscode-colorize",
 
-        // **Frameworks**
-        // Drizzle ORM Snippets - code snippets for Drizzle ORM
-        "drizzle-team.drizzle-orm-snippets",
-
         // **Testing**
         // Playwright - run, debug, and generate Playwright tests from VS Code
         "ms-playwright.playwright",
@@ -99,12 +102,12 @@
   // Uses ${localWorkspaceFolderBasename} so default and sandbox variants share volumes.
   "mounts": [
     // ── node_modules isolation (one per workspace) ─────────────────────
-    "source=blog-node-modules-root-${localWorkspaceFolderBasename},target=/workspace/node_modules,type=volume",
-    "source=blog-node-modules-www-${localWorkspaceFolderBasename},target=/workspace/services/www/node_modules,type=volume",
-    "source=blog-node-modules-email-worker-${localWorkspaceFolderBasename},target=/workspace/services/email-worker/node_modules,type=volume",
+    "source=gatezh-com-node-modules-root-${localWorkspaceFolderBasename},target=/workspace/node_modules,type=volume",
+    "source=gatezh-com-node-modules-www-${localWorkspaceFolderBasename},target=/workspace/services/www/node_modules,type=volume",
+    "source=gatezh-com-node-modules-email-worker-${localWorkspaceFolderBasename},target=/workspace/services/email-worker/node_modules,type=volume",
     // ── Persistent config ──────────────────────────────────────────────
-    "source=blog-claude-config-${localWorkspaceFolderBasename},target=/home/node/.claude,type=volume",
-    "source=blog-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume"
+    "source=gatezh-com-claude-config-${localWorkspaceFolderBasename},target=/home/node/.claude,type=volume",
+    "source=gatezh-com-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume"
   ],
   "containerEnv": {
     "TZ": "${localEnv:TZ:America/Edmonton}",
@@ -115,8 +118,15 @@
   // sudo chown fixes volume ownership — safety net in case Docker volume population didn't apply.
   // The find command chowns all node_modules volume mount points in one pass.
   // mise install reads .mise.toml and installs project-specific tool versions.
-  // playwright install ensures the correct browser binary for the project's @playwright/test version
-  // (idempotent — skips download if the image's cached binary already matches).
-  "updateContentCommand": "sudo find /workspace -maxdepth 4 -name node_modules -type d -exec chown node {} + && sudo chown -R node /home/node/.claude && mise install && bun install && npx playwright install --only-shell chromium && bash .devcontainer/init-plugins.sh",
+  // Chromium is baked into the image via apt — no `playwright install` step needed.
+  // services/www/playwright.config.ts reads PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.
+  "updateContentCommand": "sudo find /workspace -maxdepth 4 -name node_modules -type d -exec chown node {} + && sudo chown -R node /home/node/.claude && mise install && bun install",
+  // One-time setup: register Claude Code marketplaces, install plugins, seed rtk.
+  "postCreateCommand": "bash .devcontainer/init-plugins.sh",
+  // Re-patch the Playwright MCP plugin's .mcp.json on every start. Defense in
+  // depth alongside the SessionStart hook in /etc/claude-code/managed-settings.json,
+  // which handles the case where the plugin auto-updates mid-container-run.
+  // See gatezh/devcontainers#85, #87, #98.
+  "postStartCommand": "/usr/local/bin/patch-playwright-mcp",
   "waitFor": "postCreateCommand"
 }
