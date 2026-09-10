@@ -1,0 +1,15 @@
+{{- /*
+  Link render hook: external links open in a new tab, internal ones don't.
+
+  "External" means the destination has a host and it isn't this site's — so
+  relative links, anchors and absolute links back to gatezh.com stay in-tab.
+  rel="noopener noreferrer" goes with target="_blank" so the opened page can't
+  reach back through window.opener.
+*/ -}}
+{{- $u := urls.Parse .Destination -}}
+{{- $site := urls.Parse site.BaseURL -}}
+{{- $external := and (ne $u.Host "") (ne $u.Host $site.Host) -}}
+<a href="{{ .Destination | safeURL }}"
+  {{- with .Title }} title="{{ . }}"{{ end }}
+  {{- if $external }} target="_blank" rel="noopener noreferrer"{{ end -}}
+>{{ .Text | safeHTML }}</a>
