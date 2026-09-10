@@ -1,9 +1,8 @@
 ---
-title: 'Docker Desktop Ate My Disk: The Setting That Was Never Set'
+title: 'Docker Desktop Disk Full on macOS: The 1 TB Default and the Dev Containers Cache'
 date: '2026-09-09T18:59:09-06:00'
-description: "Docker Desktop's VM died with 'no space left on device' and took every container with it. The root cause was a default disk limit of 1 TB — and a VS Code cache nothing prunes."
-ShowToc: true
-TocOpen: true
+description: "Docker Desktop's VM died with 'no space left on device' and took every container with it. Two causes: a disk limit that defaults to 1 TB, and a Dev Containers cache that nothing prunes."
+toc: true
 draft: false
 ---
 
