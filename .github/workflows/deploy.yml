@@ -1,5 +1,4 @@
 name: Deploy
-run-name: "Deploy: ${{ github.event.head_commit.message }}"
 
 on:
   push:
@@ -23,13 +22,13 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v4
 
       - name: Cache node_modules
         id: cache-node-modules
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             node_modules
@@ -37,7 +36,7 @@ jobs:
           key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
 
       - name: Cache Bun global cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock') }}
@@ -53,13 +52,13 @@ jobs:
     needs: check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v4
 
       - name: Cache node_modules
         id: cache-node-modules
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             node_modules
@@ -74,7 +73,7 @@ jobs:
         run: bun run --cwd services/www build
 
       - name: Deploy WWW
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -85,13 +84,13 @@ jobs:
     needs: check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v4
 
       - name: Cache node_modules
         id: cache-node-modules
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             node_modules
@@ -103,7 +102,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Deploy Email Worker
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -134,12 +133,20 @@ jobs:
           echo "Deployment verified successfully."
 
       - name: Deployment summary
+        env:
+          # Bound as data, never interpolated into the script: a commit message
+          # is untrusted input, and an apostrophe alone breaks the shell.
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          echo "## Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| | |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | [\`${GITHUB_SHA::7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${GITHUB_SHA}) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Message** | $(echo '${{ github.event.head_commit.message }}' | head -1) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **WWW** | https://gatezh.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Deployed at** | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+          # Escape pipes so a message containing "|" cannot break the table.
+          SUBJECT=$(printf '%s' "${COMMIT_MESSAGE}" | head -1 | sed 's/|/\\|/g')
+          {
+            echo "## Deployment"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Commit** | [\`${GITHUB_SHA::7}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}) |"
+            echo "| **Message** | ${SUBJECT} |"
+            echo "| **WWW** | https://gatezh.com |"
+            echo "| **Deployed at** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+          } >> "$GITHUB_STEP_SUMMARY"
