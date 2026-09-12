@@ -116,6 +116,30 @@ test.describe("Homepage", () => {
   });
 });
 
+test.describe("About page", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/about/");
+    await page.waitForLoadState("load");
+  });
+
+  test("is available from the main navigation", async ({ page }) => {
+    const aboutLinks = page.locator('header nav a[href="/about/"]');
+
+    await expect(aboutLinks).toHaveCount(2);
+    await expect(aboutLinks.first()).toContainText("About");
+  });
+
+  test("renders the biography and portrait", async ({ page }) => {
+    await expect(page.getByRole("heading", { level: 1, name: "Serge Gatezh." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Security is part of the product" })).toBeVisible();
+
+    const portrait = page.getByTestId("about-portrait");
+    await expect(portrait).toBeVisible();
+    await expect(portrait).toHaveAttribute("alt", "Portrait of Serge Gatezh");
+    await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  });
+});
+
 test.describe("Accessibility", () => {
   test("homepage has proper heading structure", async ({ page }) => {
     await page.goto("/");
