@@ -46,3 +46,6 @@ playwright-report/
 
 ### Ralphex ###
 progress*.txt
+
+# Session handoff notes — may contain unredacted detail, never commit
+.claude/context/
