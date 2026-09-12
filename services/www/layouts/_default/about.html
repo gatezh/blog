@@ -1,0 +1,59 @@
+{{- define "main" }}
+{{- $portrait := .Resources.GetMatch .Params.portrait -}}
+{{- $portraitSrc := "" -}}
+{{- with $portrait -}}
+  {{- $portraitSrc = .RelPermalink -}}
+  {{- if eq hugo.Environment "production" -}}
+    {{- $portraitSrc = print "/cdn-cgi/image/format=auto,width=900" $portraitSrc -}}
+  {{- end -}}
+{{- end -}}
+
+<article>
+  <section class="terminal-window mb-10" aria-labelledby="about-title">
+    <div class="terminal-window-header" aria-hidden="true">
+      <span class="terminal-window-dot red"></span>
+      <span class="terminal-window-dot yellow"></span>
+      <span class="terminal-window-dot green"></span>
+      <span class="terminal-window-title">~/about/serge-gatezh</span>
+    </div>
+
+    <div class="terminal-window-content pb-0">
+      <div class="grid items-end gap-6 sm:grid-cols-5 sm:gap-8">
+        <div class="py-4 sm:col-span-3 sm:py-8">
+          <p class="mb-4 text-sm text-terminal-muted">
+            <span class="text-terminal-accent">$</span> whoami --verbose
+          </p>
+          <h1 id="about-title" class="mb-4 text-3xl font-semibold leading-tight sm:text-4xl">
+            Serge Gatezh<span class="text-terminal-accent">.</span>
+          </h1>
+          <p class="mb-4 text-xl leading-relaxed text-terminal-fg">
+            {{ .Params.tagline }}
+          </p>
+          <p class="m-0 text-sm text-terminal-muted">
+            <span class="text-terminal-accent">></span> {{ .Params.role }}
+          </p>
+        </div>
+
+        {{- with $portrait }}
+        <figure class="m-0 self-end sm:col-span-2">
+          <img
+            data-testid="about-portrait"
+            src="{{ $portraitSrc }}"
+            alt="Portrait of Serge Gatezh"
+            width="{{ .Width }}"
+            height="{{ .Height }}"
+            class="mx-auto m-0 block h-auto w-full max-w-[17rem] rounded-none sm:ml-auto"
+            loading="eager"
+            fetchpriority="high"
+          >
+        </figure>
+        {{- end }}
+      </div>
+    </div>
+  </section>
+
+  <div class="article-content prose max-w-none">
+    {{ .Content }}
+  </div>
+</article>
+{{- end }}
