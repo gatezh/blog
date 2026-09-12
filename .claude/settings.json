@@ -8,5 +8,9 @@
       "Bash(mkdir:*)",
       "Bash(ls:*)"
     ]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   }
 }
