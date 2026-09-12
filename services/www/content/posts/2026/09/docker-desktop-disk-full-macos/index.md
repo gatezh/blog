@@ -520,9 +520,9 @@ docker image prune -f
 
 That's the entire maintenance burden. One command, no flags to remember, no risk — it only removes dangling layers, never a tagged image. Build cache handles itself through `defaultKeepStorage`, logs now rotate on their own, and the `vscode` volume needs emptying maybe once a quarter.
 
-What changed isn't that the growth stopped. It's what happens when I forget. With the 1 TB default, forgetting eventually takes out the VM and every container in it, on a random Tuesday, with no warning. With a real limit, forgetting means a build fails with `no space left on device`, I run one command, and I get on with my day.
+What changed isn't that the growth stopped. It's what happens when I forget. With the 1 TB default, forgetting eventually takes out the VM and every container in it, on a random Tuesday, with no warning. With a real limit, Docker reports `no space left on device` when something tries to write beyond it; I prune the dangling images, and I get on with my day.
 
-If you run Docker Desktop on a Mac, go and check two things right now: your disk usage limit, and — if you use devcontainers — the size of your `vscode` volume. It takes thirty seconds and it's the difference between an annoying afternoon and losing every container you have.
+If you've run into the same problem, I hope this write-up helps you reclaim the space without losing anything important. Knowing where to look — Docker's disk usage limit and, for devcontainer users, the size of the `vscode` volume — can make the difference between an annoying afternoon and losing every container you have.
 
 ---
 
