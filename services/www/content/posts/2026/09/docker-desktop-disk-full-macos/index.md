@@ -356,12 +356,50 @@ docker run --rm -v <volume>:/data -v "$PWD":/backup alpine \
 
 The `:ro` on the backup mount guarantees the pass can't modify the source. Ownership and permissions survive the round trip — my `.credentials.json` came back as `-rw-------` owned by uid 1000, and a Postgres data directory restored with the same 2,353 files it went in with.
 
-Two things worth knowing:
+⚠️ **Note:** `alpine` was inside the disk image too, so after the wipe the very tool you need to restore with is gone. `docker pull alpine` before you start — and don't attempt any of this on a connection you don't trust.
+
+Three things worth knowing:
 
 - **Back up cold.** Tarring a live Postgres data directory gives you an inconsistent snapshot. Stop the containers first; everything was already stopped in my case, which was convenient.
 - **Don't back up what regenerates.** Images re-pull, `node_modules` volumes reinstall, container layers rebuild. I only archived credentials, shell history, and databases — 29 volumes, **683 MB total**. The stuff that mattered was less than 1 GB out of 53.
+- **Re-take the backup right before you pull the trigger.** I had a full set from the day before and nearly used it. Re-running it, the checksums showed two volumes had changed in those 24 hours — a Claude config and an app's data directory. The older set would have silently rolled back a day of work.
 
-Restore was 29 of 29, no failures.
+### Which volumes actually matter
+
+This is the part I got wrong, and it matters more than the commands above.
+
+I picked volumes by **name** — a pattern matching `claude-config`, `fish-data`, `pgdata` and friends. It looked thorough. It wasn't: volume names are arbitrary, and mine weren't consistent across projects. Auditing every mount afterwards, the pattern had quietly skipped:
+
+| Volume name | Mounted at | What was in it |
+| --- | --- | --- |
+| `claude-code-config-*` | `/home/node/.claude` | the same data, under a different name |
+| `devcontainers-sandbox-config-*` | `/home/node/.claude` | and again |
+| `*-gh-config-*` | `/home/node/.config/gh` | **GitHub CLI auth tokens** |
+| `*-configstore-*` | `/home/node/.config/configstore` | tool config |
+
+One of those cost me: a project's `gh` authentication went into the wipe and came back empty. Not fatal — one `gh auth login` — but silent, and I only noticed days later while chasing something unrelated.
+
+The fix is to stop guessing from names and look at where each volume is **mounted**. Your `devcontainer.json` already declares it:
+
+```bash
+find ~/Code -maxdepth 4 -name devcontainer.json -not -path '*/node_modules/*' \
+  -exec grep -hoE 'source=[^,]+,target=[^,]+' {} + \
+  | sed 's/source=//; s/,target=/  ->  /' | sort -u
+```
+
+Anything landing on a home-directory path — `~/.claude`, `~/.config/gh`, `~/.local/share/fish`, a database directory — is state you cannot regenerate, whatever it happens to be called. Anything landing in `node_modules` or the workspace is not.
+
+**And check what exists only on your machine.** Two of my images were built locally rather than pulled, so "it'll just re-pull" didn't cover them — and confirming they could be rebuilt meant tracking down a project folder that had moved months earlier. Worth five minutes before a destructive step rather than after.
+
+### "Restored" is not the same as "back to normal"
+
+Restore was 29 of 29, no failures. Then `docker system df` told me I had **1.6 GB of reclaimable volumes**.
+
+Every one of them was a credential or database volume I had just restored, for a project I hadn't reopened yet. Docker calls a volume reclaimable when no container is currently attached — which says nothing at all about whether its contents matter.
+
+A `docker volume prune` at that moment would have deleted the entire restore.
+
+They stop looking reclaimable as you reopen each project and its containers re-attach. Until then the restore isn't finished, it's just staged — and the one command you might reach for to tidy up is the one that undoes it.
 
 ## Bonus Round: Your Container Logs Never Rotate
 
@@ -414,7 +452,19 @@ docker volume rm vscode
 
 ### 4. Set a real disk limit (destroys everything — back up first)
 
+First, work out what needs backing up — by mount target, not by volume name:
+
+```bash
+find ~/Code -maxdepth 4 -name devcontainer.json -not -path '*/node_modules/*' \
+  -exec grep -hoE 'source=[^,]+,target=[^,]+' {} + \
+  | sed 's/source=//; s/,target=/  ->  /' | sort -u
+```
+
+Archive anything landing on a home-directory path, cold, immediately before you resize. Then:
+
 [Settings → Resources → Advanced](https://docs.docker.com/desktop/settings-and-maintenance/settings/) → **Disk usage limit**. Pick a number *below* your typical free space; mine is 64 GB against a steady-state need of ~25 GB.
+
+Afterwards, ignore the "reclaimable volumes" figure until every project has been reopened — those are your restored volumes waiting to be re-attached.
 
 ### 5. If freed space doesn't appear
 
@@ -450,7 +500,7 @@ finished with.
 
 The thing that actually fixed this was a single number in a settings file. Everything else — the seventeen server installs, the eighty-four cached extension versions, the orphaned downloads — is just growth, and growth is fine as long as it hits a wall that isn't your whole computer.
 
-What I keep coming back to is how much time I spent building the wrong solution. I wrote, debugged, hardened and adversarially tested a cleanup script across four review passes, and the correct answer was one `docker volume rm` and a setting I hadn't read. The script wasn't useless — finding those bugs taught me how the cache actually works — but it was solving the symptom with impressive thoroughness while the cause sat one settings panel away.
+What I keep coming back to is how much time I spent on the wrong solution: four review passes hardening a cleanup script, when the answer was one `docker volume rm` and a setting I hadn't read. Not wasted — those bugs taught me how the cache works — but I was solving the symptom with great thoroughness while the cause sat one settings panel away.
 
 Where I landed:
 
@@ -460,7 +510,19 @@ Where I landed:
 - ✅ Volume backups verified with checksums, because I'll need them next time I resize
 - ✅ No custom scripts, no scheduled jobs, nothing to maintain
 
-If you run Docker Desktop on a Mac, go and check two things right now: your disk usage limit, and — if you use devcontainers — the size of your `vscode` volume. It takes thirty seconds and it's the difference between an annoying afternoon and losing every container you have.
+...actually, hold on. That last one isn't quite honest.
+
+You do still have to brush your teeth. Docker Engine ships no image garbage collection — nothing prunes the dangling images that pile up every time a devcontainer pulls a rebuilt `:latest`, and I was carrying 2.5 GB of them within days. So every now and then:
+
+```bash
+docker image prune -f
+```
+
+That's the entire maintenance burden. One command, no flags to remember, no risk — it only removes dangling layers, never a tagged image. Build cache handles itself through `defaultKeepStorage`, logs now rotate on their own, and the `vscode` volume needs emptying maybe once a quarter.
+
+What changed isn't that the growth stopped. It's what happens when I forget. With the 1 TB default, forgetting eventually takes out the VM and every container in it, on a random Tuesday, with no warning. With a real limit, Docker reports `no space left on device` when something tries to write beyond it; I prune the dangling images, and I get on with my day.
+
+If you've run into the same problem, I hope this write-up helps you reclaim the space without losing anything important. Knowing where to look — Docker's disk usage limit and, for devcontainer users, the size of the `vscode` volume — can make the difference between an annoying afternoon and losing every container you have.
 
 ---
 
