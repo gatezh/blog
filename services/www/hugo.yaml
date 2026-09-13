@@ -26,15 +26,19 @@ menu:
       name: Ever Learning
       url: /ever-learning/
       weight: 20
+    - identifier: about
+      name: About
+      url: /about/
+      weight: 30
     - identifier: contact
       name: Contact
       url: /contact/
-      weight: 30
+      weight: 40
 
 params:
-  description: "Personal blog of Serge Gatezh, Front-end Engineer based in Calgary, Alberta. Posts about web development, React, TypeScript, DevOps, and software engineering."
+  description: "Personal blog of Serge Gatezh, a Full Stack Developer in Calgary. Posts about building clear, dependable web products, security, infrastructure, and software engineering."
   author: "Serge Gatezh"
-  keywords: "Serge Gatezh, front-end engineer, web development, React, TypeScript, Calgary"
+  keywords: "Serge Gatezh, full stack developer, web development, React, TypeScript, security, Calgary"
 
   comments: true
 
@@ -49,10 +53,7 @@ params:
   profileMode:
     enabled: true
     title: "Serge Gatezh"
-    subtitle: "Front-end Engineer"
-    buttons:
-      - name: go to posts
-        url: "/posts"
+    subtitle: "Full Stack Developer"
 
   socialIcons:
     - name: "GitHub"
