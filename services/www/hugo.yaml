@@ -54,9 +54,6 @@ params:
     enabled: true
     title: "Serge Gatezh"
     subtitle: "Full Stack Developer"
-    buttons:
-      - name: go to posts
-        url: "/posts"
 
   socialIcons:
     - name: "GitHub"
