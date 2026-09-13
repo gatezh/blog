@@ -14,7 +14,11 @@ My front-end roots still shape how I work across the stack. I pay attention to t
 
 ## Complexity belongs behind the interface
 
-I like systems that can grow without asking their users to grow more patient. I specialize in optimizing user workflows to reduce cognitive load. That starts with understanding the real workflow before designing the screen, removing unnecessary decisions, and anticipating pain points while they are still inexpensive to fix.
+{{< about-focus >}}
+I specialize in optimizing user workflows to reduce cognitive load.
+{{< /about-focus >}}
+
+That starts with understanding the real workflow before designing the screen, removing unnecessary decisions, and anticipating pain points while they are still inexpensive to fix. The goal is software that can grow without asking its users to grow more patient.
 
 It also means looking beyond the interface. A simple experience depends on dependable APIs, understandable data models, useful observability, and development practices that let a team change the product with confidence. Working full stack lets me follow those connections rather than treating each layer as somebody else's problem.
 
