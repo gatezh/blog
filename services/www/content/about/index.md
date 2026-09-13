@@ -4,7 +4,7 @@ date: 2019-05-08T20:21:27-04:00
 layout: about
 comments: false
 description: "About Serge Gatezh, a Full Stack Developer in Calgary who builds clear, dependable web products for complex domains."
-tagline: "I build calm software for complicated domains."
+tagline: "I turn complex problems into clear, intuitive software."
 role: "Full Stack Developer · Calgary, Canada"
 portrait: "images/serge-gatezh-sticker.png"
 ---
@@ -15,7 +15,7 @@ My front-end roots still shape how I work across the stack. I pay attention to t
 
 ## Complexity belongs behind the interface
 
-I like systems that can grow without asking their users to grow more patient. That means learning the real workflow before designing the screen, reducing cognitive load instead of merely reorganizing it, and anticipating pain points while they are still inexpensive to fix.
+I like systems that can grow without asking their users to grow more patient. I specialize in optimizing user workflows to reduce cognitive load. That starts with understanding the real workflow before designing the screen, removing unnecessary decisions, and anticipating pain points while they are still inexpensive to fix.
 
 It also means looking beyond the interface. A simple experience depends on dependable APIs, understandable data models, useful observability, and development practices that let a team change the product with confidence. Working full stack lets me follow those connections rather than treating each layer as somebody else's problem.
 
