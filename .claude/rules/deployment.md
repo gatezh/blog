@@ -18,7 +18,7 @@ description: Build commands, deployment workflow, and required GitHub secrets/va
 - `bun run deploy` - Deploy to Cloudflare Workers
 
 ## Email Worker (services/email-worker)
-- `bun run dev` - Run worker locally (needs .dev.vars)
+- `bun run dev` - Run worker locally (needs root `.env.local`; `cp .env.example .env.local`)
 - `bun run deploy` - Deploy to Cloudflare Workers
 
 # Deployment

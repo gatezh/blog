@@ -162,29 +162,33 @@ View logs, analytics, and errors for each worker.
 ### Website (Hugo)
 
 ```bash
-# From repository root
+# From repository root — always
 bun install
-bun run dev
-
-# Or from services/www
-cd services/www
-bun install
+cp .env.example .env.local
 bun run dev
 ```
+
+> **Run dev servers from the repository root.** `bun --env-file` loads variables
+> into bun's own process but does not export them to `bun x` children, so only
+> the root scripts propagate `.env.local` down to Hugo and Wrangler. Running
+> `bun run dev` from inside `services/www` starts a server that silently falls
+> back to the production Turnstile sitekey and the deployed Worker URL.
 
 ### Email Worker
 
 ```bash
-cd services/email-worker
-bun install
+# From the repository root — both services share one env file
+cp .env.example .env.local
 
-# Create .dev.vars for local testing (copy from .dev.vars.example)
-cp .dev.vars.example .dev.vars
-# Edit .dev.vars with your actual values
-
-# Run locally
-bun run dev
+# Run the worker locally (loads .env.local via wrangler's --env-file)
+bun run dev:worker
 ```
+
+`.env.local` ships with Cloudflare's public Turnstile test keys, which always
+pass verification. The production keys cannot be used locally: the sitekey is
+hostname-scoped in the Cloudflare dashboard and will not render on `localhost`,
+and a token minted by the test sitekey will not verify against the production
+secret. Leave `RESEND_API_KEY` blank unless you need real email delivery.
 
 ## Troubleshooting
 
@@ -194,6 +198,21 @@ bun run dev
 2. Verify `turnstileSiteKey` and `contactWorkerUrl` in hugo.yaml
 3. Check Worker logs in Cloudflare Dashboard
 4. Verify CORS settings (ALLOWED_ORIGIN in wrangler.jsonc)
+
+### Captcha Fails Locally
+
+Almost always a missing `.env.local` — run `cp .env.example .env.local` from the
+repository root and restart both dev servers. Without it, three things are still
+pointed at production:
+
+| Symptom | Cause |
+|---|---|
+| Widget never renders on `localhost` | `hugo.yaml`'s production sitekey is hostname-scoped |
+| `Captcha verification failed.` (400) | Worker has no `TURNSTILE_SECRET_KEY`, so siteverify returns `invalid-input-secret` |
+| Submissions hit the deployed Worker | `contactWorkerUrl` in `hugo.yaml` points at `*.workers.dev` |
+
+`.env.local` overrides all three for local builds only. Note that the sitekey and
+secret are a matched pair — overriding just one still fails.
 
 ### Emails Not Sending
 

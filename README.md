@@ -15,6 +15,9 @@ This is a Bun monorepo containing:
 # Install dependencies
 bun install
 
+# Set up local environment (ships with Turnstile test keys that always pass)
+cp .env.example .env.local
+
 # Start development server
 bun run dev
 
@@ -42,9 +45,33 @@ Or install tools manually:
 | `bun run lint` | Run oxlint linter |
 | `bun run deploy` | Deploy both www and worker |
 
+### Local Environment
+
+Both services read a single gitignored `.env.local` at the repository root:
+
+```bash
+cp .env.example .env.local
+```
+
+The committed defaults work as-is for contact-form development. They point the
+form at your local Worker and use Cloudflare's public Turnstile test keys, which
+always pass verification — the production keys are hostname-scoped and will not
+render on `localhost`. Only add a `RESEND_API_KEY` if you need submissions to
+actually deliver email.
+
+`bun run dev` starts both services together; `bun run dev:www` and
+`bun run dev:worker` start them individually.
+
+> **Run these from the repository root.** `bun --env-file` loads variables into
+> bun's own process but does not export them to `bun x` children, so only the
+> root scripts propagate `.env.local`. Running `bun run dev` from inside
+> `services/www` starts a server that silently falls back to the production
+> Turnstile sitekey and the deployed Worker URL.
+
 ### Adding Content
 
-All Hugo commands should be run from `services/www/`:
+Content-scaffolding commands are run from `services/www/` (unlike the dev
+servers above, which must be started from the repository root):
 
 ```bash
 cd services/www
