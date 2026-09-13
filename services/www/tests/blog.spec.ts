@@ -171,6 +171,14 @@ test.describe("About page", () => {
     await expect(portrait).toHaveAttribute("alt", "Portrait of Serge Gatezh");
     await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   });
+
+  test("keeps punctuation attached to Markdown links", async ({ page }) => {
+    for (const linkName of ["LinkedIn", "send me a message"]) {
+      const link = page.getByRole("link", { name: linkName, exact: true });
+      await expect(link).toBeVisible();
+      await expect.poll(() => link.evaluate((element) => element.nextSibling?.textContent)).toBe(".");
+    }
+  });
 });
 
 test.describe("Accessibility", () => {
