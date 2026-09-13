@@ -403,6 +403,22 @@
     line-height: 1.5;
   }
 
+  /* Keep the portrait scale consistent wherever the profile hero appears. */
+  .profile-portrait {
+    display: block;
+    width: 100%;
+    max-width: 17rem;
+    height: auto;
+    margin: 0 auto;
+    border-radius: 0;
+  }
+
+  @media (min-width: 640px) {
+    .profile-portrait {
+      margin-right: 0;
+    }
+  }
+
   /* About page specialization callout */
   .about-focus {
     margin: 1.5rem 0;
