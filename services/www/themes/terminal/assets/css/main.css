@@ -403,6 +403,23 @@
     line-height: 1.5;
   }
 
+  /* About page specialization callout */
+  .about-focus {
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    border-left: 2px solid var(--color-terminal-accent);
+    background-color: var(--color-terminal-bg-secondary);
+    background-color: color-mix(in srgb, var(--color-terminal-accent) 8%, var(--color-terminal-bg));
+  }
+
+  .about-focus p {
+    margin: 0;
+    color: var(--color-terminal-fg);
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.75;
+  }
+
   /* -------------------------------------------------------------------------
      Navigation Styles
      ------------------------------------------------------------------------- */
