@@ -98,6 +98,7 @@ test.describe("Homepage", () => {
     // Should have an h1
     const h1 = page.locator("h1");
     await expect(h1).toBeVisible();
+    await expect(h1).toHaveText("Serge Gatezh.");
 
     // Should have recent posts section
     const recentPosts = page.locator(".post-list .post-list-item");
