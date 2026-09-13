@@ -8,7 +8,7 @@ role: "Full Stack Developer · Calgary, Canada"
 portrait: "images/serge-gatezh-sticker.png"
 ---
 
-I'm a full-stack developer based in Calgary. For more than eight years, I've been turning complicated product and engineering problems into web applications that feel clear, calm, and dependable.
+I'm a full-stack developer based in Calgary, Alberta. Since 2018, I've built web applications that solve complex product and engineering problems without passing that complexity on to users.
 
 My front-end roots still shape how I work across the stack. I pay attention to the small decisions that determine whether a product feels obvious or exhausting: information hierarchy, useful feedback, sensible defaults, accessibility, and the awkward edge cases users find before anyone else. React and TypeScript are familiar tools, but the goal is never a particular framework. The goal is to help someone finish what they came to do without making them carry the complexity that made it possible.
 
