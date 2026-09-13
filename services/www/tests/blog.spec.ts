@@ -130,6 +130,20 @@ test.describe("Homepage", () => {
     await expect(portrait).toBeVisible();
     await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   });
+
+  test("uses the same portrait scale as the About page", async ({ page }) => {
+    await page.goto("/");
+    const homepagePortrait = page.getByTestId("homepage-portrait");
+    await expect(homepagePortrait).toBeVisible();
+    const homepageWidth = await homepagePortrait.evaluate((image) => image.getBoundingClientRect().width);
+
+    await page.goto("/about/");
+    const aboutPortrait = page.getByTestId("about-portrait");
+    await expect(aboutPortrait).toBeVisible();
+    const aboutWidth = await aboutPortrait.evaluate((image) => image.getBoundingClientRect().width);
+
+    expect(homepageWidth).toBe(aboutWidth);
+  });
 });
 
 test.describe("About page", () => {
