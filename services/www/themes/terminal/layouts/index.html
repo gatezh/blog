@@ -9,8 +9,12 @@
 */}}
 {{ define "main" }}
 {{- $about := site.GetPage "/about" -}}
+{{- $profileTitle := site.Title -}}
 {{- $portrait := false -}}
 {{- $portraitSrc := "" -}}
+{{- with site.Params.profileMode -}}
+  {{- $profileTitle = .title | default site.Title -}}
+{{- end -}}
 {{- with $about -}}
   {{- $portrait = .Resources.GetMatch .Params.portrait -}}
 {{- end -}}
@@ -39,11 +43,7 @@
               <span class="text-terminal-accent">$</span> whoami
             </p>
             <h1 id="homepage-title" class="mb-4 mt-0 text-3xl font-semibold leading-tight sm:text-4xl">
-              {{ with site.Params.profileMode }}
-                {{ .title | default site.Title }}
-              {{ else }}
-                {{ site.Title }}
-              {{ end }}<span class="text-terminal-accent">.</span>
+              {{ $profileTitle }}<span class="text-terminal-accent">.</span>
             </h1>
 
             {{ with $about }}
