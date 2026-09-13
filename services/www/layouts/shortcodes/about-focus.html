@@ -1,0 +1,9 @@
+{{- $statement := .Inner | strings.TrimSpace -}}
+<aside
+  class="my-6 border-l-2 border-terminal-accent bg-terminal-accent/5 px-5 py-4"
+  aria-label="Core specialization"
+>
+  <p class="m-0 text-lg font-medium leading-relaxed text-terminal-fg">
+    {{ $statement }}
+  </p>
+</aside>

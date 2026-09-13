@@ -132,6 +132,9 @@ test.describe("About page", () => {
   test("renders the biography and portrait", async ({ page }) => {
     await expect(page.getByRole("heading", { level: 1, name: "Serge Gatezh." })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Security is part of the product" })).toBeVisible();
+    await expect(page.getByLabel("Core specialization")).toContainText(
+      "I specialize in optimizing user workflows to reduce cognitive load.",
+    );
 
     const portrait = page.getByTestId("about-portrait");
     await expect(portrait).toBeVisible();
