@@ -2,39 +2,82 @@
   Homepage template - Terminal-styled landing page
 
   Displays:
-  - Profile section with name and subtitle (from params.profileMode)
+  - Profile section with About page positioning and portrait
   - Social links styled as terminal output
   - Recent posts section styled as terminal list
-  - Navigation links styled as terminal commands
+  - Ever Learning section styled as terminal list
 */}}
 {{ define "main" }}
+{{- $about := site.GetPage "/about" -}}
+{{- $portrait := false -}}
+{{- $portraitSrc := "" -}}
+{{- with $about -}}
+  {{- $portrait = .Resources.GetMatch .Params.portrait -}}
+{{- end -}}
+{{- with $portrait -}}
+  {{- $portraitSrc = .RelPermalink -}}
+  {{- if eq hugo.Environment "production" -}}
+    {{- $portraitSrc = print "/cdn-cgi/image/format=auto,width=600" $portraitSrc -}}
+  {{- end -}}
+{{- end -}}
+
 <div class="homepage">
   {{/* Profile Section */}}
   <section class="mb-12">
-    <div class="terminal-window mb-8">
-      <div class="terminal-window-header">
+    <div class="terminal-window mb-8" aria-labelledby="homepage-title">
+      <div class="terminal-window-header" aria-hidden="true">
         <span class="terminal-window-dot red"></span>
         <span class="terminal-window-dot yellow"></span>
         <span class="terminal-window-dot green"></span>
         <span class="terminal-window-title">~/welcome</span>
       </div>
-      <div class="terminal-window-content">
-        <div class="mb-4">
-          <span class="terminal-prompt"></span>
-          <span class="terminal-command">whoami</span>
+
+      <div class="terminal-window-content pb-0">
+        <div class="grid items-end gap-6 sm:grid-cols-5 sm:gap-8">
+          <div class="py-4 sm:col-span-3 sm:py-8">
+            <p class="mb-4 text-sm text-terminal-muted">
+              <span class="text-terminal-accent">$</span> whoami
+            </p>
+            <h1 id="homepage-title" class="mb-4 mt-0 text-3xl font-semibold leading-tight sm:text-4xl">
+              {{ with site.Params.profileMode }}
+                {{ .title | default site.Title }}
+              {{ else }}
+                {{ site.Title }}
+              {{ end }}<span class="text-terminal-accent">.</span>
+            </h1>
+
+            {{ with $about }}
+            <p class="mb-4 text-xl leading-relaxed text-terminal-fg">
+              {{ .Params.tagline }}
+            </p>
+            <p class="mb-6 text-sm text-terminal-muted">
+              <span class="text-terminal-accent">></span> {{ .Params.role }}
+            </p>
+            <a data-testid="homepage-about-cta" href="{{ .RelPermalink }}" class="btn btn-primary">
+              <span class="text-sm">$</span> more about me
+            </a>
+            {{ else }}
+            <p class="mb-0 text-terminal-muted">
+              {{ with site.Params.profileMode }}{{ .subtitle }}{{ end }}
+            </p>
+            {{ end }}
+          </div>
+
+          {{ with $portrait }}
+          <figure class="m-0 self-end sm:col-span-2">
+            <img
+              data-testid="homepage-portrait"
+              src="{{ $portraitSrc }}"
+              alt="Portrait of Serge Gatezh"
+              width="{{ .Width }}"
+              height="{{ .Height }}"
+              class="m-0 mx-auto block h-auto w-full max-w-[13rem] rounded-none sm:ml-auto"
+              loading="eager"
+              fetchpriority="high"
+            >
+          </figure>
+          {{ end }}
         </div>
-        <h1 class="text-2xl font-bold mb-2 mt-0">
-          {{ with site.Params.profileMode }}
-            {{ .title | default site.Title }}
-          {{ else }}
-            {{ site.Title }}
-          {{ end }}
-        </h1>
-        <p class="text-terminal-muted mb-0">
-          {{ with site.Params.profileMode }}
-            {{ .subtitle }}
-          {{ end }}
-        </p>
       </div>
     </div>
 
@@ -54,17 +97,6 @@
         </li>
         {{ end }}
       </ul>
-    </div>
-    {{ end }}
-
-    {{/* Quick Navigation */}}
-    {{ with site.Params.profileMode.buttons }}
-    <div class="flex flex-wrap gap-3">
-      {{ range . }}
-      <a href="{{ .url | relURL }}" class="btn btn-primary">
-        <span class="text-sm">$</span> {{ .name }}
-      </a>
-      {{ end }}
     </div>
     {{ end }}
   </section>

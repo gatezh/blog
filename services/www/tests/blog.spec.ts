@@ -114,6 +114,21 @@ test.describe("Homepage", () => {
     const href = await firstPost.getAttribute("href");
     expect(href).toContain("/posts/");
   });
+
+  test("promotes the About page instead of duplicating posts navigation", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("load");
+
+    const aboutCta = page.getByTestId("homepage-about-cta");
+    await expect(aboutCta).toBeVisible();
+    await expect(aboutCta).toHaveAttribute("href", "/about/");
+    await expect(aboutCta).toContainText("more about me");
+    await expect(page.getByRole("link", { name: /go to posts/i })).toHaveCount(0);
+
+    const portrait = page.getByTestId("homepage-portrait");
+    await expect(portrait).toBeVisible();
+    await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  });
 });
 
 test.describe("About page", () => {
