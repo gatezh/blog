@@ -1,9 +1,8 @@
 ---
 title: "About"
-date: 2019-05-08T20:21:27-04:00
 layout: about
 comments: false
-description: "About Serge Gatezh, a Full Stack Developer in Calgary who builds clear, dependable web products for complex domains."
+description: "About Serge Gatezh, a Full Stack Developer in Calgary who turns complex problems into clear, intuitive software."
 tagline: "I turn complex problems into clear, intuitive software."
 role: "Full Stack Developer · Calgary, Canada"
 portrait: "images/serge-gatezh-sticker.png"
