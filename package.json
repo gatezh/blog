@@ -2,9 +2,15 @@
   "name": "gatezh-com-monorepo",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "services/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "services/*"
+    ],
+    "catalog": {
+      "wrangler": "4.114.0",
+      "@types/node": "26.1.1"
+    }
+  },
   "scripts": {
     "dev": "bun --env-file=.env.local run --parallel --filter '*' dev",
     "dev:www": "bun --env-file=.env.local --filter @gatezh/www dev",
@@ -12,22 +18,29 @@
     "build": "bun --env-file=.env.local run --parallel --filter '*' build",
     "build:www": "bun --env-file=.env.local --filter @gatezh/www build",
     "build:api": "bun --env-file=.env.local --filter @gatezh/api build",
-    "deploy:www": "bun --filter @gatezh/www deploy",
-    "deploy:api": "bun --filter @gatezh/api deploy",
+    "deploy:www": "bun run --cwd services/www deploy",
+    "deploy:api": "bun run --cwd services/api deploy",
     "deploy": "bun run deploy:www && bun run deploy:api",
     "typecheck": "bun --filter '*' typecheck",
-    "format": "oxlint . --fix",
-    "check": "bun lint && bun typecheck",
-    "lint": "bun --filter '*' lint",
+    "lint": "bunx oxlint",
+    "lint:fix": "bunx oxlint --fix",
+    "format": "bunx oxfmt .",
+    "format:check": "bunx oxfmt --check .",
+    "format:hugo": "gotmplfmt -w services/www/themes services/www/layouts",
+    "format:hugo:check": "! gotmplfmt -l services/www/themes services/www/layouts | grep .",
+    "check": "bun run lint && bun run format:check && bun run format:hugo:check && bun run typecheck && bun run build",
+    "outdated": "bun outdated --recursive",
     "test": "bun run --cwd services/www test",
     "test:ui": "bun run --cwd services/www test:ui",
     "test:report": "bun run --cwd services/www test:report"
   },
   "devDependencies": {
-    "@playwright/test": "1.58.2",
-    "@types/node": "22.19.15",
-    "oxlint": "1.51.0",
+    "@playwright/test": "1.61.1",
+    "@tailwindcss/typography": "0.5.20",
+    "@types/node": "catalog:",
+    "oxfmt": "0.60.0",
+    "oxlint": "1.75.0",
     "typescript": "5.9.3",
-    "wrangler": "4.71.0"
+    "wrangler": "catalog:"
   }
 }
