@@ -1,5 +1,5 @@
 ---
-description: Contact form configuration and email worker secrets
+description: Contact form configuration and API Worker secrets
 globs: services/api/**
 ---
 

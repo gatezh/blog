@@ -35,13 +35,13 @@ Or install tools manually:
 
 ### Available Scripts
 
-| Command              | Description                    |
-| -------------------- | ------------------------------ |
-| `bun run dev`        | Start Hugo development server  |
-| `bun run dev:worker` | Start email worker locally     |
-| `bun run build`      | Build Hugo site for production |
-| `bun run lint`       | Run oxlint linter              |
-| `bun run deploy`     | Deploy both www and worker     |
+| Command           | Description                    |
+| ----------------- | ------------------------------ |
+| `bun run dev`     | Start Hugo development server  |
+| `bun run dev:api` | Start the API Worker locally   |
+| `bun run build`   | Build Hugo site for production |
+| `bun run lint`    | Run oxlint linter              |
+| `bun run deploy`  | Deploy both www and worker     |
 
 ### Adding Content
 

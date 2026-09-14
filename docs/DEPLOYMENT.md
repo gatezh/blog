@@ -153,7 +153,7 @@ View deployment status at:
 ### Cloudflare Dashboard
 
 - **Website**: Dashboard > Workers & Pages > gatezh-com
-- **Email Worker**: Dashboard > Workers & Pages > gatezh-com-email-worker
+- **API Worker**: Dashboard > Workers & Pages > `gatezh-com-email-worker`
 
 View logs, analytics, and errors for each worker.
 
@@ -172,7 +172,7 @@ bun install
 bun run dev
 ```
 
-### Email Worker
+### API Worker
 
 ```bash
 cd services/api
