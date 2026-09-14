@@ -7,7 +7,7 @@
   - footer: Footer content (defaults to partials/footer.html)
 */}}
 <!DOCTYPE html>
-<html lang="{{ site.LanguageCode | default "en" }}" class="h-full">
+<html lang="{{ site.Language.Locale | default "en" }}" class="h-full">
 <head>
   {{- partial "head.html" . -}}
   {{- block "head" . }}{{ end -}}
