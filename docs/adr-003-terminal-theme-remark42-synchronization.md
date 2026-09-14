@@ -9,6 +9,7 @@ Accepted
 The blog moved from PaperMod theme to a custom terminal theme. The previous approach (ADR-001) used PaperMod's extension points (`extend_head.html` and `extend_footer.html`) to synchronize Remark42 comments widget theme. The new terminal theme has its own three-position theme switcher (light/dark/system) that dispatches a custom `themechange` event.
 
 The challenges were:
+
 - Detect initial theme correctly from localStorage or system preference
 - Synchronize Remark42 widget when user toggles theme
 - Handle the "system" theme position that follows OS preference changes
@@ -25,10 +26,12 @@ Implemented theme synchronization in a single `comments.html` partial that:
 ### Key Implementation Details
 
 The `remark_config` object is initialized with the correct theme using an IIFE that:
+
 - Checks localStorage for explicit `theme` value (`light` or `dark`)
 - If value is `system` or missing, checks `window.matchMedia('(prefers-color-scheme: dark)')`
 
 The synchronization script:
+
 - Uses `syncRemark42Theme(isDark)` helper that safely calls `REMARK42.changeTheme()`
 - Listens for `themechange` event which includes `{ theme, isDark }` in detail
 - Listens for system preference changes only when theme is set to "system"
@@ -62,16 +65,19 @@ The initial theme must be known before Remark42 loads (in `remark_config`), so w
 ## Consequences
 
 ### Positive
+
 - Single file implementation (vs two files in PaperMod approach)
 - Custom event pattern provides clean decoupling
 - Three-position theme (including "system") handled properly
 - Remark42 comments correctly sync with site theme
 
 ### Negative
+
 - Theme detection logic exists in multiple places (head.html, theme-toggle.html, comments.html)
 - Requires understanding of custom event pattern
 
 ### Neutral
+
 - ADR-001 is now superseded
 - Implementation is self-contained in the terminal theme
 

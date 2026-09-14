@@ -29,18 +29,19 @@ bun run build
 - [mise](https://mise.run) - Tool version manager (installs correct Bun and Hugo versions from `.mise.toml`)
 
 Or install tools manually:
+
 - [Bun](https://bun.sh) (v1.3.10+)
 - [Hugo Extended](https://gohugo.io) (v0.157.0+)
 
 ### Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `bun run dev` | Start Hugo development server |
-| `bun run dev:worker` | Start email worker locally |
-| `bun run build` | Build Hugo site for production |
-| `bun run lint` | Run oxlint linter |
-| `bun run deploy` | Deploy both www and worker |
+| Command              | Description                    |
+| -------------------- | ------------------------------ |
+| `bun run dev`        | Start Hugo development server  |
+| `bun run dev:worker` | Start email worker locally     |
+| `bun run build`      | Build Hugo site for production |
+| `bun run lint`       | Run oxlint linter              |
+| `bun run deploy`     | Deploy both www and worker     |
 
 ### Adding Content
 
@@ -58,9 +59,9 @@ hugo new ever-learning/name-of-a-post
 
 #### Content Types
 
-| Type | Directory | Archetype |
-|------|-----------|-----------|
-| Blog posts | `posts/` | `default` |
+| Type         | Directory        | Archetype       |
+| ------------ | ---------------- | --------------- |
+| Blog posts   | `posts/`         | `default`       |
 | Learning log | `ever-learning/` | `ever-learning` |
 
 ## Deployment

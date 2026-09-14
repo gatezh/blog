@@ -1,12 +1,14 @@
 # Devcontainer and Project Cleanup
 
 ## Overview
+
 - Migrate both devcontainer variants (default + claude-code sandbox) from local Dockerfile builds to pre-built GHCR images from `gatezh/devcontainer-images`
 - Clean up all non-Claude agent configuration (`.agents/`, Codex references, OpenAI extensions/firewall domains)
 - Modernize CLAUDE.md into `.claude/CLAUDE.md` + `.claude/rules/` modular structure per latest Claude Code standards
 - Move stray ralphex progress files from project root to `.ralphex/progress/`
 
 ## Context (from discovery)
+
 - **Files/components involved**:
   - `.devcontainer/` — Dockerfile, docker-compose.yml, devcontainer.json, init-plugins.sh, .env.example, README.md
   - `.devcontainer/claude-code/` — Dockerfile, devcontainer.json, init-firewall.sh, init-plugins.sh, README.md
@@ -20,6 +22,7 @@
 - **No `.codex`, `.gemini`, or `AGENTS.md`** files exist — only references in devcontainer postStartCommand
 
 ## Development Approach
+
 - **Testing approach**: Regular (config migration, no code to unit-test)
 - Complete each task fully before moving to the next
 - Make small, focused changes
@@ -27,6 +30,7 @@
 - Verify configuration files are valid JSON/YAML after each change
 
 ## Progress Tracking
+
 - Mark completed items with `[x]` immediately when done
 - Add newly discovered tasks with ➕ prefix
 - Document issues/blockers with ⚠️ prefix
@@ -35,11 +39,13 @@
 ## Implementation Steps
 
 ### Task 1: Move stray ralphex progress files
+
 - [x] Move `progress-2026-02-02-terminal-theme-redesign.txt` to `.ralphex/progress/`
 - [x] Move `progress-plan-redesign-using-frontend-design-skill.txt` to `.ralphex/progress/`
 - [x] Verify files exist in `.ralphex/progress/` and are removed from root
 
 ### Task 2: Remove non-Claude agent configuration
+
 - [x] Delete `.agents/` directory entirely (agent-browser skill, references, templates)
 - [x] Remove `.codex` symlink reference from `.devcontainer/devcontainer.json` postStartCommand
 - [x] Remove `.codex` symlink reference from `.devcontainer/claude-code/devcontainer.json` postStartCommand
@@ -49,6 +55,7 @@
 - [x] Verify no remaining references to `.codex`, `openai`, or `AGENTS.md` in the project
 
 ### Task 3: Migrate default devcontainer to pre-built image
+
 - [x] Remove `.devcontainer/Dockerfile` (local build no longer needed)
 - [x] Remove `.devcontainer/docker-compose.yml` (no longer needed with image-based setup)
 - [x] Remove `.devcontainer/.env.example` (OAUTH token for local build)
@@ -65,6 +72,7 @@
 - [x] Verify devcontainer.json is valid JSONC
 
 ### Task 4: Migrate claude-code sandbox devcontainer to pre-built image
+
 - [x] Remove `.devcontainer/claude-code/Dockerfile` (using pre-built sandbox image)
 - [x] Rewrite `.devcontainer/claude-code/devcontainer.json` to use `image: ghcr.io/gatezh/devcontainer-images/claude-code-sandbox:latest`
   - Keep NET_ADMIN/NET_RAW capabilities for firewall
@@ -78,10 +86,12 @@
 - [x] Verify devcontainer.json is valid JSONC
 
 ### Task 5: Update GitHub Actions workflow
+
 - [x] Remove `.github/workflows/build-devcontainer.yml` (no longer building images locally — images built in devcontainer-images repo)
 - [x] Verify `.github/workflows/ci.yml` and `deploy.yml` don't reference the removed workflow or devcontainer Dockerfile
 
 ### Task 6: Modernize CLAUDE.md into .claude/ structure
+
 - [x] Create `.claude/CLAUDE.md` with minimal critical rules only:
   - Package manager (bun only, pin exact versions)
   - Tool version sync (.mise.toml as source of truth)
@@ -96,11 +106,13 @@
 - [x] Verify all content from original CLAUDE.md is preserved across the new files
 
 ### Task 7: Update .gitignore and final cleanup
+
 - [x] Update `.gitignore` — keep `progress*.txt` pattern for ralphex, remove any stale entries
 - [x] Verify no orphaned references to old Dockerfile, docker-compose.yml, or `.agents/` anywhere in the project
 - [x] Run `bunx oxlint` from root to check for lint errors (if applicable to config files)
 
 ### Task 8: Verify acceptance criteria
+
 - [x] All devcontainer JSON files are valid JSONC
 - [x] No references to old Dockerfiles, docker-compose.yml, `.agents/`, `.codex`, or OpenAI remain
 - [x] `.claude/CLAUDE.md` exists with critical rules
@@ -110,18 +122,21 @@
 - [x] `build-devcontainer.yml` workflow removed
 - [x] `sandbox-fetch-docs` skill exists in `.claude/skills/`
 
-*Note: ralphex automatically moves completed plans to `docs/plans/completed/`*
+_Note: ralphex automatically moves completed plans to `docs/plans/completed/`_
 
 ## Technical Details
 
 ### Pre-built Image Architecture
+
 The `gatezh/devcontainer-images` repo builds a multi-stage Dockerfile with two targets:
+
 - **default**: Full dev environment with passwordless sudo, agent-browser, Fish shell, Starship prompt, mise
 - **sandbox**: Network-restricted variant with iptables/ipset packages, no agent-browser
 
 Both images include: Node.js 24, Claude Code CLI, RTK, Ralphex, Playwright, Git Delta, GitHub CLI, mise (reads `.mise.toml` for bun/hugo versions).
 
 ### CLAUDE.md Rules Structure
+
 ```
 .claude/
 ├── CLAUDE.md              # Critical rules only (~30 lines)
@@ -138,7 +153,9 @@ Both images include: Node.js 24, Claude Code CLI, RTK, Ralphex, Playwright, Git 
 ```
 
 ## Post-Completion
+
 **Manual verification**:
+
 - Open project in VS Code with Dev Containers extension to verify both variants load correctly
 - Test that firewall sandbox blocks non-whitelisted domains
 - Verify Claude Code recognizes `.claude/CLAUDE.md` and rules files
