@@ -6,7 +6,7 @@ description: Monorepo structure and configuration format conventions
 
 This is a Bun monorepo for gatezh.com:
 - `services/www` - Hugo static website (custom terminal theme with Tailwind CSS v4)
-- `services/email-worker` - Cloudflare Worker for contact form emails
+- `services/api` - Cloudflare Worker for contact form emails
 
 ```
 ├── services/
@@ -21,7 +21,7 @@ This is a Bun monorepo for gatezh.com:
 │   │   ├── package.json        # Web app dependencies
 │   │   └── wrangler.jsonc      # Cloudflare Workers config
 │   │
-│   └── email-worker/           # Cloudflare Worker
+│   └── api/                    # Cloudflare Worker
 │       ├── src/
 │       │   └── index.ts        # Worker entry point
 │       ├── package.json        # Worker dependencies
@@ -51,4 +51,4 @@ This is a Bun monorepo for gatezh.com:
 # Configuration Formats
 
 - Hugo configuration: **YAML** format (`services/www/hugo.yaml`, use `.yaml` not `.yml`)
-- Worker configuration: **JSONC** format (`services/email-worker/wrangler.jsonc`)
+- Worker configuration: **JSONC** format (`services/api/wrangler.jsonc`)

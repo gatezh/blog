@@ -7,7 +7,7 @@ This document explains the deployment architecture and setup process for gatezh.
 This is a Bun monorepo containing:
 
 - **services/www** - Hugo static website deployed to Cloudflare Workers
-- **services/email-worker** - Cloudflare Worker for contact form emails
+- **services/api** - Cloudflare Worker for contact form emails
 
 Deployment is handled via GitHub Actions with path-based triggers.
 
@@ -103,7 +103,7 @@ Go to your repository > Settings > Secrets and variables > Actions
 Deploy the worker first to create it, then add secrets:
 
 ```bash
-cd services/email-worker
+cd services/api
 
 # Set Resend API key
 bunx wrangler secret put RESEND_API_KEY
@@ -139,7 +139,7 @@ git push origin master
 The GitHub Actions workflows will:
 
 1. **deploy-www.yml**: Build Hugo and deploy the website to Cloudflare Workers
-2. **deploy-email-worker.yml**: Deploy the email worker to Cloudflare Workers
+2. **deploy-api.yml**: Deploy the email worker to Cloudflare Workers
 
 Each workflow only runs when its respective app changes (path filtering).
 
@@ -175,7 +175,7 @@ bun run dev
 ### Email Worker
 
 ```bash
-cd services/email-worker
+cd services/api
 bun install
 
 # Create .dev.vars for local testing (copy from .dev.vars.example)

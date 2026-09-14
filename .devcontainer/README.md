@@ -76,7 +76,7 @@ bun run build        # Build all services
 
 Named Docker volumes (prefixed `gatezh-com-`) persist across container rebuilds
 and are shared with the sandbox variant:
-- **node_modules** - isolated per workspace directory (root, services/www, services/email-worker)
+- **node_modules** - isolated per workspace directory (root, services/www, services/api)
 - **Claude config** - auth tokens and settings preserved
 - **Fish data** - shell history and completions retained
 
