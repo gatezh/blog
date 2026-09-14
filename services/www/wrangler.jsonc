@@ -2,10 +2,18 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gatezh-com",
   "compatibility_date": "2025-01-03",
+  "main": "src/index.ts",
   "assets": {
     "directory": "./public",
+    // Exposes the asset fetcher as `env.ASSETS` in the Worker. Mandatory:
+    // without it env.ASSETS is undefined at runtime.
+    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
+    // Required so the Worker handler runs before static-asset matching.
+    // Without this, /<slug>/index.md is served directly and the
+    // Accept: text/markdown negotiation is bypassed entirely.
+    "run_worker_first": true,
   },
   "observability": {
     "enabled": false,
