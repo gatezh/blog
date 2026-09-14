@@ -21,22 +21,29 @@ mechanisms — easy to conflate:
 | `http://` → `https://` (**scheme**) | **Always Use HTTPS** toggle, SSL/TLS → Edge Certificates     |
 | `www.` → apex (**hostname**)        | **Single Redirect rule**, Rules → Redirect Rules — no toggle |
 
-> **Do not remove the www Redirect Rule** thinking Always Use HTTPS covers it.
-> That toggle only rewrites the scheme and leaves the hostname alone.
+> **The two axes are independent.** Always Use HTTPS rewrites the scheme only
+> and leaves the hostname alone; collapsing `www` needs its own Redirect Rule.
+>
+> As of now `www.gatezh.com` has **no DNS record**, so there is no `www`
+> duplicate to canonicalise — but anyone typing that hostname gets a DNS error
+> rather than the site. Tracked in
+> [#39](https://github.com/gatezh/blog/issues/39).
 
 Without the scheme redirect, a Workers custom domain answers on `http://` as
 well as `https://`, so every page has a duplicate URL and Search Console files
 them under "Alternate page with proper canonical tag".
 
-- [ ] **Always Use HTTPS** — SSL/TLS → Overview (confirm the encryption mode is
-      not `Off`, or the toggle is hidden) → Edge Certificates → enable.
+- [x] **Always Use HTTPS** — already on (verified below). Set under SSL/TLS →
+      Overview (the toggle is hidden if the encryption mode is `Off`) → Edge
+      Certificates.
 
   ```console
   $ curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' http://gatezh.com/
   301 https://gatezh.com/
   ```
 
-- [ ] **HSTS** — same Edge Certificates page. Not an indexing signal on its own;
+- [ ] **HSTS** — not set. Tracked in
+      [#101](https://github.com/gatezh/blog/issues/101). Same Edge Certificates page. Not an indexing signal on its own;
       it is the documented companion to the redirect above and stops browsers
       making the plain-http request at all on repeat visits.
 
