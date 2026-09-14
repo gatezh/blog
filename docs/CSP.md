@@ -55,7 +55,7 @@ default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflarei
 | Cloudflare Web Analytics | `https://static.cloudflareinsights.com`, `https://cloudflareinsights.com`                              | `script-src`, `connect-src`            |
 | Google Analytics / GTM   | `https://www.googletagmanager.com`, `https://www.google-analytics.com`, `https://analytics.google.com` | `script-src`, `connect-src`, `img-src` |
 | Cloudflare Turnstile     | `https://challenges.cloudflare.com`                                                                    | `script-src`, `frame-src`              |
-| Email Worker             | `https://gatezh-com-email-worker.gatezh.workers.dev`                                                   | `connect-src`                          |
+| API Worker               | `https://gatezh-com-email-worker.gatezh.workers.dev`                                                   | `connect-src`                          |
 | PostHog                  | `https://*.posthog.com`                                                                                | `script-src`, `connect-src`            |
 | Remark42 (self-hosted)   | `https://comments.gatezh.com`                                                                          | `script-src`, `frame-src`              |
 

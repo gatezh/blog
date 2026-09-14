@@ -68,7 +68,7 @@ automatically.
 
 ```bash
 bun run dev          # Start Hugo dev server
-bun run dev:worker   # Start email worker locally
+bun run dev:api   # Start the API Worker locally
 bun run build        # Build all services
 ```
 
