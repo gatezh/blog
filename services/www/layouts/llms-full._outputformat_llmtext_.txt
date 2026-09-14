@@ -1,0 +1,39 @@
+{{- /* llms-full.txt — every page's text in one document, for agents that
+       prefer a single fetch over crawling.
+
+       Headings are shifted down two levels so each page nests under its own
+       H2. Shortcodes are removed from .RawContent; a cfimage's caption (or
+       alt) is kept as italic text, since that prose is real content, while
+       the image link itself is dropped — this is a text corpus. */ -}}
+{{- define "agentText" -}}
+{{- $c := .RawContent -}}
+{{- $c = replaceRE `(?s)\{\{<\s*cfimage\s+[^>]*?caption="([^"]*)"[^>]*>\}\}` "*$1*" $c -}}
+{{- $c = replaceRE `(?s)\{\{<\s*cfimage\s+[^>]*?alt="([^"]*)"[^>]*>\}\}` "*$1*" $c -}}
+{{- $c = replaceRE `(?s)\{\{[<%].*?[>%]\}\}` "" $c -}}
+{{- $c | replaceRE `(?m)^(#{1,4}) ` "$1## " -}}
+{{- end -}}
+# {{ site.Title }}
+
+> {{ site.Params.description }}
+{{ with site.GetPage "/about" }}
+	## {{ .Title }}
+
+	Source: {{ .Permalink }}
+
+	{{ template "agentText" . }}
+{{- end }}
+{{ range where site.RegularPages "Section" "posts" }}
+	## {{ .Title }}
+
+	Source: {{ .Permalink }}
+	{{ with .Date }}{{ if not .IsZero }}Published: {{ .Format "2006-01-02" }}{{ end }}{{ end }}
+
+	{{ template "agentText" . }}
+{{- end }}
+{{ range where site.RegularPages "Section" "ever-learning" }}
+	## {{ .Title }}
+
+	Source: {{ .Permalink }}
+
+	{{ template "agentText" . }}
+{{- end }}
