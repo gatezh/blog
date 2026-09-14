@@ -190,6 +190,23 @@ jobs:
             fail=1
           fi
 
+          # Agent-facing text stays crawlable but must never be indexed —
+          # otherwise every page ships a full-text duplicate at a second URL.
+          for path in /llms.txt /llms-full.txt; do
+            if ! curl -sfI --max-time 15 "https://gatezh.com${path}" | grep -qi 'x-robots-tag: *noindex'; then
+              echo "::error::${path} is missing X-Robots-Tag: noindex"
+              fail=1
+            fi
+          done
+
+          # Accept-based content negotiation must return Markdown, not HTML.
+          ct=$(curl -sfI --max-time 15 -H 'Accept: text/markdown' https://gatezh.com/ \
+            | grep -i '^content-type:' | tr -d '\r')
+          case "${ct}" in
+            *text/markdown*) ;;
+            *) echo "::error::Accept: text/markdown returned '${ct}', expected text/markdown"; fail=1 ;;
+          esac
+
           [ "${fail}" = "0" ] && echo "Indexability invariants hold." || exit 1
 
       - name: Deployment summary
