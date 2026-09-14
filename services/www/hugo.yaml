@@ -17,6 +17,36 @@ enableGitInfo: true
 pagination:
   disableAliases: true
 
+# Custom output formats for llms.txt and agent-friendly Markdown.
+# isPlainText switches Hugo from html/template to text/template (no escaping);
+# notAlternative suppresses the <link rel="alternate"> auto-discovery tags —
+# agents reach these by direct URL or Accept negotiation, not from <head>.
+mediaTypes:
+  text/plain:
+    suffixes:
+      - txt
+  text/markdown:
+    suffixes:
+      - md
+
+outputFormats:
+  # Plain-text format behind content/llms.md and content/llms-full.md,
+  # which set `url:` to emit /llms.txt and /llms-full.txt.
+  LLMText:
+    mediaType: text/plain
+    isPlainText: true
+    notAlternative: true
+  # Markdown sibling for every single page: /<slug>/index.md, served via
+  # Accept-based content negotiation in the Cloudflare Worker.
+  Markdown:
+    mediaType: text/markdown
+    baseName: index
+    isPlainText: true
+    notAlternative: true
+
+outputs:
+  page: [HTML, Markdown]
+
 # Hugo v0.161+ runs Node tools (Tailwind) under `node --permission`, defaulting
 # allowRead to ["."] — the Hugo project root, services/www. This is a bun
 # monorepo with node_modules hoisted one directory above, and Hugo passes

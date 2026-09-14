@@ -1,0 +1,26 @@
+{{- /* llms.txt — concise site index for LLM consumption. https://llmstxt.org/ */ -}}
+{{- $desc := site.Params.description -}}
+# {{ site.Title }}
+
+> {{ $desc }}
+
+## About
+{{ with site.GetPage "/about" }}
+	- [{{ .Title }}]({{ .Permalink }}): {{ .Description }}
+{{- end }}
+
+## Blog Posts
+{{ range where site.RegularPages "Section" "posts" }}
+	- [{{ .Title }}]({{ .Permalink }}): {{ .Description | default (.Summary | plainify | replaceRE "\\s+" " " | truncate 160) }}
+{{- end }}
+
+## Ever Learning
+{{ range where site.RegularPages "Section" "ever-learning" }}
+	- [{{ .Title }}]({{ .Permalink }}): {{ .Description | default (.Summary | plainify | replaceRE "\\s+" " " | truncate 160) }}
+{{- end }}
+
+## Links
+{{ range site.Params.socialIcons }}
+	- [{{ .name }}]({{ .url }})
+{{- end }}
+- [Full text of every page]({{ "llms-full.txt" | absURL }})
