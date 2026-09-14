@@ -10,6 +10,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+{{/* Build provenance - emitted when HUGO_PARAMS_BUILDCOMMIT is set (CI). The
+     deploy verify job greps for this SHA to confirm the deployed artifact is
+     the build it expects. Unset locally, so no tag. */}}
+{{- with site.Params.buildcommit }}
+	<meta name="build-commit" content="{{ . }}">
+{{- end }}
+
 {{/* Page title */}}
 <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
 
@@ -46,8 +53,23 @@
 {{ with $description }}<meta name="twitter:description" content="{{ . }}">{{ end }}
 {{ with site.Params.ogImage }}<meta name="twitter:image" content="{{ . | absURL }}">{{ end }}
 
-{{/* Canonical URL */}}
-<link rel="canonical" href="{{ .Permalink }}">
+{{/* Canonical URL - per-page override via `canonical:` front matter */}}
+{{- if .Params.canonical }}
+	<link rel="canonical" href="{{ .Params.canonical }}">
+{{- else }}
+	<link rel="canonical" href="{{ .Permalink }}">
+{{- end }}
+
+{{/* Robots meta - per-page override via `robots:` front matter; defaults to
+     indexable. Taxonomy and term listings are noindex,follow: with this many
+     posts they are thin near-duplicates of /posts/ that only dilute crawl
+     budget. The 404 page is noindex because Cloudflare serves its body for
+     every missing URL. `follow` in both cases so link equity still reaches
+     the posts. */}}
+{{- $robots := "index, follow" }}
+{{- if in (slice "taxonomy" "term" "404") .Kind }}{{ $robots = "noindex, follow" }}{{ end }}
+{{- with .Params.robots }}{{ $robots = . }}{{ end }}
+<meta name="robots" content="{{ $robots }}">
 
 {{/* JSON-LD structured data */}}
 {{- partial "seo.html" . -}}
