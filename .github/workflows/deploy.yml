@@ -80,7 +80,7 @@ jobs:
           workingDirectory: services/www
           packageManager: bun
 
-  deploy-email-worker:
+  deploy-api:
     needs: check
     runs-on: ubuntu-24.04
     steps:
@@ -101,16 +101,16 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
-      - name: Deploy Email Worker
+      - name: Deploy API
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: services/email-worker
+          workingDirectory: services/api
           packageManager: bun
 
   verify:
-    needs: [deploy-www, deploy-email-worker]
+    needs: [deploy-www, deploy-api]
     runs-on: ubuntu-24.04
     steps:
       - name: Verify deployment

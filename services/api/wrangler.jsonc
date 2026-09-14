@@ -1,5 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  // Deployed Worker name, deliberately still "email-worker" while the directory
+  // is services/api. Renaming this orphans the live Worker and breaks the
+  // contact form until hugo.yaml's contactWorkerUrl is repointed, so it happens
+  // together with the staging/production env blocks and custom-domain routes —
+  // not as part of the directory rename.
   "name": "gatezh-com-email-worker",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-03",

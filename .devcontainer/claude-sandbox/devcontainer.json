@@ -112,7 +112,7 @@
     // ── node_modules isolation (one per workspace) ─────────────────────
     "source=gatezh-com-node-modules-root-${localWorkspaceFolderBasename},target=/workspace/node_modules,type=volume",
     "source=gatezh-com-node-modules-www-${localWorkspaceFolderBasename},target=/workspace/services/www/node_modules,type=volume",
-    "source=gatezh-com-node-modules-email-worker-${localWorkspaceFolderBasename},target=/workspace/services/email-worker/node_modules,type=volume",
+    "source=gatezh-com-node-modules-api-${localWorkspaceFolderBasename},target=/workspace/services/api/node_modules,type=volume",
     // ── Persistent config ──────────────────────────────────────────────
     "source=gatezh-com-claude-config-${localWorkspaceFolderBasename},target=/home/node/.claude,type=volume",
     "source=gatezh-com-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume",
