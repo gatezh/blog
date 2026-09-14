@@ -1,0 +1,17 @@
+# Bun project configuration. Reference: https://bun.sh/docs/runtime/bunfig
+# Loaded automatically by every `bun` invocation in this repo.
+
+[install]
+# Enforce exact pins on `bun add` — matches the "pin exact dependency
+# versions" rule in .claude/CLAUDE.md. Writes "1.2.3" instead of "^1.2.3".
+exact = true
+
+# pnpm-style isolated node_modules. Catches phantom dependencies (importing
+# something a workspace never declared). Switch to "hoisted" if a tool
+# struggles with the symlink layout.
+linker = "isolated"
+
+# Block packages published in the last 7 days — defense against fresh
+# malicious uploads, and against same-week regressions. Value is in SECONDS.
+# This gate is deliberate: do not raise a pin past it to "catch up".
+minimumReleaseAge = 604800
