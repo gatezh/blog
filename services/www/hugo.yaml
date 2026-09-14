@@ -4,6 +4,19 @@ title: Serge Gatezh
 theme: terminal
 enableRobotsTXT: true
 
+# Makes .Lastmod (and so <lastmod> in the sitemap) the git author date of the
+# last commit touching each page, instead of the `date` front matter. Without
+# it, editing a post sends search engines no freshness signal at all. Requires
+# full history in CI — the deploy workflow checks out with fetch-depth: 0.
+enableGitInfo: true
+
+# Hugo emits a /page/1/ alias for every paginated list — a meta-refresh stub
+# whose only content is a canonical back to the list page. Nothing links them,
+# so they exist purely to be crawled and filed as "Alternate page with proper
+# canonical tag". There is no pager to reach page 1 from, so nothing is lost.
+pagination:
+  disableAliases: true
+
 # Hugo v0.161+ runs Node tools (Tailwind) under `node --permission`, defaulting
 # allowRead to ["."] — the Hugo project root, services/www. This is a bun
 # monorepo with node_modules hoisted one directory above, and Hugo passes

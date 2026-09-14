@@ -80,7 +80,11 @@ export default defineConfig({
 
   /* Run local dev server before starting tests */
   webServer: {
-    command: "hugo server --bind 0.0.0.0",
+    // --renderToMemory is required for correctness, not speed: `hugo server`
+    // otherwise writes into ./public and never prunes files a rebuild no longer
+    // produces, so a test asserting a URL is *gone* would pass or fail on
+    // leftovers from an earlier build rather than on the config under test.
+    command: "hugo server --renderToMemory --bind 0.0.0.0",
     url: "http://localhost:1313",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
