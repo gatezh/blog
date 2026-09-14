@@ -79,10 +79,14 @@
 	<link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">
 {{- end }}
 
-{{/* JetBrains Mono font from Google Fonts */}}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+{{/* Self-hosted JetBrains Mono. Preload the upright face only — the italic
+     is used sparingly and preloading both would contend for bandwidth with
+     the stylesheet. @font-face rules live in the theme's main.css. */}}
+{{ with resources.Get "fonts/jetbrains-mono-latin.woff2" }}
+	<link rel="preload" href="{{ .RelPermalink }}" as="font" type="font/woff2" crossorigin>
+{{ else }}
+	<link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+{{ end }}
 
 {{/* Tailwind CSS */}}
 {{- partial "css.html" . -}}
