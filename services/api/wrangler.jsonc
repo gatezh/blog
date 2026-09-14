@@ -8,19 +8,17 @@
   "name": "gatezh-com-email-worker",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-03",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "vars": {
     // Allowed CORS origin for the contact form
-    "ALLOWED_ORIGIN": "https://gatezh.com"
+    "ALLOWED_ORIGIN": "https://gatezh.com",
   },
   "observability": {
     "enabled": false,
     "logs": {
-      "enabled": true
-    }
-  }
+      "enabled": true,
+    },
+  },
   // Secrets (set via `wrangler secret put`):
   // - RESEND_API_KEY: Your Resend API key
   // - TURNSTILE_SECRET_KEY: Your Cloudflare Turnstile secret key

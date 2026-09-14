@@ -139,7 +139,7 @@ git push origin master
 The GitHub Actions workflows will:
 
 1. **deploy-www.yml**: Build Hugo and deploy the website to Cloudflare Workers
-2. **deploy-api.yml**: Deploy the email worker to Cloudflare Workers
+2. **deploy.yml** (`deploy-api` job): Deploy the API Worker to Cloudflare Workers
 
 Each workflow only runs when its respective app changes (path filtering).
 

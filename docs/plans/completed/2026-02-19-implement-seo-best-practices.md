@@ -29,6 +29,7 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 ### Task 1: Add site-level SEO configuration to hugo.yaml
 
 **Files:**
+
 - Modify: `services/www/hugo.yaml`
 
 - [x] Add `params.description` with a site-wide default meta description (e.g., "Personal blog of Serge Gatezh, Front-end Engineer based in Calgary, Alberta. Posts about web development, React, TypeScript, DevOps, and software engineering.")
@@ -40,6 +41,7 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 ### Task 2: Add JSON-LD structured data for Person and WebSite schemas
 
 **Files:**
+
 - Create: `services/www/themes/terminal/layouts/partials/seo.html`
 - Modify: `services/www/themes/terminal/layouts/partials/head.html`
 
@@ -53,6 +55,7 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 ### Task 3: Enhance head.html meta tags
 
 **Files:**
+
 - Modify: `services/www/themes/terminal/layouts/partials/head.html`
 
 - [x] Add `<meta name="author" content="...">` using `site.Params.author`
@@ -66,6 +69,7 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 ### Task 4: Add author markup to single post template
 
 **Files:**
+
 - Modify: `services/www/themes/terminal/layouts/_default/single.html`
 
 - [x] Add an author byline in the article metadata section (below the date) displaying the author name with `itemprop="author"` and `itemscope itemtype="https://schema.org/Person"` markup
@@ -75,6 +79,7 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 ### Task 5: Add meta descriptions to existing posts
 
 **Files:**
+
 - Modify: `services/www/content/posts/2026/02/macos-secure-enclave-ssh-keys/index.md`
 - Modify: `services/www/content/posts/2025/12/publishing-multi-platform-docker-images-to-github-container-registry/index.md`
 - Modify: `services/www/content/posts/2024/06/15/how-to-redirect-www-to-root-domain-on-cloudflare-pages/index.md`
@@ -87,6 +92,7 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 ### Task 6: Enrich the About page with professional bio
 
 **Files:**
+
 - Modify: `services/www/content/about.md`
 
 - [x] Add a `description` field to front matter: "About Serge Gatezh - Front-end Engineer based in Calgary, Alberta, specializing in React, TypeScript, and modern web development."
@@ -105,6 +111,7 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 ### Task 7: Create a robots.txt template with sitemap reference
 
 **Files:**
+
 - Create: `services/www/layouts/robots.txt`
 - Modify: `services/www/hugo.yaml`
 
@@ -115,6 +122,7 @@ Implement proven SEO improvements to make the blog more searchable and Serge Gat
 ### Task 8: Create llms.txt for AI/LLM discoverability
 
 **Files:**
+
 - Create: `services/www/static/llms.txt`
 
 - [x] Create `services/www/static/llms.txt` following the llmstxt.org specification format:

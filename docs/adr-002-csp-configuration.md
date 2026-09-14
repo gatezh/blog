@@ -41,30 +41,34 @@ Implement two separate Content Security Policy Transform Rules in Cloudflare to 
 ### Rule 1: CSP for Main Domain
 
 **Configuration:**
+
 - **Rule Name:** CSP
 - **Applies to:** All incoming requests
 - **Action:** Set static header
 - **Header:** `Content-Security-Policy`
 - **Value:**
+
 ```
 script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://comments.gatezh.com https://www.googletagmanager.com https://www.google-analytics.com; connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com;
 ```
 
 **Directives explained:**
 
-| Directive | Purpose | Allowed Sources |
-|-----------|---------|-----------------|
-| `script-src` | Controls where JavaScript can load from | Own domain, inline scripts, Cloudflare analytics, Remark42, Google Analytics/Tag Manager |
-| `connect-src` | Controls where JavaScript can make network requests (AJAX, fetch) | Own domain, Cloudflare analytics endpoints, Google Analytics endpoints |
+| Directive     | Purpose                                                           | Allowed Sources                                                                          |
+| ------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `script-src`  | Controls where JavaScript can load from                           | Own domain, inline scripts, Cloudflare analytics, Remark42, Google Analytics/Tag Manager |
+| `connect-src` | Controls where JavaScript can make network requests (AJAX, fetch) | Own domain, Cloudflare analytics endpoints, Google Analytics endpoints                   |
 
 ### Rule 2: CSP for Comments Subdomain
 
 **Configuration:**
+
 - **Rule Name:** CSP for comments subdomain
 - **Condition:** `Hostname equals comments.gatezh.com`
 - **Action:** Set static header
 - **Header:** `Content-Security-Policy`
 - **Value:**
+
 ```
 script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com;
 ```
@@ -76,12 +80,14 @@ script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; connect
 **Why two rules are needed:**
 
 Think of the website like an apartment building:
+
 - **Rule 1** sets security rules for the main building (blog)
 - **Rule 2** sets security rules for a separate unit (comments iframe)
 
 Each "space" needs its own security configuration with its own approved resource list.
 
 **Why configure at Cloudflare level:**
+
 - Cloudflare-injected scripts load before Hugo's CSP would be evaluated
 - Changes take effect immediately without site redeployment
 - Centralized security policy management
@@ -89,16 +95,19 @@ Each "space" needs its own security configuration with its own approved resource
 ## Alternatives Considered
 
 ### 1. Disable Cloudflare Web Analytics
+
 - **Pros:** Eliminates CSP conflict entirely
 - **Cons:** Lose valuable analytics data
 - **Rejected:** Analytics data is valuable for site insights
 
 ### 2. Use 'unsafe-inline' and 'unsafe-eval' everywhere
+
 - **Pros:** No script blocking
 - **Cons:** Significantly weakens security, exposes site to XSS attacks
 - **Rejected:** Unacceptable security risk
 
 ### 3. Configure CSP in Hugo config
+
 - **Pros:** Version-controlled with site code
 - **Cons:** Cloudflare-injected scripts blocked before Hugo CSP evaluation
 - **Rejected:** Doesn't solve Cloudflare script injection issue
@@ -106,6 +115,7 @@ Each "space" needs its own security configuration with its own approved resource
 ## Consequences
 
 ### Positive
+
 - ✅ Scripts load without console errors
 - ✅ Cloudflare analytics tracking works properly
 - ✅ Google Analytics collects data successfully
@@ -113,11 +123,13 @@ Each "space" needs its own security configuration with its own approved resource
 - ✅ Website maintains security by explicitly whitelisting trusted sources
 
 ### Negative
+
 - ⚠️ Must update CSP rules manually when adding new third-party services
 - ⚠️ `'unsafe-inline'` slightly reduces security (but necessary for modern web apps)
 - ⚠️ Must maintain two separate CSP rules (main domain + comments subdomain)
 
 ### Neutral
+
 - CSP rules configured at Cloudflare level (not in Hugo source code)
 - Changes take effect immediately without redeploying the site
 
@@ -136,6 +148,7 @@ Each "space" needs its own security configuration with its own approved resource
 ### Verification
 
 After implementation, the following work without console errors:
+
 - ✅ Cloudflare Web Analytics beacon loads
 - ✅ Google Analytics tracking functions
 - ✅ Remark42 comments display in iframe

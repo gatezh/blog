@@ -7,6 +7,7 @@
 ## Context
 
 [Describe the issue or problem that necessitates this decision. Include:
+
 - What forces are at play (technical, political, social, project)?
 - What is the current state?
 - Why is a decision needed?]
@@ -14,6 +15,7 @@
 ## Decision
 
 [Describe the decision that was made. Be specific and concrete.
+
 - What will be done?
 - How will it be implemented?
 - What are the key components?]
@@ -21,6 +23,7 @@
 ## Rationale
 
 [Explain why this decision was made.
+
 - What factors influenced the decision?
 - What principles or values guided the choice?
 - How does this align with project goals?]
@@ -28,6 +31,7 @@
 ## Alternatives Considered
 
 [List other options that were evaluated:
+
 1. **Alternative 1**: Brief description
    - Pros: ...
    - Cons: ...
@@ -41,16 +45,19 @@
 ## Consequences
 
 ### Positive
+
 - [List positive outcomes and benefits]
 - [What problems does this solve?]
 - [What improvements does this bring?]
 
 ### Negative
+
 - [List negative outcomes and trade-offs]
 - [What new problems might this create?]
 - [What constraints does this impose?]
 
 ### Neutral
+
 - [List neutral changes or considerations]
 
 ## References
