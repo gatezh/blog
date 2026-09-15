@@ -113,7 +113,10 @@ Three things that look redundant but are not:
   rather than on the config under test. This is not hypothetical: the `/page/1/`
   stubs appeared to survive `disableAliases` purely because six of them were
   leftovers from earlier builds.
-- **Self-hosted fonts.** See [CSP.md](./CSP.md) — the policy allows neither
-  `fonts.googleapis.com` nor `fonts.gstatic.com`, so a Google-hosted webfont is
-  blocked in production and the site silently falls back to the local monospace
-  stack. Keep JetBrains Mono under `/fonts/`.
+- **Self-hosted fonts.** Keep JetBrains Mono under `/fonts/`. The _documented_
+  policy in [CSP.md](./CSP.md) allows neither `fonts.googleapis.com` in
+  `style-src` nor `fonts.gstatic.com` for font fetches, so a Google-hosted
+  webfont would be blocked once Rule 1 is restored. It is **not** blocked by the
+  policy currently deployed — that one is truncated to `connect-src` alone — so
+  self-hosting is justified by the render-blocking third-party stylesheet and
+  two extra handshakes it removes, not by a CSP failure.
