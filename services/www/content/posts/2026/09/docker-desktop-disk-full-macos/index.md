@@ -2,6 +2,7 @@
 title: 'Docker Desktop Disk Full on macOS: The 1 TB Default and the Dev Containers Cache'
 date: '2026-09-09T18:59:09-06:00'
 description: "Docker Desktop's VM died with 'no space left on device' and took every container with it. Two causes: a disk limit that defaults to 1 TB, and a Dev Containers cache that nothing prunes."
+keywords: [docker, macos, disk-space, devcontainers, developer-tooling]
 toc: true
 draft: false
 ---

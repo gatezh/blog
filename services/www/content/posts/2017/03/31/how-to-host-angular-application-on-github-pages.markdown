@@ -3,10 +3,11 @@ layout: post
 title: "How to host Angular application on GitHub Pages"
 date: 2017-03-31 15:26:55 -0400
 description: "How to deploy an Angular application to GitHub Pages using angular-cli-ghpages with custom domain and routing support."
-permalink: /how-to-host-angular-application-on-github-pages.html
 categories: angular github
+keywords: [angular, github-pages, deployment, angular-cli, custom-domain]
 aliases:
   - /posts/2017/03/31/how-to-host-angular-application-on-github-pages
+  - /how-to-host-angular-application-on-github-pages.html
 draft: false
 ---
 
