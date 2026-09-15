@@ -1,9 +1,8 @@
 ---
-layout: post
 title: "Using Anki to study programming"
 date: 2017-07-16 20:04:19 -0400
 description: "How to use Anki and spaced repetition to memorize programming syntax and concepts with custom cloze deletion cards."
-categories:
+categories: [learning]
 keywords: [anki, spaced-repetition, learning, study-habits]
 aliases:
   - /posts/2017/07/16/using-anki-to-study-programming
@@ -43,14 +42,10 @@ After you have downloaded and installed Anki it needs some tune up to fit our ne
 4. Click on `Cards...` button
 5. Replace `Front Template` section with this:
 
-   {% raw %}
-
    ```
    {{cloze:Text}}<br>
    {{type:cloze:Text}}﻿
    ```
-
-   {% endraw %}
 
 6. Replace `Styiling` section with:
 
@@ -72,15 +67,11 @@ After you have downloaded and installed Anki it needs some tune up to fit our ne
 
 7. Replace `Back Template` with:
 
-   {% raw %}
-
    ```
    {{cloze:Text}}<br>
    {{type:cloze:Text}}﻿<br>
    {{Extra}}
    ```
-
-   {% endraw %}
 
 Now you are ready.
 
@@ -99,15 +90,11 @@ Let's say you are reading about JavaScript ES6 template literals and want to mem
 
 3. Select _\`Hello ${customerName}\`_ part and press _Cloze deletation_ button (looks like this --> `[...]`). At the end your code will look like this:
 
-   {% raw %}
-
    ```
    ES6 template literals
    var customerName = "John Smith";
    {{c1::console.log(`Hello ${customerName}`);}}
    ```
-
-   {% endraw %}
 
 4. You can add some additional information to _Extra_ section. Reference link for example.
 
