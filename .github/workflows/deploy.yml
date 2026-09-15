@@ -172,6 +172,17 @@ jobs:
             fi
           }
 
+          # Cloudflare's asset router rewrites /404.html -> /404 and would serve
+          # it with a 200, making the error page an indexable URL Google files
+          # as a soft 404. src/index.ts overrides the status.
+          for path in /404 /404.html; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://gatezh.com${path}")
+            if [ "${code}" != "404" ]; then
+              echo "::error::${path} returned ${code}, expected 404"
+              fail=1
+            fi
+          done
+
           # Taxonomy listings must stay out of the index.
           for path in /tags/ /categories/; do
             if ! body=$(fetch "https://gatezh.com${path}"); then
@@ -193,7 +204,10 @@ jobs:
           # Agent-facing text stays crawlable but must never be indexed —
           # otherwise every page ships a full-text duplicate at a second URL.
           for path in /llms.txt /llms-full.txt; do
-            if ! curl -sfI --max-time 15 "https://gatezh.com${path}" | grep -qi 'x-robots-tag: *noindex'; then
+            if ! headers=$(curl -sfI --max-time 15 "https://gatezh.com${path}"); then
+              echo "::error::could not fetch ${path}"
+              fail=1
+            elif ! printf '%s' "${headers}" | grep -qi 'x-robots-tag: *noindex'; then
               echo "::error::${path} is missing X-Robots-Tag: noindex"
               fail=1
             fi
@@ -208,6 +222,36 @@ jobs:
           esac
 
           [ "${fail}" = "0" ] && echo "Indexability invariants hold." || exit 1
+
+      - name: Check security headers
+        run: |
+          # The CSP lives in a Cloudflare Transform Rule, not in this repo, so
+          # it can drift without any commit. It has: docs/CSP.md documents an
+          # eleven-directive policy and the zone currently returns connect-src
+          # alone, leaving the site with no frame-ancestors and no
+          # X-Frame-Options.
+          #
+          # Reported as warnings, not errors, on purpose: the fix is a dashboard
+          # change this workflow cannot make, and failing every deploy on it
+          # would only teach people to ignore the job that also guards the
+          # indexability invariants above. Promote to ::error:: once the rule is
+          # restored — see docs/CSP.md.
+          headers=$(curl -sfI --max-time 15 https://gatezh.com/ || true)
+          csp=$(printf '%s' "${headers}" | grep -i '^content-security-policy:' || true)
+
+          if [ -z "${csp}" ]; then
+            echo "::warning::no Content-Security-Policy header on https://gatezh.com/"
+          else
+            for directive in default-src script-src frame-ancestors base-uri form-action; do
+              case "${csp}" in
+                *"${directive}"*) ;;
+                *) echo "::warning::CSP is missing ${directive}" ;;
+              esac
+            done
+          fi
+
+          printf '%s' "${headers}" | grep -qi '^x-frame-options:' \
+            || echo "::warning::no X-Frame-Options header (and CSP frame-ancestors may be absent)"
 
       - name: Deployment summary
         env:

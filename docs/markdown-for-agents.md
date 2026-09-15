@@ -6,7 +6,9 @@ Cloudflare's native equivalent if the site moves to a paid plan.
 ## What this gives you
 
 - **`Accept: text/markdown` content negotiation.** Any client — an agent, or
-  `curl -H 'Accept: text/markdown' ...` — gets clean Markdown for any page.
+  `curl -H 'Accept: text/markdown' ...` — gets clean Markdown for the home
+  page, any section listing and any regular page. Paths that address a file
+  rather than a page (`/sitemap.xml`, hashed assets) are served unchanged.
   Browsers continue to get HTML.
 - **Generated `/llms.txt` and `/llms-full.txt`.** A site index in the
   [llmstxt.org](https://llmstxt.org) format plus a single-fetch full-text

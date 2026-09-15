@@ -13,7 +13,9 @@ globs: services/www/**
   and `llms-full.md` (front matter only; `url:` sets the output path), rendered
   by `services/www/layouts/llms*._outputformat_llmtext_.txt`. Adding a post
   updates both automatically.
-- Every page also emits an `index.md` Markdown mirror, served on
+- Home, section listings and regular pages each emit an `index.md` Markdown
+  mirror (`outputs` in `hugo.yaml` lists all three kinds — a kind that is not
+  listed gets no mirror). Served on
   `Accept: text/markdown` by the Worker at `services/www/src/index.ts`. That
   Worker also forces a real 404 status on `/404` and sets
   `X-Robots-Tag: noindex` on `.md` and `llms*.txt`, because neither a response

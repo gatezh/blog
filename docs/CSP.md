@@ -1,6 +1,22 @@
 # Content Security Policy (CSP) Setup
 
-CSP is configured via **Cloudflare Dashboard → Transform Rules → Modify Response Header**, not in project code or `wrangler.json`. This approach is universal across all projects (Hugo, React, Hono) hosted on Cloudflare Workers with custom domains.
+CSP is configured via **Cloudflare Dashboard → Transform Rules → Modify Response Header**. It is not set from project code — note that `services/www/src/index.ts` does set other response headers (`X-Robots-Tag`, `Vary`), so "no headers in code" is no longer true in general, only for CSP. This approach is universal across all projects (Hugo, React, Hono) hosted on Cloudflare Workers with custom domains.
+
+> **⚠️ The deployed policy does not match this document.** Verified on
+> 2026-09-14, `https://gatezh.com/` returns a `content-security-policy` header
+> containing **`connect-src` only** — the Rule 1 value below appears to have been
+> saved truncated. The site therefore has no `frame-ancestors` and no
+> `X-Frame-Options` (also absent), so any origin can frame it, and there is no
+> `script-src`/`default-src`/`base-uri`/`form-action` in force. Rule 2
+> (`comments.gatezh.com`) returns its full policy, so the mechanism itself
+> works. Re-paste the Rule 1 value and confirm with:
+>
+> ```console
+> $ curl -sI https://gatezh.com/ | grep -i content-security-policy
+> ```
+>
+> The `verify` job in `.github/workflows/deploy.yml` reports missing directives
+> as warnings on every deploy; promote them to errors once this is fixed.
 
 > **Note:** Transform Rules only apply to traffic routed through proxied custom domains. They do **not** apply on `*.workers.dev` URLs.
 
@@ -20,8 +36,10 @@ default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflarei
 > it is covered by `default-src 'self'` and needs no `font-src` entry. This is
 > also why it must stay self-hosted: the policy above allows neither
 > `fonts.googleapis.com` in `style-src` nor `fonts.gstatic.com` for font
-> fetches, so a Google-hosted webfont would be blocked and the site would
-> silently fall back to the local monospace stack.
+> fetches, so a Google-hosted webfont would be blocked under the policy as
+> documented. It is not blocked by the policy currently deployed — see the
+> warning at the top — but self-hosting is the correct fix either way and does
+> not depend on the CSP being right.
 
 ### Rule 2 — CSP (comments subdomain)
 
