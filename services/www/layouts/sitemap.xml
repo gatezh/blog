@@ -1,11 +1,13 @@
 {{ printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>" | safeHTML }}
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-	xmlns:xhtml="http://www.w3.org/1999/xhtml">
-	{{- range .Data.Pages -}}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	{{- /* `where ... "Sitemap.Disable" "ne" true` mirrors Hugo's embedded
+	       template. Without it, `sitemap: {disable: true}` front matter — a
+	       documented per-page opt-out — silently does nothing. */ -}}
+	{{- range where .Pages "Sitemap.Disable" "ne" true -}}
 		{{- /* Taxonomy and term listings are excluded: they carry `noindex` (see
 		       _partials/head.html), and a sitemap should only advertise URLs we
 		       want indexed. */ -}}
-		{{- if and (not .Params.private) (not (in (slice "taxonomy" "term") .Kind)) -}}
+		{{- if and .Permalink (not .Params.private) (not (in (slice "taxonomy" "term") .Kind)) -}}
 			{{- /* Per-section defaults, overridable per page via `sitemap:` front matter */ -}}
 			{{- $priority := "0.5" -}}
 			{{- $changefreq := "monthly" -}}
