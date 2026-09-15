@@ -12,7 +12,7 @@ draft: false
 
 The initial idea was to write a small post about how to create a Jekyll blog hosted on GitHub. However, when I started to dig dipper and had realized how many things I'll have to describe to make it a manual I've decided to make this index page which will collect all the posts about this topic. I will try to keep it up to date and make changes whenever I figure out more.
 
-### [1. Getting started](/getting-started-with-jekyll)
+### [1. Getting started](/posts/getting-started-with-jekyll/)
 
 - Istall Ruby dev environment
 - Generate Jekyll blog

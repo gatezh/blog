@@ -53,6 +53,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # enableGitInfo reads git history for each page's <lastmod>. On a
+          # shallow clone Hugo neither warns nor errors: every page's lastmod
+          # collapses to the shallow HEAD's commit date, so the whole site
+          # claims to have been modified today. Full history is required.
+          fetch-depth: 0
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
@@ -70,6 +76,10 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build Hugo site
+        env:
+          # Stamped into <meta name="build-commit"> so the verify job can
+          # confirm the deployed artifact is this build, not a cached one.
+          HUGO_PARAMS_BUILDCOMMIT: ${{ github.sha }}
         run: bun run --cwd services/www build
 
       - name: Deploy WWW
@@ -130,7 +140,57 @@ jobs:
             fi
           fi
           echo "Site is responding."
-          echo "Deployment verified successfully."
+
+      - name: Verify build provenance
+        run: |
+          # Confirms the deployed artifact is *this* build and not a cached or
+          # partially-propagated earlier one.
+          # Hugo minifies attributes and may drop quotes, so match the
+          # attribute name loosely and pull the SHA out by shape.
+          DEPLOYED=$(curl -sf --max-time 15 https://gatezh.com/ \
+            | grep -o 'build-commit[^>]*' \
+            | grep -oE '[0-9a-f]{40}' | head -1 || true)
+          if [ "${DEPLOYED}" != "${GITHUB_SHA}" ]; then
+            echo "::error::Deployed build-commit '${DEPLOYED}' does not match ${GITHUB_SHA}"
+            exit 1
+          fi
+          echo "Build provenance verified: ${DEPLOYED}"
+
+      - name: Verify indexability invariants
+        run: |
+          fail=0
+
+          # Every check below fetches into a variable first and fails the build
+          # if the fetch itself fails. GitHub's default shell is `bash -e`
+          # WITHOUT pipefail, so `curl -sf ... | grep -q ...` swallows a failed
+          # curl: grep sees empty input, returns 1, and a "must not contain"
+          # check passes for the wrong reason.
+          fetch() {
+            if ! curl -sf --max-time 15 "$1"; then
+              echo "::error::could not fetch $1"
+              return 1
+            fi
+          }
+
+          # Taxonomy listings must stay out of the index.
+          for path in /tags/ /categories/; do
+            if ! body=$(fetch "https://gatezh.com${path}"); then
+              fail=1
+            elif ! printf '%s' "${body}" | grep -qE 'name="?robots"?[^>]*noindex'; then
+              echo "::error::${path} is missing its noindex robots meta"
+              fail=1
+            fi
+          done
+
+          # A sitemap that advertises a taxonomy URL contradicts the above.
+          if ! sitemap=$(fetch https://gatezh.com/sitemap.xml); then
+            fail=1
+          elif printf '%s' "${sitemap}" | grep -qE '<loc>[^<]*/(tags|categories)/'; then
+            echo "::error::sitemap.xml advertises taxonomy URLs"
+            fail=1
+          fi
+
+          [ "${fail}" = "0" ] && echo "Indexability invariants hold." || exit 1
 
       - name: Deployment summary
         env:
