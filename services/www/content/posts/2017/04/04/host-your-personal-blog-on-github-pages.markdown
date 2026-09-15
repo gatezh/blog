@@ -1,9 +1,8 @@
 ---
-layout: post
 title: "Host your personal blog on GitHub Pages"
 date: 2017-04-04 19:53:19 -0400
 description: "A guide to hosting a personal blog on GitHub Pages with Jekyll, covering setup, deployment, and custom domain configuration."
-categories: angular github
+categories: [jekyll, github-pages]
 keywords: [jekyll, github-pages, static-site, blogging, custom-domain]
 aliases:
   - /posts/2017/04/04/host-your-personal-blog-on-github-pages
