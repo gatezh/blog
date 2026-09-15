@@ -9,10 +9,12 @@
     "deploy": "bun run build && bunx wrangler deploy",
     "test": "bunx playwright test",
     "test:ui": "bunx playwright test --ui",
-    "test:report": "bunx playwright show-report"
+    "test:report": "bunx playwright show-report",
+    "typecheck": "wrangler types && tsc --noEmit"
   },
   "devDependencies": {
     "@tailwindcss/cli": "4.3.3",
-    "tailwindcss": "4.3.3"
+    "tailwindcss": "4.3.3",
+    "wrangler": "catalog:"
   }
 }

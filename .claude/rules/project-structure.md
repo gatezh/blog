@@ -10,8 +10,10 @@ This is a Bun monorepo for gatezh.com:
 
 ```
 ├── services/
-│   ├── www/                    # Hugo website
+│   ├── www/                    # Hugo website + its Cloudflare Worker
 │   │   ├── content/            # Site content (Markdown)
+│   │   ├── src/                # Worker: Accept negotiation, 404, noindex
+│   │   ├── tests/              # Playwright: blog, seo, agents, worker
 │   │   ├── layouts/            # Site-specific layouts (override theme)
 │   │   ├── themes/terminal/    # Custom terminal theme
 │   │   │   ├── assets/css/     # Tailwind CSS styles
@@ -19,7 +21,8 @@ This is a Bun monorepo for gatezh.com:
 │   │   ├── static/             # Static assets
 │   │   ├── hugo.yaml           # Hugo configuration
 │   │   ├── package.json        # Web app dependencies
-│   │   └── wrangler.jsonc      # Cloudflare Workers config
+│   │   ├── wrangler.jsonc      # Cloudflare Workers config
+│   │   └── tsconfig.json       # TypeScript configuration
 │   │
 │   └── api/                    # Cloudflare Worker
 │       ├── src/

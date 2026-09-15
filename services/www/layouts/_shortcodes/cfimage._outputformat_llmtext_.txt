@@ -1,0 +1,6 @@
+{{- /* llms-full.txt is a text corpus, so the image itself is dropped and only
+       its prose survives: the caption if there is one, otherwise the alt text.
+       Both are real descriptive content written for humans.
+
+       One line per emitted string — see the markdown variant for why. */ -}}
+{{- with (.Get "caption" | default (.Get "alt")) }}{{ printf "\n*%s*\n" . }}{{ end -}}
