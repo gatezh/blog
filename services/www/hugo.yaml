@@ -17,18 +17,14 @@ enableGitInfo: true
 pagination:
   disableAliases: true
 
-# Custom output formats for llms.txt and agent-friendly Markdown.
-# isPlainText switches Hugo from html/template to text/template (no escaping);
-# notAlternative suppresses the <link rel="alternate"> auto-discovery tags —
-# agents reach these by direct URL or Accept negotiation, not from <head>.
-mediaTypes:
-  text/plain:
-    suffixes:
-      - txt
-  text/markdown:
-    suffixes:
-      - md
-
+# Output formats for llms.txt and agent-friendly Markdown.
+#
+# There is deliberately no `mediaTypes:` block. Hugo's built-in text/markdown
+# already covers md, markdown AND mdown, and redefining a media type REPLACES
+# it rather than extending it — narrowing the suffix list to ["md"] makes Hugo
+# stop recognising this site's four `.markdown` posts as content. The build
+# stays green and the sitemap simply shrinks, so nothing catches it except
+# tests/agents.spec.ts. text/plain -> txt is likewise already a default.
 outputFormats:
   # Plain-text format behind content/llms.md and content/llms-full.md,
   # which set `url:` to emit /llms.txt and /llms-full.txt.
@@ -36,15 +32,21 @@ outputFormats:
     mediaType: text/plain
     isPlainText: true
     notAlternative: true
-  # Markdown sibling for every single page: /<slug>/index.md, served via
-  # Accept-based content negotiation in the Cloudflare Worker.
-  Markdown:
-    mediaType: text/markdown
-    baseName: index
-    isPlainText: true
+  # Hugo ships a `markdown` format already (baseName index, isPlainText true,
+  # mediaType text/markdown). Only `notAlternative` differs: agents reach these
+  # by direct URL or Accept negotiation, so the <link rel="alternate"> tags are
+  # noise in every page's <head>.
+  markdown:
     notAlternative: true
 
+# `page` alone covers only kind "page". The home page and section lists are
+# kinds "home" and "section" and inherit nothing from it, so scoping the mirror
+# to `page` leaves `/` — the URL an agent is most likely to try first — serving
+# HTML to an Accept: text/markdown request. Listing a kind REPLACES its
+# defaults, so HTML and RSS have to be repeated.
 outputs:
+  home: [HTML, RSS, Markdown]
+  section: [HTML, RSS, Markdown]
   page: [HTML, Markdown]
 
 # Hugo v0.161+ runs Node tools (Tailwind) under `node --permission`, defaulting
