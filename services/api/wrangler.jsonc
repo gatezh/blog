@@ -23,5 +23,15 @@
   // - RESEND_API_KEY: Your Resend API key
   // - TURNSTILE_SECRET_KEY: Your Cloudflare Turnstile secret key
   // - TO_EMAIL: Email recipient for contact form submissions
-  // - FROM_EMAIL: Email sender (must be from a verified domain in Resend)
+  // - FROM_EMAIL: Email sender (must be from a verified domain in Resend),
+
+  // Staging only — see the note in services/www/wrangler.jsonc. Secrets are
+  // supplied per environment by the deploy workflow, not stored here.
+  "env": {
+    "staging": {
+      "workers_dev": false,
+      "routes": [{ "pattern": "staging-api.gatezh.com", "custom_domain": true }],
+      "vars": { "ALLOWED_ORIGIN": "https://staging.gatezh.com" },
+    },
+  },
 }

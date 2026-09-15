@@ -2,6 +2,68 @@
 
 This document explains the deployment architecture and setup process for gatezh.com.
 
+## Deployment model
+
+Two paths, deliberately different in how much ceremony they carry.
+
+| Path                 | Trigger                    | Target     | Status                       |
+| -------------------- | -------------------------- | ---------- | ---------------------------- |
+| `deploy.yml`         | push to `master`           | production | **active today**             |
+| `release.yml`        | manual dispatch → `v*` tag | production | available, opt-in            |
+| `deploy-staging.yml` | manual dispatch            | staging    | **blocked on setup** (below) |
+
+The target model is: `master` push → staging, release dispatch → production. The
+repo is not there yet, on purpose — see [Cutover runbook](#cutover-runbook).
+Nothing below changes how production deploys today.
+
+### Why release-anchored production
+
+A release is a tag you can point at, and redeploying an existing tag is a
+first-class action (`action: redeploy`) rather than a revert commit. The
+`concurrency` group does not cancel in progress: a cancelled production deploy
+can leave `www` and `api` on different commits.
+
+### Worker names
+
+`services/www` deploys as `gatezh-com` and `services/api` as
+`gatezh-com-email-worker`. Those names are historical and do not match the
+directory layout. **Renaming them is a cutover, not an edit** — a renamed Worker
+is a new Worker, the old one keeps serving the custom domain until the domain is
+moved, and the contact form breaks in between. Only `staging` has an `env` block
+in `wrangler.jsonc` for exactly this reason; there is no `production` block.
+
+## Cutover runbook
+
+Run these in order when you are ready to adopt the staging/release model. Each
+step is independently reversible.
+
+1. **Create the `staging` GitHub Environment.** Settings → Environments → New.
+   Restrict deployments to the `master` branch.
+2. **Add staging DNS.** A proxied record for `staging.gatezh.com` and
+   `staging-api.gatezh.com`. The flat `staging-api` prefix rather than a nested
+   `api.staging` is deliberate: the Cloudflare universal certificate covers one
+   level of subdomain, so `api.staging.gatezh.com` would need an advanced
+   certificate.
+3. **Set staging environment variables.** `CLOUDFLARE_ACCOUNT_ID`,
+   `CONTACT_WORKER_URL`, `TURNSTILE_SITE_KEY`, `TO_EMAIL`, `FROM_EMAIL`; secrets
+   `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`. Every one of
+   them is optional except the Cloudflare pair — the Worker degrades one feature
+   at a time and the deploy job reports what is missing rather than failing.
+4. **Dispatch `Deploy (staging)` manually** and confirm `staging.gatezh.com`
+   serves the build. The `verify` job asserts the deployed commit matches.
+5. **Enable the push trigger** in `deploy-staging.yml` (uncomment the `push:`
+   block at the top) and **remove the push trigger from `deploy.yml`**. Master
+   pushes now reach staging only.
+6. **Dispatch `Release`** to deploy production. Confirm `gatezh.com` still
+   serves and the contact form still submits.
+7. **Optional, later — rename the Workers.** Add a `production` env block to both
+   `wrangler.jsonc` files, deploy, move the `gatezh.com` custom domain from
+   `gatezh-com` to `www-production` in the Cloudflare dashboard, repoint
+   `HUGO_PARAMS_CONTACTWORKERURL`, then delete the orphaned Workers. Do this in
+   one sitting; the site is split-brained until the domain moves.
+
+Rollback at any point: re-enable the `push:` trigger in `deploy.yml`.
+
 ## Architecture Overview
 
 This is a Bun monorepo containing:
