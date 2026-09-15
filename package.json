@@ -30,13 +30,14 @@
     "format:hugo:check": "! gotmplfmt -l services/www/themes services/www/layouts | grep .",
     "check": "bun run lint && bun run format:check && bun run format:hugo:check && bun run typecheck && bun run build",
     "outdated": "bun outdated --recursive",
-    "test": "bun run --cwd services/www test",
+    "test": "bun run test:api && bun run test:www",
+    "test:api": "bun run --cwd services/api test",
+    "test:www": "bun run --cwd services/www test",
     "test:ui": "bun run --cwd services/www test:ui",
     "test:report": "bun run --cwd services/www test:report"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1",
-    "@tailwindcss/typography": "0.5.20",
     "@types/node": "catalog:",
     "oxfmt": "0.60.0",
     "oxlint": "1.75.0",

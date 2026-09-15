@@ -35,6 +35,7 @@ async function verifyTurnstile(
   token: string,
   secretKey: string,
   ip: string | null,
+  expectedHostname: string,
 ): Promise<{ success: boolean; error?: string }> {
   const formData = new URLSearchParams();
   formData.append("secret", secretKey);
@@ -60,6 +61,16 @@ async function verifyTurnstile(
     };
   }
 
+  // A token is only proof of a solved challenge, not of *where* it was solved.
+  // Without this, a token minted on any other property sharing this sitekey
+  // verifies here. Cloudflare's test keys omit hostname, so absence is allowed.
+  if (result.hostname && result.hostname !== expectedHostname) {
+    return {
+      success: false,
+      error: `Turnstile hostname mismatch: ${result.hostname}`,
+    };
+  }
+
   return { success: true };
 }
 
@@ -69,6 +80,10 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+// Longest value accepted for each field. Enforced before the Turnstile call so
+// an oversized body is rejected without spending a verification.
+const LIMITS = { name: 100, subject: 200, message: 5000 } as const;
+
 // Sanitize input to prevent injection
 function sanitize(input: string): string {
   return input
@@ -76,6 +91,12 @@ function sanitize(input: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#x27;");
+}
+
+// Sanitize a value that ends up in the Subject header. CR/LF there is header
+// injection (`Subject: x\r\nBcc: ...`), so newlines collapse to spaces.
+function sanitizeLine(input: string): string {
+  return sanitize(input).replace(/\s+/g, " ").trim();
 }
 
 // Build HTML email content
@@ -185,12 +206,26 @@ app.post("/", async (c) => {
       return c.json({ error: "Invalid email address" }, 400);
     }
 
+    // Enforce length limits before the Turnstile call
+    const tooLong = (
+      [
+        ["name", data.name, LIMITS.name],
+        ["subject", data.subject ?? "", LIMITS.subject],
+        ["message", data.message, LIMITS.message],
+      ] as const
+    ).find(([, value, limit]) => value.length > limit);
+
+    if (tooLong) {
+      return c.json({ error: `The ${tooLong[0]} field is too long (max ${tooLong[2]})` }, 400);
+    }
+
     // Verify Turnstile token
     const clientIP = c.req.header("CF-Connecting-IP") || null;
     const turnstileResult = await verifyTurnstile(
       data.turnstileToken,
       c.env.TURNSTILE_SECRET_KEY,
       clientIP,
+      new URL(c.env.ALLOWED_ORIGIN).hostname,
     );
 
     if (!turnstileResult.success) {
@@ -198,9 +233,9 @@ app.post("/", async (c) => {
     }
 
     // Sanitize inputs
-    const safeName = sanitize(data.name);
+    const safeName = sanitizeLine(data.name);
     const safeEmail = sanitize(data.email);
-    const safeSubject = data.subject ? sanitize(data.subject) : null;
+    const safeSubject = data.subject ? sanitizeLine(data.subject) : null;
     const safeMessage = sanitize(data.message);
 
     // Build email content
