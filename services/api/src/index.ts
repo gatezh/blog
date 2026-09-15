@@ -5,13 +5,16 @@ import { Resend } from "resend";
 // Environment bindings type
 type Env = {
   Bindings: {
-    // Secrets (set via wrangler secret put)
-    RESEND_API_KEY: string;
-    TURNSTILE_SECRET_KEY: string;
+    // Only ALLOWED_ORIGIN is required. Every feature credential is optional so
+    // a bare deploy succeeds and degrades one feature at a time, rather than
+    // the whole Worker failing because one secret was never set.
     ALLOWED_ORIGIN: string;
-    // Environment variables
-    TO_EMAIL: string;
-    FROM_EMAIL: string;
+    // Contact form (all three needed together, or POST / returns 503)
+    RESEND_API_KEY?: string;
+    TO_EMAIL?: string;
+    FROM_EMAIL?: string;
+    // Bot gate (optional: unset means submissions are accepted uncaptcha'd)
+    TURNSTILE_SECRET_KEY?: string;
   };
 };
 
@@ -193,11 +196,24 @@ app.use(
 
 // Contact form submission endpoint
 app.post("/", async (c) => {
+  // Without these the Worker cannot send anything. 503 rather than a 500 from
+  // deep inside Resend: this is a deployment that was never configured, not a
+  // request that went wrong.
+  if (!c.env.RESEND_API_KEY || !c.env.TO_EMAIL || !c.env.FROM_EMAIL) {
+    return c.json({ error: "Contact form is not configured on this deployment." }, 503);
+  }
+
   try {
     const data = await c.req.json<ContactFormData>();
 
     // Validate required fields
-    if (!data.name || !data.email || !data.message || !data.turnstileToken) {
+    if (!data.name || !data.email || !data.message) {
+      return c.json({ error: "Missing required fields" }, 400);
+    }
+
+    // Only demand a captcha token when the bot gate is configured; otherwise a
+    // correctly-behaving client that was served no widget would be rejected.
+    if (c.env.TURNSTILE_SECRET_KEY && !data.turnstileToken) {
       return c.json({ error: "Missing required fields" }, 400);
     }
 
@@ -219,17 +235,19 @@ app.post("/", async (c) => {
       return c.json({ error: `The ${tooLong[0]} field is too long (max ${tooLong[2]})` }, 400);
     }
 
-    // Verify Turnstile token
-    const clientIP = c.req.header("CF-Connecting-IP") || null;
-    const turnstileResult = await verifyTurnstile(
-      data.turnstileToken,
-      c.env.TURNSTILE_SECRET_KEY,
-      clientIP,
-      new URL(c.env.ALLOWED_ORIGIN).hostname,
-    );
+    // Verify Turnstile token, when the bot gate is configured at all.
+    if (c.env.TURNSTILE_SECRET_KEY) {
+      const clientIP = c.req.header("CF-Connecting-IP") || null;
+      const turnstileResult = await verifyTurnstile(
+        data.turnstileToken,
+        c.env.TURNSTILE_SECRET_KEY,
+        clientIP,
+        new URL(c.env.ALLOWED_ORIGIN).hostname,
+      );
 
-    if (!turnstileResult.success) {
-      return c.json({ error: "Captcha verification failed. Please try again." }, 400);
+      if (!turnstileResult.success) {
+        return c.json({ error: "Captcha verification failed. Please try again." }, 400);
+      }
     }
 
     // Sanitize inputs
@@ -272,7 +290,16 @@ app.post("/", async (c) => {
   }
 });
 
-// Return 405 for any other methods on root
+// Googlebot crawls this host and issues GET, not POST. Answering 405 put the
+// API origin in Search Console's "Blocked due to other 4xx issue" bucket, so a
+// bare GET returns a 200 that explicitly asks not to be indexed instead.
+app.get("/", (c) => {
+  return c.json({ service: "gatezh.com contact API", endpoint: "POST /" }, 200, {
+    "X-Robots-Tag": "noindex",
+  });
+});
+
+// Any other method on root really is unsupported.
 app.all("/", (c) => {
   return c.json({ error: "Method not allowed" }, 405);
 });
