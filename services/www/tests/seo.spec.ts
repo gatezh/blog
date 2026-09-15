@@ -84,7 +84,9 @@ test.describe("sitemap", () => {
       // A sitemap is a request to index — nothing in it may say otherwise.
       await page.goto(path);
       const robots = await page.locator('meta[name="robots"]').getAttribute("content");
-      expect(robots, `${path} is in the sitemap but not indexable`).toContain("index");
+      // Not `toContain("index")` — "noindex" contains "index", so that can
+      // never fail. Match the directive as a whole word instead.
+      expect(robots, `${path} is in the sitemap but not indexable`).toMatch(/(^|[\s,])index\b/);
       expect(robots, `${path} is in the sitemap but noindex`).not.toContain("noindex");
 
       // A sitemap URL that canonicalises elsewhere is a contradiction, and is
@@ -117,11 +119,20 @@ test.describe("crawlable URL hygiene", () => {
         .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
 
       for (const href of hrefs) {
-        // Same-origin page links only: skip anchors, other schemes, and files
-        // (a path whose last segment contains a dot, e.g. /llms.txt).
-        if (!href.startsWith("/")) continue;
-        const target = href.split(/[?#]/)[0];
+        // Same-origin page links only. `.Permalink` emits absolute URLs, so
+        // matching on a leading "/" alone would skip every post link — which
+        // is most of them. Resolve against the page instead and compare origin.
+        let target: string;
+        try {
+          const url = new URL(href, page.url());
+          if (url.origin !== new URL(page.url()).origin) continue;
+          target = url.pathname;
+        } catch {
+          continue; // mailto:, tel:, and other non-navigational schemes
+        }
+
         if (target === "" || target.endsWith("/")) continue;
+        // Files, not pages: a last segment containing a dot, e.g. /llms.txt.
         if (target.split("/").pop()?.includes(".")) continue;
         offenders.push(`${path} -> ${href}`);
       }
