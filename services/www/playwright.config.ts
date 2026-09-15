@@ -1,5 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
+/** Specs that exercise the Cloudflare Worker rather than the Hugo output. */
+const WORKER_SPEC = /worker\.spec\.ts/;
+
+/** Port `wrangler dev` binds for the worker project. */
+const WORKER_PORT = 8788;
+
 /**
  * Playwright configuration for Hugo site testing.
  * @see https://playwright.dev/docs/test-configuration
@@ -46,10 +52,13 @@ export default defineConfig({
     },
   },
 
-  /* Configure projects for different viewports and color schemes */
+  /* Configure projects for different viewports and color schemes.
+     Worker tests are excluded here: they need `wrangler dev`, not `hugo
+     server`, and they run in the dedicated `worker` project below. */
   projects: [
     {
       name: "desktop-light",
+      testIgnore: WORKER_SPEC,
       use: {
         ...devices["Desktop Chrome"],
         colorScheme: "light",
@@ -57,6 +66,7 @@ export default defineConfig({
     },
     {
       name: "desktop-dark",
+      testIgnore: WORKER_SPEC,
       use: {
         ...devices["Desktop Chrome"],
         colorScheme: "dark",
@@ -64,6 +74,7 @@ export default defineConfig({
     },
     {
       name: "mobile-light",
+      testIgnore: WORKER_SPEC,
       use: {
         ...devices["Pixel 7"],
         colorScheme: "light",
@@ -71,22 +82,42 @@ export default defineConfig({
     },
     {
       name: "mobile-dark",
+      testIgnore: WORKER_SPEC,
       use: {
         ...devices["Pixel 7"],
         colorScheme: "dark",
       },
     },
+    {
+      /* Content negotiation, the real 404 status and X-Robots-Tag headers are
+         Worker behaviour and cannot be exercised against `hugo server`. Before
+         this project existed, the only check on them was the post-deploy
+         verify job — i.e. after the code was already live. */
+      name: "worker",
+      testMatch: WORKER_SPEC,
+      use: { baseURL: `http://127.0.0.1:${WORKER_PORT}` },
+    },
   ],
 
-  /* Run local dev server before starting tests */
-  webServer: {
-    // --renderToMemory is required for correctness, not speed: `hugo server`
-    // otherwise writes into ./public and never prunes files a rebuild no longer
-    // produces, so a test asserting a URL is *gone* would pass or fail on
-    // leftovers from an earlier build rather than on the config under test.
-    command: "hugo server --renderToMemory --bind 0.0.0.0",
-    url: "http://localhost:1313",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  /* Run local dev servers before starting tests */
+  webServer: [
+    {
+      // --renderToMemory is required for correctness, not speed: `hugo server`
+      // otherwise writes into ./public and never prunes files a rebuild no
+      // longer produces, so a test asserting a URL is *gone* would pass or fail
+      // on leftovers from an earlier build rather than on the config under test.
+      command: "hugo server --renderToMemory --bind 0.0.0.0",
+      url: "http://localhost:1313",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    {
+      /* wrangler serves ./public, so the site has to be on disk first — this
+         is the one place a real build is required rather than --renderToMemory. */
+      command: `bun run build && bunx wrangler dev --local --port ${WORKER_PORT} --ip 127.0.0.1`,
+      url: `http://127.0.0.1:${WORKER_PORT}/`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180000,
+    },
+  ],
 });
