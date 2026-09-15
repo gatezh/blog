@@ -24,9 +24,17 @@ There is no `_default/` directory any more.
 | Partials | `layouts/_partials/` |
 | Shortcodes | `layouts/_shortcodes/` |
 | Render hooks | `layouts/_markup/` |
+| 404 | `layouts/404.html` |
 
 `{{ partial "head.html" . }}` resolves from `_partials/` — partial names do not
 carry the directory.
+
+A bare `.html` file at the layouts root that is not one of the reserved names
+above is a **layout identifier**, matched against `layout:` in front matter —
+not a routable path. `layouts/about.html` and `layouts/contact.html` are that
+case (`content/about/index.md` sets `layout: about`). The "non-underscore
+directory = page path" rule applies to *directories*; do not "fix" these into
+`layouts/about/page.html`.
 
 ## Theme features
 
