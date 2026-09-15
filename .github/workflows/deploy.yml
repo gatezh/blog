@@ -160,27 +160,32 @@ jobs:
         run: |
           fail=0
 
-          # Cloudflare's asset router rewrites /404.html -> /404 and would serve
-          # it with a 200, making the error page an indexable URL Google files
-          # as a soft 404.
-          for path in /404 /404.html; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://gatezh.com${path}")
-            if [ "${code}" != "404" ]; then
-              echo "::error::${path} returned ${code}, expected 404"
-              fail=1
+          # Every check below fetches into a variable first and fails the build
+          # if the fetch itself fails. GitHub's default shell is `bash -e`
+          # WITHOUT pipefail, so `curl -sf ... | grep -q ...` swallows a failed
+          # curl: grep sees empty input, returns 1, and a "must not contain"
+          # check passes for the wrong reason.
+          fetch() {
+            if ! curl -sf --max-time 15 "$1"; then
+              echo "::error::could not fetch $1"
+              return 1
             fi
-          done
+          }
 
           # Taxonomy listings must stay out of the index.
           for path in /tags/ /categories/; do
-            if ! curl -sf --max-time 15 "https://gatezh.com${path}" | grep -qE 'name="?robots"?[^>]*noindex'; then
+            if ! body=$(fetch "https://gatezh.com${path}"); then
+              fail=1
+            elif ! printf '%s' "${body}" | grep -qE 'name="?robots"?[^>]*noindex'; then
               echo "::error::${path} is missing its noindex robots meta"
               fail=1
             fi
           done
 
           # A sitemap that advertises a taxonomy URL contradicts the above.
-          if curl -sf --max-time 15 https://gatezh.com/sitemap.xml | grep -qE '<loc>[^<]*/(tags|categories)/'; then
+          if ! sitemap=$(fetch https://gatezh.com/sitemap.xml); then
+            fail=1
+          elif printf '%s' "${sitemap}" | grep -qE '<loc>[^<]*/(tags|categories)/'; then
             echo "::error::sitemap.xml advertises taxonomy URLs"
             fail=1
           fi

@@ -53,6 +53,9 @@ them under "Alternate page with proper canonical tag".
   > window. `Include subdomains` extends that to `comments.gatezh.com`. Leave
   > **Preload** off — the browser preload list is effectively a one-way door.
 
+  Verified not set — the check below currently prints nothing. Once enabled it
+  should print:
+
   ```console
   $ curl -sI https://gatezh.com/ | grep -i strict-transport
   strict-transport-security: max-age=31536000; includeSubDomains
