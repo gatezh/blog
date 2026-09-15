@@ -1,0 +1,29 @@
+{{- /* llms-full.txt — every page's text in one document, for agents that
+       prefer a single fetch over crawling.
+
+       Body text comes from .RenderShortcodes, which expands shortcodes through
+       their llmtext templates (_shortcodes/*._outputformat_llmtext_.txt) and
+       leaves the rest as authored Markdown.
+
+       Headings are NOT shifted. The previous `^(#{1,4}) ` -> `$1## ` rewrite
+       was line-anchored and fence-unaware, so it rewrote shell comments inside
+       fenced code blocks — `# Uninstall old versions` became
+       `### Uninstall old versions` in text an agent may copy and run. Pages are
+       delimited by a horizontal rule plus their Source: line instead, which
+       costs nothing and cannot corrupt a code block.
+
+       As in llms.txt, emitted text stays on one line with its action so
+       gotmplfmt cannot indent it into a CommonMark code block, and pages
+       carrying `robots: noindex` are left out. */ -}}
+{{- define "page" -}}
+{{- printf "\n---\n\n## %s\n\nSource: %s\n" .Title .Permalink -}}
+{{- with .Date }}{{ if not .IsZero }}{{ printf "Published: %s\n" (.Format "2006-01-02") }}{{ end }}{{ end -}}
+{{- printf "\n%s\n" (trim .RenderShortcodes "\n") -}}
+{{- end -}}
+{{- $listable := partial "agent-listable.html" site.RegularPages -}}
+# {{ site.Title }}
+
+> {{ site.Params.description }}
+{{ with site.GetPage "/about" }}{{ template "page" . }}{{ end }}
+{{- range where $listable "Section" "posts" }}{{ template "page" . }}{{ end }}
+{{- range where $listable "Section" "ever-learning" }}{{ template "page" . }}{{ end }}

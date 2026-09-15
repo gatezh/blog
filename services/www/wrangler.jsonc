@@ -1,14 +1,32 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gatezh-com",
-  "compatibility_date": "2025-01-03",
+  // Newest date the pinned wrangler/workerd supports (4.114.0 ships
+  // workerd 1.20260722). Raising it past the runtime's own ceiling makes
+  // `wrangler dev` refuse to start. Bump together with the wrangler catalog pin.
+  "compatibility_date": "2026-07-29",
+  "main": "src/index.ts",
   "assets": {
     "directory": "./public",
+    // Exposes the asset fetcher as `env.ASSETS` in the Worker. Mandatory:
+    // without it env.ASSETS is undefined at runtime.
+    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
+    // The Worker has to run before asset matching, or /<slug>/ matches an
+    // asset and the handler never sees the request — so no negotiation, no
+    // 404 status override and no X-Robots-Tag.
+    //
+    // Scoped to a route list rather than `true`. Requests to static assets are
+    // free and unlimited; requests that reach the Worker script are billed, and
+    // on the free plan exhausting that budget returns 429 for the WHOLE SITE
+    // instead of falling back to serving assets. With `true`, every stylesheet,
+    // font and image spent from that budget for nothing. Negative rules send
+    // the hashed-asset directories straight to the asset router.
+    // https://developers.cloudflare.com/workers/static-assets/routing/worker-script/
+    "run_worker_first": ["/*", "!/css/*", "!/fonts/*", "!/images/*"],
   },
   "observability": {
-    "enabled": false,
     "logs": {
       "enabled": true,
     },

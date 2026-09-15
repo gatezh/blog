@@ -1,0 +1,34 @@
+{{- /* llms.txt — concise site index for LLM consumption. https://llmstxt.org/
+
+       Every list item is emitted by a `printf` whose leading newline is inside
+       the string, with the surrounding actions trimmed. That is deliberate and
+       load-bearing: this format is isPlainText, so the template IS the output,
+       and gotmplfmt (enforced by `bun run format:hugo:check`) indents the body
+       of any multi-line `range`/`with` block with a literal tab. A tab at the
+       start of a line is an indented code block in CommonMark, which turns the
+       whole link list into a code listing. Keeping the emitted text on one line
+       with the action leaves gotmplfmt nothing to indent.
+
+       Excluded: pages carrying `robots: noindex`. That front matter is the
+       site's only "publish but do not index" lever, and listing such a page in
+       an index whose whole purpose is discovery defeats it. */ -}}
+{{- define "entry" -}}
+{{- printf "\n- [%s](%s): %s" .Title .Permalink (.Description | default (.Summary | plainify | replaceRE "\\s+" " " | truncate 160)) -}}
+{{- end -}}
+{{- $listable := partial "agent-listable.html" site.RegularPages -}}
+# {{ site.Title }}
+
+> {{ site.Params.description }}
+
+## About
+{{ with site.GetPage "/about" }}{{ template "entry" . }}{{ end }}
+
+## Blog Posts
+{{ range where $listable "Section" "posts" }}{{ template "entry" . }}{{ end }}
+
+## Ever Learning
+{{ range where $listable "Section" "ever-learning" }}{{ template "entry" . }}{{ end }}
+
+## Links
+{{ range site.Params.socialIcons }}{{ printf "\n- [%s](%s)" .name .url }}{{ end }}
+- [Full text of every page]({{ "llms-full.txt" | absURL }})
