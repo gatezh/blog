@@ -34,30 +34,30 @@ default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflarei
 
 ## Directive Reference
 
-| Directive | Purpose |
-|---|---|
-| `default-src 'self'` | Fallback for all fetch directives — blocks anything not explicitly allowed |
-| `script-src` | Allowed JavaScript sources |
-| `connect-src` | Allowed targets for fetch/XHR/WebSocket calls |
-| `worker-src 'self' blob: data:` | Required by PostHog Session Replay |
-| `frame-src` | Allowed iframe sources (Turnstile widget, Remark42 comments) |
-| `img-src` | Allowed image sources; `data:` covers inline SVGs/images |
-| `style-src 'self' 'unsafe-inline'` | Allows inline styles (needed by most themes/widgets) |
-| `base-uri 'self'` | Prevents `<base>` tag hijacking |
-| `form-action 'self'` | Restricts native HTML form submission targets — does **not** affect `fetch()`/XHR (those are `connect-src`) |
-| `frame-ancestors 'self'` | Prevents clickjacking (replaces `X-Frame-Options`) |
-| `upgrade-insecure-requests` | Forces all resource loads over HTTPS |
+| Directive                          | Purpose                                                                                                     |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `default-src 'self'`               | Fallback for all fetch directives — blocks anything not explicitly allowed                                  |
+| `script-src`                       | Allowed JavaScript sources                                                                                  |
+| `connect-src`                      | Allowed targets for fetch/XHR/WebSocket calls                                                               |
+| `worker-src 'self' blob: data:`    | Required by PostHog Session Replay                                                                          |
+| `frame-src`                        | Allowed iframe sources (Turnstile widget, Remark42 comments)                                                |
+| `img-src`                          | Allowed image sources; `data:` covers inline SVGs/images                                                    |
+| `style-src 'self' 'unsafe-inline'` | Allows inline styles (needed by most themes/widgets)                                                        |
+| `base-uri 'self'`                  | Prevents `<base>` tag hijacking                                                                             |
+| `form-action 'self'`               | Restricts native HTML form submission targets — does **not** affect `fetch()`/XHR (those are `connect-src`) |
+| `frame-ancestors 'self'`           | Prevents clickjacking (replaces `X-Frame-Options`)                                                          |
+| `upgrade-insecure-requests`        | Forces all resource loads over HTTPS                                                                        |
 
 ## Third-Party Domain Allowlist
 
-| Service | Domains | Directives |
-|---|---|---|
-| Cloudflare Web Analytics | `https://static.cloudflareinsights.com`, `https://cloudflareinsights.com` | `script-src`, `connect-src` |
-| Google Analytics / GTM | `https://www.googletagmanager.com`, `https://www.google-analytics.com`, `https://analytics.google.com` | `script-src`, `connect-src`, `img-src` |
-| Cloudflare Turnstile | `https://challenges.cloudflare.com` | `script-src`, `frame-src` |
-| Email Worker | `https://gatezh-com-email-worker.gatezh.workers.dev` | `connect-src` |
-| PostHog | `https://*.posthog.com` | `script-src`, `connect-src` |
-| Remark42 (self-hosted) | `https://comments.gatezh.com` | `script-src`, `frame-src` |
+| Service                  | Domains                                                                                                | Directives                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| Cloudflare Web Analytics | `https://static.cloudflareinsights.com`, `https://cloudflareinsights.com`                              | `script-src`, `connect-src`            |
+| Google Analytics / GTM   | `https://www.googletagmanager.com`, `https://www.google-analytics.com`, `https://analytics.google.com` | `script-src`, `connect-src`, `img-src` |
+| Cloudflare Turnstile     | `https://challenges.cloudflare.com`                                                                    | `script-src`, `frame-src`              |
+| API Worker               | `https://gatezh-com-email-worker.gatezh.workers.dev`                                                   | `connect-src`                          |
+| PostHog                  | `https://*.posthog.com`                                                                                | `script-src`, `connect-src`            |
+| Remark42 (self-hosted)   | `https://comments.gatezh.com`                                                                          | `script-src`, `frame-src`              |
 
 > PostHog recommends using the wildcard `*.posthog.com` rather than specific subdomains, as they may change routing subdomains over time. If using PostHog heatmaps, also add `https://*.posthog.com` to `frame-ancestors`.
 

@@ -1,8 +1,20 @@
 baseURL: https://gatezh.com/
-languageCode: en-us
+locale: en-US
 title: Serge Gatezh
 theme: terminal
 enableRobotsTXT: true
+
+# Hugo v0.161+ runs Node tools (Tailwind) under `node --permission`, defaulting
+# allowRead to ["."] — the Hugo project root, services/www. This is a bun
+# monorepo with node_modules hoisted one directory above, and Hugo passes
+# allowRead straight through to Node's --allow-fs-read, which requires absolute
+# paths; relative entries like ".." silently no-op. "*" is the documented escape
+# hatch for monorepos that hoist dependencies outside the Hugo project root.
+security:
+  node:
+    permissions:
+      allowRead:
+        - "*"
 
 # Build configuration for Tailwind CSS v4
 build:
@@ -46,7 +58,7 @@ params:
   # Turnstile site key (public, safe to commit)
   # Get from Cloudflare Dashboard > Turnstile
   turnstileSiteKey: "0x4AAAAAACUaMne4Sn7WV9Yo"
-  # Worker URL - set after deploying the email worker
+  # Worker URL - set after deploying the API Worker
   # Example: https://gatezh-com-email-worker.<subdomain>.workers.dev
   contactWorkerUrl: "https://gatezh-com-email-worker.gatezh.workers.dev"
 

@@ -19,7 +19,7 @@
 {{/* Description */}}
 {{ $description := .Description | default (.Summary | plainify | truncate 160) | default site.Params.description }}
 {{ with $description }}
-<meta name="description" content="{{ . }}">
+	<meta name="description" content="{{ . }}">
 {{ end }}
 
 {{/* Keywords */}}
@@ -35,9 +35,9 @@
 {{ with site.Title }}<meta property="og:site_name" content="{{ . }}">{{ end }}
 {{ with site.Params.ogImage }}<meta property="og:image" content="{{ . | absURL }}">{{ end }}
 {{- if and .IsPage (eq .Section "posts") }}
-{{ with .Date }}<meta property="article:published_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
-{{ with .Lastmod }}<meta property="article:modified_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
-{{ with site.Params.author }}<meta property="article:author" content="{{ . }}">{{ end }}
+	{{ with .Date }}<meta property="article:published_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
+	{{ with .Lastmod }}<meta property="article:modified_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
+	{{ with site.Params.author }}<meta property="article:author" content="{{ . }}">{{ end }}
 {{- end }}
 
 {{/* Twitter Card */}}
@@ -54,7 +54,7 @@
 
 {{/* RSS Feed autodiscovery */}}
 {{ with .OutputFormats.Get "rss" -}}
-<link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">
+	<link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">
 {{- end }}
 
 {{/* JetBrains Mono font from Google Fonts */}}
@@ -67,7 +67,7 @@
 
 {{/* Google Analytics */}}
 {{ if hugo.IsProduction }}
-{{ with site.Config.Services.GoogleAnalytics.ID }}
+	{{ with site.Config.Services.GoogleAnalytics.ID }}
 <script async src="https://www.googletagmanager.com/gtag/js?id={{ . }}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -75,7 +75,7 @@
   gtag('js', new Date());
   gtag('config', '{{ . }}');
 </script>
-{{ end }}
+	{{ end }}
 {{ end }}
 
 {{/*

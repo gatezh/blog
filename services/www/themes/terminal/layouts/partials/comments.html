@@ -13,7 +13,7 @@
 */}}
 
 {{- if site.Params.comments }}
-{{/* Remark42 Configuration */}}
+	{{/* Remark42 Configuration */}}
 <script>
 var remark_config = {
   host: 'https://comments.gatezh.com',
@@ -46,7 +46,7 @@ var remark_config = {
 };
 </script>
 
-{{/* Load Remark42 Script */}}
+	{{/* Load Remark42 Script */}}
 <script>
 !function(e,n){
   for(var o=0;o<e.length;o++){
@@ -61,17 +61,17 @@ var remark_config = {
 }(remark_config.components||["embed"],document);
 </script>
 
-{{/* Comments Container */}}
-<section class="comments-section mt-10 pt-6 border-t border-terminal-border">
-  <div class="mb-4">
-    <span class="terminal-prompt"></span>
-    <span class="terminal-command">./comments --list</span>
-  </div>
-  <div id="remark42"></div>
-  <noscript>Please enable JavaScript to view the comments.</noscript>
-</section>
+	{{/* Comments Container */}}
+	<section class="comments-section mt-10 pt-6 border-t border-terminal-border">
+		<div class="mb-4">
+			<span class="terminal-prompt"></span>
+			<span class="terminal-command">./comments --list</span>
+		</div>
+		<div id="remark42"></div>
+		<noscript>Please enable JavaScript to view the comments.</noscript>
+	</section>
 
-{{/* Theme Synchronization Script */}}
+	{{/* Theme Synchronization Script */}}
 <script>
 (function() {
   // Sync Remark42 theme

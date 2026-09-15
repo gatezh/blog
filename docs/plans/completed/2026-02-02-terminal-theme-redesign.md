@@ -1,6 +1,7 @@
 # Full Custom Terminal-Inspired Theme for gatezh.com
 
 Replace the PaperMod Hugo theme with a completely custom theme in a separate directory, featuring:
+
 - Light terminal aesthetic (dark text on light background)
 - Monospace typography throughout
 - Terminal-inspired UI elements (command prompts, cursor blinks)
@@ -63,6 +64,7 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 ### Task 1: Set up Tailwind CSS v4 and theme directory structure
 
 **Files:**
+
 - Modify: `apps/web/hugo.yaml` (remove PaperMod, add Tailwind build config, set theme)
 - Modify: `apps/web/go.mod` (remove PaperMod dependency)
 - Modify: `apps/web/package.json` (add tailwindcss)
@@ -71,6 +73,7 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Create: `apps/web/themes/terminal/layouts/partials/css.html`
 
 **Steps:**
+
 - [x] Remove PaperMod module import from hugo.yaml
 - [x] Add build.buildStats and module mounts for Tailwind to hugo.yaml
 - [x] Set theme to "terminal" in hugo.yaml
@@ -84,6 +87,7 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 ### Task 2: Create base layout structure with three-position theme switcher
 
 **Files:**
+
 - Create: `apps/web/themes/terminal/layouts/_default/baseof.html`
 - Create: `apps/web/themes/terminal/layouts/partials/head.html`
 - Create: `apps/web/themes/terminal/layouts/partials/header.html`
@@ -91,6 +95,7 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 - Create: `apps/web/themes/terminal/layouts/partials/theme-toggle.html`
 
 **Steps:**
+
 - [x] Create baseof.html with HTML structure, head/header/main/footer blocks
 - [x] Create head.html with meta tags, font loading, CSS via css.TailwindCSS
 - [x] Create theme-toggle.html with three-position toggle (light/dark/system)
@@ -102,9 +107,11 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 ### Task 3: Create main Tailwind styles with terminal aesthetic
 
 **Files:**
+
 - Modify: `apps/web/themes/terminal/assets/css/main.css`
 
 **Steps:**
+
 - [x] Add Tailwind base/components/utilities layers
 - [x] Define custom colors via CSS variables (light and dark themes)
 - [x] Set up monospace typography with JetBrains Mono
@@ -118,9 +125,11 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 ### Task 4: Create homepage layout
 
 **Files:**
+
 - Create: `apps/web/themes/terminal/layouts/index.html`
 
 **Steps:**
+
 - [x] Create profile section with name, subtitle, terminal styling
 - [x] Add social links with terminal-style presentation
 - [x] Create "recent posts" section with terminal list styling
@@ -130,10 +139,12 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 ### Task 5: Create list and single page layouts
 
 **Files:**
+
 - Create: `apps/web/themes/terminal/layouts/_default/list.html`
 - Create: `apps/web/themes/terminal/layouts/_default/single.html`
 
 **Steps:**
+
 - [x] Create list.html for posts/ever-learning index pages
 - [x] Style list items as terminal output or file listing
 - [x] Create single.html for individual posts/pages
@@ -144,10 +155,12 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 ### Task 6: Integrate Remark42 comments with theme sync
 
 **Files:**
+
 - Create: `apps/web/themes/terminal/layouts/partials/comments.html`
 - Modify: `apps/web/themes/terminal/layouts/_default/single.html`
 
 **Steps:**
+
 - [x] Create comments.html partial with Remark42 configuration
 - [x] Implement initial theme detection (system/localStorage/light/dark)
 - [x] Add event listener to sync Remark42 theme when toggle changes
@@ -159,9 +172,11 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 ### Task 7: Update contact page with new theme
 
 **Files:**
+
 - Modify: `apps/web/layouts/_default/contact.html`
 
 **Steps:**
+
 - [x] Update contact.html to extend new base layout
 - [x] Restyle form with terminal aesthetic using Tailwind classes
 - [x] Keep all existing functionality (Turnstile, form submission)
@@ -171,10 +186,12 @@ Replace the PaperMod Hugo theme with a completely custom theme in a separate dir
 ### Task 8: Polish and responsive design
 
 **Files:**
+
 - Modify: `apps/web/themes/terminal/assets/css/main.css`
 - Possibly modify: various layout files
 
 **Steps:**
+
 - [x] Test and fix mobile responsiveness
 - [x] Add subtle animations (cursor blink, hover states)
 - [x] Ensure proper contrast and accessibility (WCAG AA)

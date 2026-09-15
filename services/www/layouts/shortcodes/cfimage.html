@@ -11,7 +11,7 @@ scale - max width as % of container on wide screens (optional, default 100)
 */}}
 
 {{- if not (.Page.Store.Get "cfimage-style") }}
-{{- .Page.Store.Set "cfimage-style" true }}
+	{{- .Page.Store.Set "cfimage-style" true }}
 <style>
   .cfimage {
     margin: 1rem 0 2rem;
@@ -45,15 +45,15 @@ scale - max width as % of container on wide screens (optional, default 100)
 {{- $img := .Page.Resources.GetMatch $src -}}
 
 {{- if $img }}
-<figure class="cfimage" {{- if $scale }} style="--img-scale: {{ $scale }}" {{ end -}}>
-  {{- $imgSrc := $img.RelPermalink -}}
-  {{- if eq hugo.Environment "production" -}}
-  {{- $imgSrc = print "/cdn-cgi/image/format=auto,width=auto" $imgSrc -}}
-  {{- end }}
-  <img src="{{ $imgSrc }}" alt="{{ $alt | htmlEscape }}" loading="lazy"
-    style="aspect-ratio: {{ $img.Width }}/{{ $img.Height }};">
-  {{- with $caption }}
-  <figcaption>{{ . | markdownify }}</figcaption>
-  {{- end }}
-</figure>
+	<figure class="cfimage" {{- if $scale }} style="--img-scale: {{ $scale }}" {{ end -}}>
+		{{- $imgSrc := $img.RelPermalink -}}
+		{{- if eq hugo.Environment "production" -}}
+			{{- $imgSrc = print "/cdn-cgi/image/format=auto,width=auto" $imgSrc -}}
+		{{- end }}
+		<img src="{{ $imgSrc }}" alt="{{ $alt | htmlEscape }}" loading="lazy"
+			style="aspect-ratio: {{ $img.Width }}/{{ $img.Height }};">
+		{{- with $caption }}
+			<figcaption>{{ . | markdownify }}</figcaption>
+		{{- end }}
+	</figure>
 {{- end }}

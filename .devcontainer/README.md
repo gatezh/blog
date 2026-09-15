@@ -53,12 +53,12 @@ Tool versions are centrally managed in [/.mise.toml](../../.mise.toml). The pre-
 
 ## Lifecycle Commands
 
-| Hook | What it does |
-|------|--------------|
-| `initializeCommand` | Pulls the latest image on the **host** |
-| `updateContentCommand` | Fixes volume ownership, `mise install`, `bun install` |
-| `postCreateCommand` | `init-plugins.sh` — marketplaces, plugins, rtk, session retention |
-| `postStartCommand` | Re-patches Playwright MCP configs |
+| Hook                   | What it does                                                      |
+| ---------------------- | ----------------------------------------------------------------- |
+| `initializeCommand`    | Pulls the latest image on the **host**                            |
+| `updateContentCommand` | Fixes volume ownership, `mise install`, `bun install`             |
+| `postCreateCommand`    | `init-plugins.sh` — marketplaces, plugins, rtk, session retention |
+| `postStartCommand`     | Re-patches Playwright MCP configs                                 |
 
 ## Usage
 
@@ -68,7 +68,7 @@ automatically.
 
 ```bash
 bun run dev          # Start Hugo dev server
-bun run dev:worker   # Start email worker locally
+bun run dev:api   # Start the API Worker locally
 bun run build        # Build all services
 ```
 
@@ -76,7 +76,8 @@ bun run build        # Build all services
 
 Named Docker volumes (prefixed `gatezh-com-`) persist across container rebuilds
 and are shared with the sandbox variant:
-- **node_modules** - isolated per workspace directory (root, services/www, services/email-worker)
+
+- **node_modules** - isolated per workspace directory (root, services/www, services/api)
 - **Claude config** - auth tokens and settings preserved
 - **Fish data** - shell history and completions retained
 
