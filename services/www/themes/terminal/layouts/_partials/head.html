@@ -3,7 +3,7 @@
 
   Includes:
   - Essential meta tags
-  - JetBrains Mono font from Google Fonts
+  - Self-hosted JetBrains Mono preload (see themes/terminal/assets/css/main.css)
   - Tailwind CSS via css.html partial
   - Theme detection script (runs before body to prevent flash)
 */}}
@@ -54,11 +54,11 @@
 {{ with site.Params.ogImage }}<meta name="twitter:image" content="{{ . | absURL }}">{{ end }}
 
 {{/* Canonical URL - per-page override via `canonical:` front matter */}}
-{{- if .Params.canonical }}
-	<link rel="canonical" href="{{ .Params.canonical }}">
-{{- else }}
-	<link rel="canonical" href="{{ .Permalink }}">
-{{- end }}
+{{- /* absURL passes an already-absolute URL through unchanged, and promotes a
+       relative override like `canonical: /about/` to a full URL. A relative
+       canonical is ignored by some crawlers and is not a valid rel=canonical
+       target. */ -}}
+<link rel="canonical" href="{{ with .Params.canonical }}{{ . | absURL }}{{ else }}{{ $.Permalink }}{{ end }}">
 
 {{/* Robots meta - per-page override via `robots:` front matter; defaults to
      indexable. Taxonomy and term listings are noindex,follow: with this many
@@ -82,11 +82,7 @@
 {{/* Self-hosted JetBrains Mono. Preload the upright face only — the italic
      is used sparingly and preloading both would contend for bandwidth with
      the stylesheet. @font-face rules live in the theme's main.css. */}}
-{{ with resources.Get "fonts/jetbrains-mono-latin.woff2" }}
-	<link rel="preload" href="{{ .RelPermalink }}" as="font" type="font/woff2" crossorigin>
-{{ else }}
-	<link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-{{ end }}
+<link rel="preload" href="{{ "fonts/jetbrains-mono-latin.woff2" | relURL }}" as="font" type="font/woff2" crossorigin>
 
 {{/* Tailwind CSS */}}
 {{- partial "css.html" . -}}
