@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: {{ site.BaseURL }}sitemap.xml
+Sitemap: {{ "sitemap.xml" | absURL }}
+
+# LLM-friendly site index (https://llmstxt.org/):
+# {{ "llms.txt" | absURL }}

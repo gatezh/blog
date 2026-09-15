@@ -16,6 +16,13 @@ CSP is configured via **Cloudflare Dashboard → Transform Rules → Modify Resp
 default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://comments.gatezh.com https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://*.posthog.com; connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://*.posthog.com https://gatezh-com-email-worker.gatezh.workers.dev; worker-src 'self' blob: data:; frame-src 'self' https://challenges.cloudflare.com https://comments.gatezh.com; img-src 'self' https://www.google-analytics.com data:; style-src 'self' 'unsafe-inline'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests
 ```
 
+> **Fonts are first-party.** JetBrains Mono is self-hosted under `/fonts/`, so
+> it is covered by `default-src 'self'` and needs no `font-src` entry. This is
+> also why it must stay self-hosted: the policy above allows neither
+> `fonts.googleapis.com` in `style-src` nor `fonts.gstatic.com` for font
+> fetches, so a Google-hosted webfont would be blocked and the site would
+> silently fall back to the local monospace stack.
+
 ### Rule 2 — CSP (comments subdomain)
 
 - **Filter:** Hostname equals `comments.gatezh.com`

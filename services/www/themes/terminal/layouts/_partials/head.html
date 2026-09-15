@@ -3,12 +3,19 @@
 
   Includes:
   - Essential meta tags
-  - JetBrains Mono font from Google Fonts
+  - Self-hosted JetBrains Mono preload (see themes/terminal/assets/css/main.css)
   - Tailwind CSS via css.html partial
   - Theme detection script (runs before body to prevent flash)
 */}}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+{{/* Build provenance - emitted when HUGO_PARAMS_BUILDCOMMIT is set (CI). The
+     deploy verify job greps for this SHA to confirm the deployed artifact is
+     the build it expects. Unset locally, so no tag. */}}
+{{- with site.Params.buildcommit }}
+	<meta name="build-commit" content="{{ . }}">
+{{- end }}
 
 {{/* Page title */}}
 <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
@@ -46,8 +53,23 @@
 {{ with $description }}<meta name="twitter:description" content="{{ . }}">{{ end }}
 {{ with site.Params.ogImage }}<meta name="twitter:image" content="{{ . | absURL }}">{{ end }}
 
-{{/* Canonical URL */}}
-<link rel="canonical" href="{{ .Permalink }}">
+{{/* Canonical URL - per-page override via `canonical:` front matter */}}
+{{- /* absURL passes an already-absolute URL through unchanged, and promotes a
+       relative override like `canonical: /about/` to a full URL. A relative
+       canonical is ignored by some crawlers and is not a valid rel=canonical
+       target. */ -}}
+<link rel="canonical" href="{{ with .Params.canonical }}{{ . | absURL }}{{ else }}{{ $.Permalink }}{{ end }}">
+
+{{/* Robots meta - per-page override via `robots:` front matter; defaults to
+     indexable. Taxonomy and term listings are noindex,follow: with this many
+     posts they are thin near-duplicates of /posts/ that only dilute crawl
+     budget. The 404 page is noindex because Cloudflare serves its body for
+     every missing URL. `follow` in both cases so link equity still reaches
+     the posts. */}}
+{{- $robots := "index, follow" }}
+{{- if in (slice "taxonomy" "term" "404") .Kind }}{{ $robots = "noindex, follow" }}{{ end }}
+{{- with .Params.robots }}{{ $robots = . }}{{ end }}
+<meta name="robots" content="{{ $robots }}">
 
 {{/* JSON-LD structured data */}}
 {{- partial "seo.html" . -}}
@@ -57,10 +79,10 @@
 	<link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">
 {{- end }}
 
-{{/* JetBrains Mono font from Google Fonts */}}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+{{/* Self-hosted JetBrains Mono. Preload the upright face only — the italic
+     is used sparingly and preloading both would contend for bandwidth with
+     the stylesheet. @font-face rules live in the theme's main.css. */}}
+<link rel="preload" href="{{ "fonts/jetbrains-mono-latin.woff2" | relURL }}" as="font" type="font/woff2" crossorigin>
 
 {{/* Tailwind CSS */}}
 {{- partial "css.html" . -}}
