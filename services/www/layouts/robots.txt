@@ -3,6 +3,5 @@ Allow: /
 
 Sitemap: {{ "sitemap.xml" | absURL }}
 
-# LLM-friendly site indexes (https://llmstxt.org/):
+# LLM-friendly site index (https://llmstxt.org/):
 # {{ "llms.txt" | absURL }}
-# {{ "llms-full.txt" | absURL }}
