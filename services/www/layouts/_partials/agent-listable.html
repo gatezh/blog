@@ -1,0 +1,17 @@
+{{- /* Filters a page collection down to what agent-facing indexes may list.
+
+       `robots:` front matter is this site's only "publish but do not index"
+       lever (see themes/terminal/layouts/_partials/head.html). Listing such a
+       page in llms.txt or reproducing it in llms-full.txt defeats that, since
+       both are advertised in robots.txt and exist to be discovered.
+
+       Matched by substring rather than equality: the default is
+       "noindex, follow", but a page may set a bare "noindex" or add nofollow,
+       and `where ... "ne" "noindex, follow"` would let those through. */ -}}
+{{- $listable := slice -}}
+{{- range . -}}
+	{{- if not (strings.Contains (printf "%v" (.Params.robots | default "")) "noindex") -}}
+		{{- $listable = $listable | append . -}}
+	{{- end -}}
+{{- end -}}
+{{- return $listable -}}
