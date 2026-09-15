@@ -1,0 +1,181 @@
+name: Deploy (staging)
+
+# Dispatch-only until the staging environment exists. Enabling the push trigger
+# is the last step of the cutover runbook in docs/deployment.md — until the
+# `staging` GitHub Environment, its variables and the staging.gatezh.com custom
+# domain are all in place, an automatic trigger would fail on every merge.
+#
+#  push:
+#    branches: [master]
+#    paths-ignore: ["docs/**", "*.md", ".devcontainer/**"]
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+      - name: Check
+        run: bun run check
+
+  deploy-www:
+    needs: check
+    runs-on: ubuntu-24.04
+    environment:
+      name: staging
+      url: https://staging.gatezh.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # enableGitInfo reads git history for each page's <lastmod>. On a
+          # shallow clone every lastmod collapses to the shallow HEAD's commit
+          # date, so the whole site claims to have been modified today.
+          fetch-depth: 0
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build Hugo site
+        env:
+          HUGO_BASEURL: https://staging.gatezh.com/
+          HUGO_PARAMS_BUILDCOMMIT: ${{ github.sha }}
+          HUGO_PARAMS_CONTACTWORKERURL: ${{ vars.CONTACT_WORKER_URL }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.TURNSTILE_SITE_KEY }}
+          # No PostHog on staging, by design: there is no plumbing here for a
+          # key to reach the build even if one were set on this environment.
+        run: bun run --cwd services/www build
+
+      - name: Deploy www
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/www
+          packageManager: bun
+          command: deploy --env staging
+
+  deploy-api:
+    needs: check
+    runs-on: ubuntu-24.04
+    environment:
+      name: staging
+      url: https://staging-api.gatezh.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Audit feature configuration
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TO_EMAIL: ${{ vars.TO_EMAIL }}
+          FROM_EMAIL: ${{ vars.FROM_EMAIL }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+        run: |
+          # The Worker degrades one feature at a time, so a missing credential
+          # is a warning and a summary row, never a failed deploy.
+          {
+            echo "## Staging feature configuration"
+            echo ""
+            echo "| Feature | State |"
+            echo "|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "${RESEND_API_KEY}" ] && [ -n "${TO_EMAIL}" ] && [ -n "${FROM_EMAIL}" ]; then
+            echo "| Contact form | configured |" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Contact form not fully configured — POST / will return 503"
+            echo "| Contact form | **not configured** (503) |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Half-configured Turnstile is worse than none: the widget renders and
+          # submissions are then accepted unverified, or vice versa.
+          if [ -n "${TURNSTILE_SECRET_KEY}" ] && [ -n "${TURNSTILE_SITE_KEY}" ]; then
+            echo "| Bot gate | configured |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "${TURNSTILE_SECRET_KEY}" ] || [ -n "${TURNSTILE_SITE_KEY}" ]; then
+            echo "::warning::Turnstile is half-configured — set both the site key and the secret, or neither"
+            echo "| Bot gate | **half-configured** |" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "| Bot gate | off (submissions accepted uncaptcha'd) |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Deploy api
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/api
+          packageManager: bun
+          command: deploy --env staging
+          # Only names of secrets that are actually set are passed through, so
+          # an unconfigured feature stays unconfigured instead of shipping an
+          # empty string that reads as "configured".
+          secrets: |
+            ${{ secrets.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
+            ${{ secrets.TURNSTILE_SECRET_KEY != '' && 'TURNSTILE_SECRET_KEY' || '' }}
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+
+  verify:
+    needs: [deploy-www, deploy-api]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify staging
+        run: |
+          # Fetch through a helper that fails the build when the fetch fails.
+          # `curl -sf ... | grep -q` hides a failed fetch: grep sees empty input
+          # and returns 1, which reads as "assertion passed" under `bash -e`.
+          fetch() {
+            curl -sf --max-time 20 "$1" || { echo "::error::fetch failed: $1"; exit 1; }
+          }
+
+          sleep 5
+          home=$(fetch https://staging.gatezh.com/)
+
+          deployed=$(printf '%s' "${home}" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1)
+          if [ "${deployed}" != "${GITHUB_SHA}" ]; then
+            echo "::error::Deployed build-commit '${deployed}' does not match ${GITHUB_SHA}"
+            exit 1
+          fi
+          echo "Staging is serving ${deployed}."

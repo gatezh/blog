@@ -31,4 +31,16 @@
       "enabled": true,
     },
   },
+
+  // Staging only. Production deliberately has NO env block: it keeps deploying
+  // under the top-level config and the existing Worker name, so nothing is
+  // orphaned and the gatezh.com custom domain does not have to move. Adding a
+  // `production` block here renames the deployed Worker — see the cutover
+  // runbook in docs/deployment.md before doing that.
+  "env": {
+    "staging": {
+      "workers_dev": false,
+      "routes": [{ "pattern": "staging.gatezh.com", "custom_domain": true }],
+    },
+  },
 }
