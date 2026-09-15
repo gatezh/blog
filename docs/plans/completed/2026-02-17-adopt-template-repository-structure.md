@@ -22,6 +22,7 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 ### Task 1: Rename apps/ to services/
 
 **Files:**
+
 - Move: `apps/web/` -> `services/www/`
 - Move: `apps/email-worker/` -> `services/email-worker/`
 
@@ -39,13 +40,14 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 ### Task 2: Add .mise.toml for tool version management
 
 **Files:**
+
 - Create: `.mise.toml`
 - Modify: `.github/workflows/deploy-web.yml` (use mise-action instead of hardcoded versions)
 - Modify: `.github/workflows/deploy-email-worker.yml` (use mise-action instead of hardcoded versions)
 
 - [x] Create `.mise.toml` with bun and hugo versions (no node needed for this project):
-    - `bun = "1.3.2"` (current version used in CI)
-    - `hugo = "0.152.2"` (current version used in CI)
+  - `bun = "1.3.2"` (current version used in CI)
+  - `hugo = "0.152.2"` (current version used in CI)
 - [x] Update `deploy-web.yml`: replace `oven-sh/setup-bun` and `peaceiris/actions-hugo` with `jdx/mise-action@v2`, remove hardcoded `HUGO_VERSION` and `BUN_VERSION` env vars
 - [x] Update `deploy-email-worker.yml`: replace `oven-sh/setup-bun` with `jdx/mise-action@v2`, remove hardcoded `BUN_VERSION` env var
 - [x] Update path triggers in workflows from `apps/` to `services/`
@@ -53,33 +55,42 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 ### Task 3: Modernize devcontainer with Dockerfile + mise
 
 **Files:**
+
 - Create: `.devcontainer/Dockerfile`
 - Create: `.devcontainer/devcontainer.json` (replace hugo-dev/devcontainer.json as root config)
 - Remove: `.devcontainer/hugo-dev/` directory (replaced by new setup)
 
 - [x] Create `.devcontainer/Dockerfile` based on template (debian:trixie-slim, install mise, read tool versions from .mise.toml)
 - [x] Create new `.devcontainer/devcontainer.json` with:
-    - Build from Dockerfile (no pre-built image dependency)
-    - Volume mounts for node_modules (services/www, services/email-worker)
-    - VS Code extensions: bun, tailwind CSS, hugo extensions, OXC
-    - postCreateCommand: `bun install`
+  - Build from Dockerfile (no pre-built image dependency)
+  - Volume mounts for node_modules (services/www, services/email-worker)
+  - VS Code extensions: bun, tailwind CSS, hugo extensions, OXC
+  - postCreateCommand: `bun install`
 - [x] Remove `.devcontainer/hugo-dev/` directory
 
 ### Task 4: Replace Prettier with OXC (oxlint)
 
 **Files:**
+
 - Create: `oxlint.json`
 - Modify: root `package.json` (replace prettier dep and script with oxlint)
 - Modify: `services/www/package.json` (remove prettier dependencies)
 - Remove: `services/www/prettier.yml` (prettier config)
 
 - [x] Create `oxlint.json` at project root, adapted from template (remove react-specific rules since this project has no React):
-    ```json
-    {
-      "rules": { "typescript": "warn", "import": "warn", "unicorn": "warn" },
-      "ignorePatterns": ["**/node_modules", "**/dist", "**/.wrangler", "**/public", "services/www/themes", "services/www/static"]
-    }
-    ```
+  ```json
+  {
+    "rules": { "typescript": "warn", "import": "warn", "unicorn": "warn" },
+    "ignorePatterns": [
+      "**/node_modules",
+      "**/dist",
+      "**/.wrangler",
+      "**/public",
+      "services/www/themes",
+      "services/www/static"
+    ]
+  }
+  ```
 - [x] Update root `package.json`: replace `prettier` devDep with `oxlint` (pinned exact version), replace `prettier` script with `lint` script
 - [x] Remove `prettier` and `prettier-plugin-go-template` and `prettier-plugin-tailwindcss` from `services/www/package.json` devDependencies
 - [x] Delete `services/www/prettier.yml`
@@ -90,45 +101,55 @@ Restructure the gatezh.com monorepo to align with the SurgeGate template reposit
 ### Task 5: Add root tsconfig.json and .claude/settings.json
 
 **Files:**
+
 - Create: `tsconfig.json` (root)
 - Create: `.claude/settings.json`
 
 - [x] Create root `tsconfig.json` matching template (ES2022 target, ESNext module, bundler resolution, strict mode)
 - [x] Create `.claude/settings.json` with allowed bash commands matching template pattern:
-    ```json
-    {
-      "permissions": {
-        "allow": ["Bash(bun:*)", "Bash(wrangler:*)", "Bash(git:*)", "Bash(curl:*)", "Bash(mkdir:*)", "Bash(ls:*)"]
-      }
+  ```json
+  {
+    "permissions": {
+      "allow": [
+        "Bash(bun:*)",
+        "Bash(wrangler:*)",
+        "Bash(git:*)",
+        "Bash(curl:*)",
+        "Bash(mkdir:*)",
+        "Bash(ls:*)"
+      ]
     }
-    ```
+  }
+  ```
 - [x] Run `bunx tsc --noEmit` in services/email-worker to verify TypeScript works with root tsconfig
 
 ### Task 6: Update .gitignore
 
 **Files:**
+
 - Modify: `.gitignore`
 
 - [x] Modernize `.gitignore` to match template patterns:
-    - Add: `dist/`, `.wrangler/`, `*.tsbuildinfo`, `coverage/`
-    - Keep: Hugo-specific ignores, macOS ignores, ralphex progress logs
-    - Remove: generated toptal.com boilerplate comments, `.aider*` (no longer used)
-    - Consolidate environment file patterns
+  - Add: `dist/`, `.wrangler/`, `*.tsbuildinfo`, `coverage/`
+  - Keep: Hugo-specific ignores, macOS ignores, ralphex progress logs
+  - Remove: generated toptal.com boilerplate comments, `.aider*` (no longer used)
+  - Consolidate environment file patterns
 
 ### Task 7: Update CLAUDE.md and documentation
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 - Modify: `docs/DEPLOYMENT.md`
 - Modify: `docs/README.md`
 
 - [x] Update CLAUDE.md:
-    - Change all `apps/web` references to `services/www`
-    - Change all `apps/email-worker` references to `services/email-worker`
-    - Update monorepo structure diagram
-    - Replace Prettier references with OXC
-    - Update Hugo/Bun version sync section to reference `.mise.toml` as single source of truth
-    - Add linting to pre-completion checks
+  - Change all `apps/web` references to `services/www`
+  - Change all `apps/email-worker` references to `services/email-worker`
+  - Update monorepo structure diagram
+  - Replace Prettier references with OXC
+  - Update Hugo/Bun version sync section to reference `.mise.toml` as single source of truth
+  - Add linting to pre-completion checks
 - [x] Update `docs/DEPLOYMENT.md`: change all `apps/` paths to `services/`
 - [x] Update `docs/README.md` if it references directory paths
 

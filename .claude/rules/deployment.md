@@ -7,9 +7,9 @@ description: Build commands, deployment workflow, and required GitHub secrets/va
 ## Root Level (Monorepo)
 - `bun install` - Install all workspace dependencies
 - `bun run dev` - Run Hugo dev server
-- `bun run dev:worker` - Run email worker locally
+- `bun run dev:api` - Run the API Worker locally
 - `bun run build` - Build Hugo site
-- `bun run build:worker` - Build worker (dry-run)
+- `bun run build:api` - Build the API Worker (dry-run)
 - `bun run deploy` - Deploy both web and worker
 
 ## Web App (services/www)
@@ -17,7 +17,7 @@ description: Build commands, deployment workflow, and required GitHub secrets/va
 - `bun run build` - Production build
 - `bun run deploy` - Deploy to Cloudflare Workers
 
-## Email Worker (services/email-worker)
+## API Worker (services/api)
 - `bun run dev` - Run worker locally (needs .dev.vars)
 - `bun run deploy` - Deploy to Cloudflare Workers
 

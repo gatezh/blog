@@ -34,7 +34,8 @@ interface TurnstileVerifyResponse {
 async function verifyTurnstile(
   token: string,
   secretKey: string,
-  ip: string | null
+  ip: string | null,
+  expectedHostname: string,
 ): Promise<{ success: boolean; error?: string }> {
   const formData = new URLSearchParams();
   formData.append("secret", secretKey);
@@ -43,16 +44,13 @@ async function verifyTurnstile(
     formData.append("remoteip", ip);
   }
 
-  const response = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: formData,
-    }
-  );
+  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: formData,
+  });
 
   const result = (await response.json()) as TurnstileVerifyResponse;
 
@@ -60,6 +58,16 @@ async function verifyTurnstile(
     return {
       success: false,
       error: `Turnstile verification failed: ${result["error-codes"]?.join(", ") || "Unknown error"}`,
+    };
+  }
+
+  // A token is only proof of a solved challenge, not of *where* it was solved.
+  // Without this, a token minted on any other property sharing this sitekey
+  // verifies here. Cloudflare's test keys omit hostname, so absence is allowed.
+  if (result.hostname && result.hostname !== expectedHostname) {
+    return {
+      success: false,
+      error: `Turnstile hostname mismatch: ${result.hostname}`,
     };
   }
 
@@ -72,6 +80,10 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+// Longest value accepted for each field. Enforced before the Turnstile call so
+// an oversized body is rejected without spending a verification.
+const LIMITS = { name: 100, subject: 200, message: 5000 } as const;
+
 // Sanitize input to prevent injection
 function sanitize(input: string): string {
   return input
@@ -81,16 +93,20 @@ function sanitize(input: string): string {
     .replace(/'/g, "&#x27;");
 }
 
+// Sanitize a value that ends up in the Subject header. CR/LF there is header
+// injection (`Subject: x\r\nBcc: ...`), so newlines collapse to spaces.
+function sanitizeLine(input: string): string {
+  return sanitize(input).replace(/\s+/g, " ").trim();
+}
+
 // Build HTML email content
 function buildHtmlContent(
   safeName: string,
   safeEmail: string,
   safeSubject: string | null,
-  safeMessage: string
+  safeMessage: string,
 ): string {
-  const subjectLine = safeSubject
-    ? `<p><strong>Subject:</strong> ${safeSubject}</p>`
-    : "";
+  const subjectLine = safeSubject ? `<p><strong>Subject:</strong> ${safeSubject}</p>` : "";
 
   return `
 <!DOCTYPE html>
@@ -140,7 +156,7 @@ function buildTextContent(
   name: string,
   email: string,
   subject: string | undefined,
-  message: string
+  message: string,
 ): string {
   return `New Contact Form Submission
 
@@ -172,7 +188,7 @@ app.use(
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
     maxAge: 86400,
-  })
+  }),
 );
 
 // Contact form submission endpoint
@@ -190,47 +206,46 @@ app.post("/", async (c) => {
       return c.json({ error: "Invalid email address" }, 400);
     }
 
+    // Enforce length limits before the Turnstile call
+    const tooLong = (
+      [
+        ["name", data.name, LIMITS.name],
+        ["subject", data.subject ?? "", LIMITS.subject],
+        ["message", data.message, LIMITS.message],
+      ] as const
+    ).find(([, value, limit]) => value.length > limit);
+
+    if (tooLong) {
+      return c.json({ error: `The ${tooLong[0]} field is too long (max ${tooLong[2]})` }, 400);
+    }
+
     // Verify Turnstile token
     const clientIP = c.req.header("CF-Connecting-IP") || null;
     const turnstileResult = await verifyTurnstile(
       data.turnstileToken,
       c.env.TURNSTILE_SECRET_KEY,
-      clientIP
+      clientIP,
+      new URL(c.env.ALLOWED_ORIGIN).hostname,
     );
 
     if (!turnstileResult.success) {
-      return c.json(
-        { error: "Captcha verification failed. Please try again." },
-        400
-      );
+      return c.json({ error: "Captcha verification failed. Please try again." }, 400);
     }
 
     // Sanitize inputs
-    const safeName = sanitize(data.name);
+    const safeName = sanitizeLine(data.name);
     const safeEmail = sanitize(data.email);
-    const safeSubject = data.subject ? sanitize(data.subject) : null;
+    const safeSubject = data.subject ? sanitizeLine(data.subject) : null;
     const safeMessage = sanitize(data.message);
 
     // Build email content
-    const htmlContent = buildHtmlContent(
-      safeName,
-      safeEmail,
-      safeSubject,
-      safeMessage
-    );
-    const textContent = buildTextContent(
-      data.name,
-      data.email,
-      data.subject,
-      data.message
-    );
+    const htmlContent = buildHtmlContent(safeName, safeEmail, safeSubject, safeMessage);
+    const textContent = buildTextContent(data.name, data.email, data.subject, data.message);
 
     // Send email via Resend
     const resend = new Resend(c.env.RESEND_API_KEY);
 
-    const emailSubject = safeSubject
-      ? `Contact: ${safeSubject}`
-      : `Contact from ${safeName}`;
+    const emailSubject = safeSubject ? `Contact: ${safeSubject}` : `Contact from ${safeName}`;
 
     const { data: emailData, error } = await resend.emails.send({
       from: `Serge Gatezh Blog <${c.env.FROM_EMAIL}>`,
@@ -243,10 +258,7 @@ app.post("/", async (c) => {
 
     if (error) {
       console.error("Resend error:", error);
-      return c.json(
-        { error: "Failed to send message. Please try again later." },
-        500
-      );
+      return c.json({ error: "Failed to send message. Please try again later." }, 500);
     }
 
     return c.json({
@@ -256,10 +268,7 @@ app.post("/", async (c) => {
     });
   } catch (error) {
     console.error("Worker error:", error);
-    return c.json(
-      { error: "An unexpected error occurred. Please try again." },
-      500
-    );
+    return c.json({ error: "An unexpected error occurred. Please try again." }, 500);
   }
 });
 

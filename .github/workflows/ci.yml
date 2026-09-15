@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # No `branches:` filter — a stacked PR targets the branch below it in the
+  # stack, not master, and a filter here would silently skip CI on every PR
+  # except the base one.
   pull_request:
-    branches: [master]
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -17,54 +19,57 @@ jobs:
     name: Lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - name: Cache node_modules
         id: cache-node-modules
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             node_modules
             services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
 
       - name: Cache Bun global cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock') }}
+          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
-      - name: Lint and type check
+      # `check` is lint + format + hugo-format + typecheck + build. The
+      # production build runs here, which is why there is no separate build
+      # job — adding one back would build the site twice per PR.
+      - name: Check
         run: bun run check
 
   test-browser:
     name: Test (Browser)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - name: Cache node_modules
         id: cache-node-modules
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             node_modules
             services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
 
       - name: Cache Bun global cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock') }}
+          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
@@ -82,7 +87,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: cache-playwright
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ steps.playwright-version.outputs.version }}
@@ -99,33 +104,3 @@ jobs:
 
       - name: Run browser tests
         run: bun run test
-
-  build:
-    name: Build
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: jdx/mise-action@v4
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v6
-        with:
-          path: |
-            node_modules
-            services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock') }}
-
-      - name: Cache Bun global cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock') }}
-
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Build production bundle
-        run: bun run build

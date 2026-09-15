@@ -1,0 +1,6 @@
+# ralphex project-level configuration
+# overrides global config (~/.config/ralphex/) and embedded defaults
+# see: ralphex --dump-defaults /path/to/dir
+
+# disable codex external review phase
+codex_enabled = false

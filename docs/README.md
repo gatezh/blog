@@ -20,10 +20,12 @@ adr-NNN-title-with-dashes.md
 ```
 
 Where:
+
 - `NNN` is a sequential three-digit number (001, 002, 003, etc.)
 - `title-with-dashes` is a short, lowercase, hyphen-separated title
 
 **Examples:**
+
 - `adr-001-remark42-theme-synchronization.md`
 - `adr-002-deployment-platform-choice.md`
 - `adr-003-comment-system-selection.md`
@@ -53,11 +55,11 @@ All ADRs should follow the standard template provided in [`adr-template.md`](./a
 
 ## Index
 
-| Number | Title | Status | Date |
-|--------|-------|--------|------|
-| [001](./adr-001-remark42-theme-synchronization.md) | Remark42 Theme Synchronization with PaperMod | Superseded | 2025-11-08 |
-| [002](./adr-002-csp-configuration.md) | Content Security Policy Configuration | Accepted | 2025-11-07 |
-| [003](./adr-003-terminal-theme-remark42-synchronization.md) | Remark42 Theme Synchronization with Terminal Theme | Accepted | 2026-02-02 |
+| Number                                                      | Title                                              | Status     | Date       |
+| ----------------------------------------------------------- | -------------------------------------------------- | ---------- | ---------- |
+| [001](./adr-001-remark42-theme-synchronization.md)          | Remark42 Theme Synchronization with PaperMod       | Superseded | 2025-11-08 |
+| [002](./adr-002-csp-configuration.md)                       | Content Security Policy Configuration              | Accepted   | 2025-11-07 |
+| [003](./adr-003-terminal-theme-remark42-synchronization.md) | Remark42 Theme Synchronization with Terminal Theme | Accepted   | 2026-02-02 |
 
 ## Resources
 
