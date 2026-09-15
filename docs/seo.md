@@ -4,7 +4,7 @@ Search-engine indexability for `gatezh.com`: the settings that live outside this
 repo, the Search Console actions only a human can take, and a record of what is
 already enforced in code so nobody re-fixes it.
 
-Not required for a working deploy — see [deployment.md](./DEPLOYMENT.md) for
+Not required for a working deploy — see [deployment.md](./deployment.md) for
 that. Everything here is about being _found_, not about the site functioning.
 
 ---

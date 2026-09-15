@@ -65,7 +65,7 @@ hugo new ever-learning/name-of-a-post
 
 ## Deployment
 
-See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for complete deployment instructions.
+See [docs/deployment.md](./docs/deployment.md) for complete deployment instructions.
 
 ### Quick Overview
 
@@ -78,7 +78,7 @@ See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for complete deployment instructi
 
 ## Documentation
 
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Full deployment setup
+- [Deployment Guide](./docs/deployment.md) - Full deployment setup
 - [Architecture Decision Records](./docs/README.md) - Project decisions
 
 ## License

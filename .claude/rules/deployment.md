@@ -23,7 +23,17 @@ description: Build commands, deployment workflow, and required GitHub secrets/va
 
 # Deployment
 
-Deployment is handled via GitHub Actions. See `docs/DEPLOYMENT.md` for complete setup instructions.
+Deployment is handled via GitHub Actions. See `docs/deployment.md` for the full
+setup, including the cutover runbook.
+
+- `deploy.yml` — push to `master` → production. **The active path today.**
+- `release.yml` — manual dispatch → `v*` tag → production. Available, opt-in.
+- `deploy-staging.yml` — manual dispatch → staging. Blocked until the `staging`
+  GitHub Environment and DNS exist; the push trigger is commented out on purpose.
+
+Deployed Worker names are `gatezh-com` and `gatezh-com-email-worker` and do not
+match the directory names. Renaming them is a cutover, not an edit — only
+`staging` has an `env` block in `wrangler.jsonc`, deliberately.
 
 ## GitHub Secrets Required
 - `CLOUDFLARE_API_TOKEN` - API token with Workers edit permission
