@@ -28,10 +28,9 @@ bun run build
 
 - [mise](https://mise.run) - Tool version manager (installs correct Bun and Hugo versions from `.mise.toml`)
 
-Or install tools manually:
-
-- [Bun](https://bun.sh) (v1.3.10+)
-- [Hugo Extended](https://gohugo.io) (v0.157.0+)
+Or install [Bun](https://bun.sh) and [Hugo Extended](https://gohugo.io)
+manually, at the versions pinned in [`.mise.toml`](.mise.toml) — that file is
+the single source of truth and the only place versions should be edited.
 
 ### Available Scripts
 

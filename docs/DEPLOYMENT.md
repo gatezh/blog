@@ -136,12 +136,15 @@ git commit -m "Configure deployment"
 git push origin master
 ```
 
-The GitHub Actions workflows will:
+A single workflow, `deploy.yml`, runs four jobs:
 
-1. **deploy-www.yml**: Build Hugo and deploy the website to Cloudflare Workers
-2. **deploy.yml** (`deploy-api` job): Deploy the API Worker to Cloudflare Workers
+1. `check` — lint, format, typecheck and build, gating everything below
+2. `deploy-www` — build Hugo and deploy the website Worker
+3. `deploy-api` — deploy the API Worker
+4. `verify` — assert the deployed site's health and indexability invariants
 
-Each workflow only runs when its respective app changes (path filtering).
+Both deploy jobs run on every push to `master` that is not excluded by the
+workflow's `paths-ignore` list; there is no per-app path filtering.
 
 ## Monitoring Deployments
 
