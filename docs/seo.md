@@ -167,3 +167,51 @@ out of the nav on purpose. A page reachable only from the sitemap is the usual
 recipe for `Discovered - currently not indexed`, so if it lands there, that is
 the cause and it is a known trade-off rather than a defect. Linking it from
 `/about/` would be the fix if it ever matters.
+
+---
+
+## 5. The old site is still live at `gatezh.github.io`
+
+**This is the highest-value item on this page that code cannot fix.**
+
+`gatezh/gatezh.github.io` — the Jekyll site this blog replaced — still has
+GitHub Pages enabled and `status: built`. Eight URLs are live and crawlable,
+and four of them are the same posts `gatezh.com` publishes:
+
+| Live on `gatezh.github.io`                              | Its `<link rel=canonical>`  | Status                       |
+| ------------------------------------------------------- | --------------------------- | ---------------------------- |
+| `/`                                                     | `https://gatezh.com/`       | resolves — consolidates fine |
+| `/about/`                                               | `https://gatezh.com/about/` | resolves — consolidates fine |
+| `/how-to-host-angular-application-on-github-pages.html` | `…/<slug>.html`             | **see below**                |
+| `/getting-started-with-jekyll.html`                     | `…/<slug>.html`             | **see below**                |
+| `/host-your-personal-blog-on-github-pages.html`         | `…/<slug>.html`             | **see below**                |
+| `/using-anki-to-study-programming.html`                 | `…/<slug>.html`             | **see below**                |
+| `/portfolio/`                                           | **none**                    | standalone duplicate         |
+| `/feed.xml`                                             | none                        | duplicate feed               |
+
+The four post canonicals point at `https://gatezh.com/<slug>.html`, and until
+the `_redirects` work those URLs **404**. A canonical pointing at a 404 is
+ignored, so Google saw four live duplicates competing with the canonical posts
+rather than four pages deferring to them. That is a plausible contributor to
+the "Crawled - currently not indexed" bucket, and it is invisible from inside
+this repo.
+
+Serving a 301 at `/<slug>.html` fixes it as a side effect: the canonicals now
+resolve, and the duplicates consolidate. `/portfolio/` carries no canonical at
+all, so it stays a standalone duplicate of `/early-projects/` regardless.
+
+The `url: "https://gatezh.com"` in that repo's `_config.yml` is what generates
+those canonicals, and its `google_analytics: UA-30716629-2` is still firing.
+
+- [ ] **Decide the old site's fate.** Disabling Pages on
+      `gatezh/gatezh.github.io` (Settings → Pages → Source: None) removes all
+      eight URLs at once and is the clean fix; inbound links to the old
+      `.html` paths already 301 correctly on `gatezh.com`. The alternative —
+      keeping it and adding `robots.txt` plus a canonical on `/portfolio/` —
+      leaves a second site to maintain. Nothing was lost in the migration: the
+      only unmigrated post is `published: false`, a draft index page.
+- [ ] **Separately**, `angular2-reddit`, `ng-shop`, `inventory-app` and
+      `Auction-app` also serve live Pages demos, with their repo `homepage`
+      field still pointing at dead `http://gatezh.com/<project>` URLs. Those
+      are real project demos rather than duplicates, so they are cleanup, not
+      an indexing problem.
