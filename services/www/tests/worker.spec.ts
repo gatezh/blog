@@ -160,10 +160,16 @@ const DOT_HTML: Array<[string, string]> = [
   ["/using-anki-to-study-programming.html", CANONICAL.anki],
 ];
 
+/** The 2017 portfolio, restored at /early-projects/. Also archived 200 in the
+ *  CDX index. It reaches the redirect table the same way every other entry
+ *  does — an `aliases:` value on the page — with no special-casing anywhere. */
+const PAGES: Array<[string, string]> = [["/portfolio", "/early-projects/"]];
+
 test.describe("legacy URLs redirect in one hop", () => {
+  const directoryStyle = [...DATED, ...PAGES];
   const cases: Array<[string, string]> = [
-    ...DATED,
-    ...DATED.map(([from, to]): [string, string] => [`${from}/`, to]),
+    ...directoryStyle,
+    ...directoryStyle.map(([from, to]): [string, string] => [`${from}/`, to]),
     ...DOT_HTML,
   ];
 
@@ -184,7 +190,7 @@ test.describe("legacy URLs redirect in one hop", () => {
   }
 
   test("destinations are pages, not further redirects", async ({ request }) => {
-    for (const to of Object.values(CANONICAL)) {
+    for (const to of [...Object.values(CANONICAL), ...PAGES.map(([, to]) => to)]) {
       const res = await request.get(to, { maxRedirects: 0 });
       expect(res.status(), `${to} must terminate the redirect chain`).toBe(200);
     }
@@ -195,7 +201,7 @@ test.describe("legacy URLs redirect in one hop", () => {
     // is served 200 at the same URL and silently wins over the redirect rule —
     // the failure this whole feature exists to prevent, and one that a status
     // check alone would not catch.
-    for (const [from] of DATED) {
+    for (const [from] of directoryStyle) {
       const res = await request.get(`${from}/`, { maxRedirects: 0 });
       expect(res.status()).toBe(301);
       expect(await res.text()).not.toContain("http-equiv");
