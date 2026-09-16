@@ -201,7 +201,10 @@ resolve, and the duplicates consolidate. `/portfolio/` carries no canonical at
 all, so it stays a standalone duplicate of `/early-projects/` regardless.
 
 The `url: "https://gatezh.com"` in that repo's `_config.yml` is what generates
-those canonicals, and its `google_analytics: UA-30716629-2` is still firing.
+those canonicals. That file also still carries a Universal Analytics property
+id, which is worth retiring along with the site — a shared analytics id is a
+standard way to correlate separately-hosted sites back to one owner, so it is
+deliberately not repeated here.
 
 - [ ] **Decide the old site's fate.** Disabling Pages on
       `gatezh/gatezh.github.io` (Settings → Pages → Source: None) removes all
