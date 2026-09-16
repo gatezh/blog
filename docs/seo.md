@@ -158,5 +158,12 @@ Googlebot never fetched the URL at all.
 
 Known-good entries that will keep appearing under `Page with redirect`, because
 they are the redirects this repo deliberately serves: the seven dated
-`/posts/YYYY/MM/DD/<slug>` paths and the four Jekyll-era `/<slug>.html` paths,
-all 301 to their canonical post.
+`/posts/YYYY/MM/DD/<slug>` paths, the four Jekyll-era `/<slug>.html` paths, and
+`/portfolio/`. All 301 to a canonical page.
+
+One deliberate orphan: `/early-projects/` is indexable and in the sitemap, but
+nothing on the site links to it — it is an archive of the 2017 portfolio, kept
+out of the nav on purpose. A page reachable only from the sitemap is the usual
+recipe for `Discovered - currently not indexed`, so if it lands there, that is
+the cause and it is a known trade-off rather than a defect. Linking it from
+`/about/` would be the fix if it ever matters.
