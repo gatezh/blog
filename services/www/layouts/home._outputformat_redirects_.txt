@@ -1,0 +1,37 @@
+{{- /* _redirects — Cloudflare's static redirect table, generated from the
+       `aliases:` front matter Hugo would otherwise turn into meta-refresh stubs.
+
+       Why this exists: a Hugo alias is an HTML page whose only content is a
+       `<meta http-equiv=refresh>`. Google follows one, but it has to fetch and
+       render the stub to find out where it goes, and a meta refresh is a weaker
+       consolidation signal than a real 301. `disableAliases: true` in hugo.yaml
+       stops the stubs being written while KEEPING `.Aliases` readable here,
+       which is exactly what that setting is documented for.
+
+       Two lines per directory-style alias, not one. Cloudflare matches the
+       request path literally, and `html_handling: auto-trailing-slash` answers
+       the slash-less spelling with its own 307 BEFORE any redirect rule is
+       consulted — verified against `wrangler dev --local`. Emitting only the
+       canonical slash form would therefore cost every legacy URL an extra hop
+       (307 -> 301) instead of the single 301 this file exists to produce.
+
+       An alias that ends in a file extension gets one line instead. The four
+       2017 posts carry their Jekyll-era `/<slug>.html` URLs, and `/x.html/` is
+       not a path anything will ever request.
+
+       Same one-line-printf idiom as llms.txt, and for the same reason: this
+       format is isPlainText, so the template IS the output, and gotmplfmt
+       (enforced by `bun run format:hugo:check`) indents the body of a
+       multi-line range block with a literal tab. A leading tab would corrupt
+       every rule it touched. */ -}}
+{{- range .Site.Pages -}}
+	{{- $target := .RelPermalink -}}
+	{{- range .Aliases -}}
+		{{- $bare := strings.TrimSuffix "/" . -}}
+		{{- if path.Ext $bare -}}
+			{{- printf "%s %s 301\n" $bare $target -}}
+		{{- else -}}
+			{{- printf "%s %s 301\n%s/ %s 301\n" $bare $target $bare $target -}}
+		{{- end -}}
+	{{- end -}}
+{{- end -}}

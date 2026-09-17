@@ -21,5 +21,12 @@ globs: services/www/**
   `X-Robots-Tag: noindex` on `.md` and `llms*.txt`, because neither a response
   status nor a header can come from `_headers` once
   `assets.run_worker_first` is set.
-- Indexability rules are pinned by `services/www/tests/seo.spec.ts` and the
-  post-deploy `verify` job. See `docs/seo.md` before changing any of them.
+- Legacy URLs are redirected by a **generated** `public/_redirects`, built from
+  each page's `aliases:` front matter by
+  `services/www/layouts/home._outputformat_redirects_.txt`. Never hand-edit it.
+  Top-level `disableAliases: true` in `hugo.yaml` stops Hugo emitting the
+  meta-refresh stubs that would otherwise shadow those rules — it is a different
+  setting from `pagination.disableAliases`, and both are needed.
+- Indexability rules are pinned by `services/www/tests/seo.spec.ts`,
+  `services/www/tests/worker.spec.ts` and the post-deploy `verify` job. See
+  `docs/seo.md` before changing any of them.
