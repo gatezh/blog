@@ -17,9 +17,32 @@ enableGitInfo: true
 pagination:
   disableAliases: true
 
+# Top-level `disableAliases` is a DIFFERENT setting from `pagination.disableAliases`
+# above, and both are load-bearing — a merge that collapses them into one breaks
+# something. This one stops Hugo writing a meta-refresh stub page for every
+# `aliases:` entry in front matter. The aliases themselves are preserved on the
+# page, which is what the setting is documented for: layouts/redirects._outputformat_redirects_.txt
+# reads `.Aliases` and emits a real 301 into /_redirects instead. Removing this
+# without removing that template puts a stub back at the same URL, where it wins
+# over the redirect rule and reinstates the meta refresh.
+disableAliases: true
+
+# Cloudflare reads the redirect table from a file literally named `_redirects`,
+# with no extension, and Hugo derives an output file's extension from its media
+# type — so an extensionless output needs a media type that declares no suffix.
+#
+# This DECLARES A NEW media type. It does not redefine a built-in, which is the
+# thing the note below warns about: `text/cloudflare-redirects` is ours alone,
+# so nothing Hugo already knows how to parse changes behaviour. Do not take this
+# block as licence to re-add `text/markdown` or `text/plain` overrides.
+mediaTypes:
+  text/cloudflare-redirects:
+    suffixes: []
+    delimiter: ""
+
 # Output formats for llms.txt and agent-friendly Markdown.
 #
-# There is deliberately no `mediaTypes:` block. Hugo's built-in text/markdown
+# There is otherwise deliberately no `mediaTypes:` block. Hugo's built-in text/markdown
 # already covers md, markdown AND mdown, and redefining a media type REPLACES
 # it rather than extending it — narrowing the suffix list to ["md"] makes Hugo
 # stop recognising this site's four `.markdown` posts as content. The build
@@ -30,6 +53,14 @@ outputFormats:
   # which set `url:` to emit /llms.txt and /llms-full.txt.
   LLMText:
     mediaType: text/plain
+    isPlainText: true
+    notAlternative: true
+  # Cloudflare's redirect table, attached to the home page so it lands at
+  # /_redirects rather than under a section. `baseName` supplies the whole
+  # filename because the media type above contributes no suffix.
+  Redirects:
+    mediaType: text/cloudflare-redirects
+    baseName: _redirects
     isPlainText: true
     notAlternative: true
   # Hugo ships a `markdown` format already (baseName index, isPlainText true,
@@ -45,9 +76,31 @@ outputFormats:
 # HTML to an Accept: text/markdown request. Listing a kind REPLACES its
 # defaults, so HTML and RSS have to be repeated.
 outputs:
-  home: [HTML, RSS, Markdown]
+  home: [HTML, RSS, Markdown, Redirects]
   section: [HTML, RSS, Markdown]
   page: [HTML, Markdown]
+
+# Powers the "ls --related" block in themes/terminal/layouts/page.html, which
+# calls .Site.RegularPages.Related. That call has been in the template all along
+# but rendered on ZERO of the ten posts, because with no `related:` block Hugo
+# falls back to indexing `keywords` and `date` at threshold 80 — and no post
+# carried a `keywords` value. The block is the only contextual internal linking
+# the site has, so it was worth making it actually produce output.
+#
+# includeNewer matters more than it looks. It defaults to false, which means a
+# post can only ever be related to something OLDER than itself. The 2017 posts
+# are both the oldest and the ones starved of crawl attention, so without this
+# they would link out to nothing and, worse, never be linked TO from the newer
+# posts that Google actually crawls.
+related:
+  includeNewer: true
+  threshold: 50
+  toLower: true
+  indices:
+    - name: keywords
+      weight: 100
+    - name: date
+      weight: 10
 
 # Hugo v0.161+ runs Node tools (Tailwind) under `node --permission`, defaulting
 # allowRead to ["."] — the Hugo project root, services/www. This is a bun
