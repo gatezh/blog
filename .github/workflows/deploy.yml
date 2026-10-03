@@ -48,9 +48,16 @@ jobs:
       - name: Check
         run: bun run check
 
+  # Both deploy jobs read the `production` GitHub Environment — the same
+  # variables and secrets release.yml uses, so the two production paths cannot
+  # build different sites. This workflow is retired by step 5 of the cutover
+  # runbook in docs/deployment.md.
   deploy-www:
     needs: check
     runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://gatezh.com
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -77,10 +84,17 @@ jobs:
 
       - name: Build Hugo site
         env:
+          HUGO_BASEURL: ${{ vars.HUGO_BASEURL }}
+          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
           # Stamped into <meta name="build-commit"> so the verify job can
           # confirm the deployed artifact is this build, not a cached one.
           HUGO_PARAMS_BUILDCOMMIT: ${{ github.sha }}
-        run: bun run --cwd services/www build
+        run: |
+          # hugo.yaml's baseURL is localhost on purpose; a deploy without the
+          # override would ship every canonical, sitemap and JSON-LD URL wrong.
+          : "${HUGO_BASEURL:?Set HUGO_BASEURL on the production environment}"
+          bun run --cwd services/www build
 
       - name: Deploy WWW
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
@@ -89,11 +103,30 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: services/www
           packageManager: bun
+          # The contact-form origin for the CSP's connect-src — the same value
+          # the form POSTs to, so the two cannot disagree.
+          vars: |
+            API_URL
+        env:
+          API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
 
   deploy-api:
     needs: check
     runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://gatezh.com/contact/
     steps:
+      - name: Check required configuration
+        env:
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+        run: |
+          # Without it the Worker answers every request with a CORS failure.
+          if [ -z "${ALLOWED_ORIGIN}" ]; then
+            echo "::error title=ALLOWED_ORIGIN not set::Set ALLOWED_ORIGIN on the production environment."
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
@@ -118,6 +151,23 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: services/api
           packageManager: bun
+          # Every Worker credential is a secret, so its value is masked in the
+          # logs of this public repo. Only those GitHub holds are passed;
+          # wrangler replaces a secret it is given and leaves the rest alone, so
+          # the live Worker keeps any credential not yet moved to GitHub.
+          secrets: |
+            ${{ secrets.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
+            ${{ secrets.TURNSTILE_SECRET_KEY != '' && 'TURNSTILE_SECRET_KEY' || '' }}
+            ${{ secrets.TO_EMAIL != '' && 'TO_EMAIL' || '' }}
+            ${{ secrets.FROM_EMAIL != '' && 'FROM_EMAIL' || '' }}
+          vars: |
+            ALLOWED_ORIGIN
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
 
   verify:
     needs: [deploy-www, deploy-api]
@@ -225,33 +275,25 @@ jobs:
 
       - name: Check security headers
         run: |
-          # The CSP lives in a Cloudflare Transform Rule, not in this repo, so
-          # it can drift without any commit. It has: docs/CSP.md documents an
-          # eleven-directive policy and the zone currently returns connect-src
-          # alone, leaving the site with no frame-ancestors and no
-          # X-Frame-Options.
-          #
-          # Reported as warnings, not errors, on purpose: the fix is a dashboard
-          # change this workflow cannot make, and failing every deploy on it
-          # would only teach people to ignore the job that also guards the
-          # indexability invariants above. Promote to ::error:: once the rule is
-          # restored — see docs/CSP.md.
-          headers=$(curl -sfI --max-time 15 https://gatezh.com/ || true)
-          csp=$(printf '%s' "${headers}" | grep -i '^content-security-policy:' || true)
-
-          if [ -z "${csp}" ]; then
-            echo "::warning::no Content-Security-Policy header on https://gatezh.com/"
-          else
-            for directive in default-src script-src frame-ancestors base-uri form-action; do
-              case "${csp}" in
-                *"${directive}"*) ;;
-                *) echo "::warning::CSP is missing ${directive}" ;;
-              esac
-            done
+          if ! headers=$(curl -sfI --max-time 15 https://gatezh.com/ | tr -d '\r'); then
+            echo "::error::could not fetch https://gatezh.com/"
+            exit 1
           fi
 
-          printf '%s' "${headers}" | grep -qi '^x-frame-options:' \
-            || echo "::warning::no X-Frame-Options header (and CSP frame-ancestors may be absent)"
+          # Production must be indexable. X_ROBOTS_TAG is a staging-only var in
+          # services/www/wrangler.jsonc; seeing it here means it leaked.
+          if printf '%s' "${headers}" | grep -qi '^x-robots-tag:'; then
+            echo "::error::https://gatezh.com/ sends X-Robots-Tag — production would drop out of search"
+            exit 1
+          fi
+
+          # The CSP now comes from the Worker (services/www/src/security.ts). A
+          # zone Transform Rule that sets the same header replaces it wholesale,
+          # and the old "CSP" rule still does until it is deleted — so this is
+          # a warning, not an error, until then. See docs/CSP.md, and promote
+          # it to ::error:: once the rule is gone.
+          printf '%s' "${headers}" | grep -i '^content-security-policy:' | grep -q "'strict-dynamic'" \
+            || echo "::warning::https://gatezh.com/ is not serving the Worker's CSP — a zone Transform Rule is overriding it (docs/CSP.md)"
 
       - name: Deployment summary
         env:
