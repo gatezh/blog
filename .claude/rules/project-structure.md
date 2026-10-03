@@ -12,7 +12,7 @@ This is a Bun monorepo for gatezh.com:
 ├── services/
 │   ├── www/                    # Hugo website + its Cloudflare Worker
 │   │   ├── content/            # Site content (Markdown)
-│   │   ├── src/                # Worker: Accept negotiation, 404, noindex
+│   │   ├── src/                # Worker: Accept negotiation, 404, noindex, CSP
 │   │   ├── tests/              # Playwright: blog, seo, agents, worker
 │   │   ├── layouts/            # Site-specific layouts (override theme)
 │   │   ├── themes/terminal/    # Custom terminal theme

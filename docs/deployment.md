@@ -1,10 +1,9 @@
 # Deployment Guide
 
-This document explains the deployment architecture and setup process for gatezh.com.
+How gatezh.com is configured and deployed, and the runbook for moving production
+from push-to-deploy to tagged releases.
 
 ## Deployment model
-
-Two paths, deliberately different in how much ceremony they carry.
 
 | Path                 | Trigger                    | Target     | Status                       |
 | -------------------- | -------------------------- | ---------- | ---------------------------- |
@@ -12,9 +11,9 @@ Two paths, deliberately different in how much ceremony they carry.
 | `release.yml`        | manual dispatch → `v*` tag | production | available, opt-in            |
 | `deploy-staging.yml` | manual dispatch            | staging    | **blocked on setup** (below) |
 
-The target model is: `master` push → staging, release dispatch → production. The
-repo is not there yet, on purpose — see [Cutover runbook](#cutover-runbook).
-Nothing below changes how production deploys today.
+The target model, shared with the other projects on this stack, is: `master`
+push → staging, release dispatch → production. See
+[Cutover runbook](#cutover-runbook).
 
 ### Why release-anchored production
 
@@ -26,258 +25,183 @@ can leave `www` and `api` on different commits.
 ### Worker names
 
 `services/www` deploys as `gatezh-com` and `services/api` as
-`gatezh-com-email-worker`. Those names are historical and do not match the
-directory layout. **Renaming them is a cutover, not an edit** — a renamed Worker
-is a new Worker, the old one keeps serving the custom domain until the domain is
-moved, and the contact form breaks in between. Only `staging` has an `env` block
-in `wrangler.jsonc` for exactly this reason; there is no `production` block.
+`gatezh-com-email-worker`. Those names are historical. **Renaming them is a
+cutover, not an edit** — a renamed Worker is a new Worker, the old one keeps
+serving the custom domain until the domain is moved, and the contact form breaks
+in between. Only `staging` has an `env` block in `wrangler.jsonc` for exactly
+this reason; there is no `production` block.
+
+| Surface | staging                                                      | production                                  |
+| ------- | ------------------------------------------------------------ | ------------------------------------------- |
+| www     | `gatezh-com-staging` → `staging-www.gatezh.com`              | `gatezh-com` → `gatezh.com`                 |
+| api     | `gatezh-com-email-worker-staging` → `staging-api.gatezh.com` | `gatezh-com-email-worker` → `*.workers.dev` |
+
+The flat `staging-api` / `staging-www` prefixes rather than nested
+`api.staging` are deliberate: the Cloudflare universal certificate covers one
+level of subdomain. Workers custom domains create their own DNS records on first
+deploy — there is no DNS to add by hand.
+
+## Configuration
+
+**The GitHub Environment is the single source of truth.** Every deploy job runs
+in the `staging` or `production` environment and reads its values from there.
+Nothing deployed reads `hugo.yaml`'s `apiUrl`/`baseURL` or any `vars` in
+`wrangler.jsonc` — those are local-development defaults. Local development reads
+the repo-root `.env.local` (copy `.env.example`).
+
+> **This repository is public, and so are its Actions logs.** GitHub prints
+> variable values in the logs; secret values are masked. Anything that should not
+> be public — including email addresses — is a **secret**, never a variable.
+
+### Variables
+
+| Name                           | Used by                                   | staging                           | production                                           |
+| ------------------------------ | ----------------------------------------- | --------------------------------- | ---------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`        | every deploy (repository-level)           | inherited                         | inherited                                            |
+| `HUGO_BASEURL`                 | Hugo build — canonical, sitemap, JSON-LD  | `https://staging-www.gatezh.com/` | `https://gatezh.com/`                                |
+| `HUGO_PARAMS_APIURL`           | contact form POST target, CSP connect-src | `https://staging-api.gatezh.com`  | `https://gatezh-com-email-worker.gatezh.workers.dev` |
+| `HUGO_PARAMS_TURNSTILESITEKEY` | contact form widget                       | the staging widget's site key     | the production widget's site key                     |
+| `ALLOWED_ORIGIN`               | api Worker CORS — **required**            | `https://staging-www.gatezh.com`  | `https://gatezh.com`                                 |
+| `CLOUDFLARE_ZERO_CLIENT_ID`    | staging verify, only behind Access        | optional                          | —                                                    |
+
+A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
+`ALLOWED_ORIGIN` (every request would fail CORS). Everything else is optional.
+
+### Secrets
+
+| Name                            | Used by                                            | Notes                                    |
+| ------------------------------- | -------------------------------------------------- | ---------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`          | every deploy (repository-level)                    | inherited                                |
+| `RESEND_API_KEY`                | contact form                                       | separate key per environment             |
+| `TO_EMAIL`                      | contact form — where submissions are sent          | a secret only to keep it out of the logs |
+| `FROM_EMAIL`                    | contact form — sender, on a Resend-verified domain | staging: use a distinct sender           |
+| `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment          |
+| `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access                 | optional                                 |
+
+The Worker degrades one feature at a time, and the staging deploy reports what
+is missing instead of failing:
+
+- Contact form needs `RESEND_API_KEY` + `TO_EMAIL` + `FROM_EMAIL`. Without all
+  three, `POST /` returns 503.
+- Bot gate needs `TURNSTILE_SECRET_KEY` + `HUGO_PARAMS_TURNSTILESITEKEY`. **Set
+  both or neither** — half a bot gate either accepts submissions unverified or
+  rejects every one.
+
+Production differs in one way: a secret GitHub does not hold is **left alone**
+on the live Worker, because wrangler only replaces a secret it is given. That is
+what lets production keep its existing Cloudflare secrets until they are moved
+into GitHub.
 
 ## Cutover runbook
 
-Run these in order when you are ready to adopt the staging/release model. Each
-step is independently reversible.
+Run in order. Each step is independently reversible; rollback at any point is
+re-enabling the `push:` trigger in `deploy.yml`.
 
-1. **Create the `staging` GitHub Environment.** Settings → Environments → New.
-   Restrict deployments to the `master` branch.
-2. **Add staging DNS.** A proxied record for `staging.gatezh.com` and
-   `staging-api.gatezh.com`. The flat `staging-api` prefix rather than a nested
-   `api.staging` is deliberate: the Cloudflare universal certificate covers one
-   level of subdomain, so `api.staging.gatezh.com` would need an advanced
-   certificate.
-3. **Set staging environment variables.** `CLOUDFLARE_ACCOUNT_ID`,
-   `CONTACT_WORKER_URL`, `TURNSTILE_SITE_KEY`, `TO_EMAIL`, `FROM_EMAIL`; secrets
-   `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`. Every one of
-   them is optional except the Cloudflare pair — the Worker degrades one feature
-   at a time and the deploy job reports what is missing rather than failing.
-4. **Dispatch `Deploy (staging)` manually** and confirm `staging.gatezh.com`
-   serves the build. The `verify` job asserts the deployed commit matches.
-5. **Enable the push trigger** in `deploy-staging.yml` (uncomment the `push:`
-   block at the top) and **remove the push trigger from `deploy.yml`**. Master
-   pushes now reach staging only.
-6. **Dispatch `Release`** to deploy production. Confirm `gatezh.com` still
-   serves and the contact form still submits.
-7. **Optional, later — rename the Workers.** Add a `production` env block to both
-   `wrangler.jsonc` files, deploy, move the `gatezh.com` custom domain from
-   `gatezh-com` to `www-production` in the Cloudflare dashboard, repoint
-   `HUGO_PARAMS_CONTACTWORKERURL`, then delete the orphaned Workers. Do this in
-   one sitting; the site is split-brained until the domain moves.
+1. **GitHub Environments.** `staging` and `production` exist. Restrict `staging`
+   deployments to `master`. Optionally add yourself as a required reviewer on
+   `production`.
+2. **Cloudflare zone.**
+   - Scope the legacy **CSP** response-header Transform Rule from "all incoming
+     requests" to `http.host eq "gatezh.com"`. It replaces the Worker's policy
+     on every host it matches, so until this is done staging serves the old
+     policy and its verify job fails. See [CSP.md](CSP.md).
+   - Create a **Turnstile widget** for `staging-www.gatezh.com` (Managed mode).
+     Its site key is the staging `HUGO_PARAMS_TURNSTILESITEKEY`; its secret is
+     the staging `TURNSTILE_SECRET_KEY`.
+3. **Staging configuration.** Set every variable and secret in the tables
+   above on `staging`. A separate Resend API key per environment limits the
+   blast radius of a leak.
+4. **Dispatch `Deploy (staging)`** and confirm the verify job passes: build
+   commit, `X-Robots-Tag: noindex` on every page, the Worker's CSP, a real 404,
+   API CORS and crawlability. Then submit the contact form on staging and check
+   the Turnstile widget renders and the email arrives.
+5. **Flip the triggers.** Uncomment the `push:` block in `deploy-staging.yml` and
+   remove the `push:` trigger from `deploy.yml`. Master pushes now reach staging
+   only.
+6. **Dispatch `Release`** (`action: create`). Confirm `gatezh.com` serves the
+   release and the contact form still submits. Then delete the zone's **CSP**
+   Transform Rule — production now gets the Worker's policy — and promote the
+   CSP warning in `release.yml`'s verify job to an error.
+7. **Optional, later — production secrets into GitHub.** Add `RESEND_API_KEY`,
+   `TURNSTILE_SECRET_KEY`, `TO_EMAIL` and `FROM_EMAIL` to the `production`
+   environment and dispatch `Release` with `action: redeploy`. They overwrite the
+   Worker's current values; no deletion step is needed because the binding type
+   stays `secret_text`.
+8. **Later — rename the Workers and move the API to `api.gatezh.com`**, the
+   layout the other projects on this stack use. This Cloudflare account is
+   shared with other projects, so the names carry a `gatezh-` prefix rather than
+   the bare `www`/`api` a dedicated account can use.
+   - **API first — no downtime.** Add a `production` env block to
+     `services/api/wrangler.jsonc` with `"name": "gatezh-api-production"` and a
+     custom domain `api.gatezh.com`, and deploy with `environment: production`.
+     The new Worker serves alongside the old one. Point production's
+     `HUGO_PARAMS_APIURL` at `https://api.gatezh.com` and release; once the
+     contact form submits through it, delete `gatezh-com-email-worker`.
+   - **www — about a minute of downtime.** The same with
+     `"name": "gatezh-www-production"` and custom domain `gatezh.com`. A custom
+     domain belongs to one Worker at a time, so detach `gatezh.com` from
+     `gatezh-com` immediately before the release, then delete `gatezh-com`.
+     Purely a rename; skip it if the name does not bother you.
+   - Give staging the matching names (`gatezh-api-staging`,
+     `gatezh-www-staging`) in the same change, and delete the old staging
+     Workers.
 
-Rollback at any point: re-enable the `push:` trigger in `deploy.yml`.
+## Zone settings
 
-## Architecture Overview
+Two settings no deploy can enforce. `release.yml` reports both on every run.
 
-This is a Bun monorepo containing:
+- **Always Use HTTPS** (SSL/TLS → Edge Certificates): on.
+- **HSTS** (same page): off. Browsers cache it for its whole `max-age`, so
+  enable it deliberately; `includeSubDomains` covers every subdomain, including
+  the comments tunnel.
 
-- **services/www** - Hugo static website deployed to Cloudflare Workers
-- **services/api** - Cloudflare Worker for contact form emails
+Also under SSL/TLS: the encryption mode should be **Full (strict)** and the
+minimum TLS version **1.2**. Both are safe here — the Workers and the Remark42
+tunnel do not use the zone's origin connection settings.
 
-Deployment is handled via GitHub Actions with path-based triggers.
+## Cloudflare API token
 
-## Prerequisites
+Create an **Account API token** (Manage Account → Account API Tokens) from the
+**Edit Cloudflare Workers** template. Workers custom domains create DNS records
+on first deploy, so add **Zone → DNS → Edit** for `gatezh.com`. Store it as the
+repository secret `CLOUDFLARE_API_TOKEN`, and the account ID as the repository
+variable `CLOUDFLARE_ACCOUNT_ID`.
 
-Before deploying, you need:
+## Resend
 
-1. **Cloudflare Account** with:
+Verify `gatezh.com` at the domain level in Resend (any `*@gatezh.com` sender then
+works), and create one **Sending access** API key per environment. `FROM_EMAIL`
+must be on that verified domain.
 
-   - A registered domain (gatezh.com)
-   - Access to Workers
-
-2. **Resend Account** for email delivery (free tier: 3,000 emails/month)
-
-3. **GitHub Repository** with Actions enabled
-
-## Setup Steps
-
-### 1. Create Cloudflare API Token
-
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) > My Profile > API Tokens
-2. Click "Create Token"
-3. Find **Edit Cloudflare Workers** and click "Use Template"
-4. Under "Account Resources", select your account
-5. Click "Continue to summary", then "Create Token"
-6. Copy the token (you won't see it again)
-
-### 2. Get Cloudflare Account ID
-
-1. Go to any Zone in Cloudflare Dashboard
-2. Find "Account ID" in the right sidebar under "API"
-3. Copy the Account ID
-
-### 3. Set Up Turnstile Widget
-
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) > Turnstile
-2. Click "Add Site"
-3. Configure:
-   - **Site Name**: gatezh.com
-   - **Hostname**: gatezh.com
-   - **Widget Mode**: Managed
-4. Copy the **Site Key** (public, goes in hugo.yaml) and **Secret Key** (private, goes in worker secrets)
-
-### 4. Set Up Resend
-
-1. **Create account** at [resend.com](https://resend.com)
-
-   - Free tier includes 3,000 emails/month
-
-2. **Add and verify your domain**:
-
-   - Go to [Resend Domains](https://resend.com/domains)
-   - Click "Add Domain" and enter `gatezh.com`
-   - Add the DNS records Resend provides (SPF, DKIM, etc.)
-   - Wait for verification (usually a few minutes)
-
-3. **Create API key**:
-   - Go to [Resend API Keys](https://resend.com/api-keys)
-   - Click "Create API Key"
-   - Name: `gatezh-com-email-worker`
-   - Permission: "Sending access"
-   - Copy the API key (you won't see it again)
-
-### 5. Configure Email Destination
-
-Set the following environment variables in the Cloudflare Dashboard under Workers & Pages > `gatezh-com-email-worker` > Settings > Variables:
-
-| Variable     | Description                                                                               |
-| ------------ | ----------------------------------------------------------------------------------------- |
-| `TO_EMAIL`   | Where to receive contact form emails (e.g., `hello@yourdomain.com`)                       |
-| `FROM_EMAIL` | Sender address, must be from a domain verified in Resend (e.g., `contact@yourdomain.com`) |
-
-> **Note:** Do not add these to `wrangler.jsonc` — values in the config file override dashboard settings on every deploy.
-
-### 6. Configure GitHub Secrets and Variables
-
-Go to your repository > Settings > Secrets and variables > Actions
-
-**Secrets tab** - Add:
-
-| Secret Name            | Description           |
-| ---------------------- | --------------------- |
-| `CLOUDFLARE_API_TOKEN` | API token from step 1 |
-
-**Variables tab** - Add:
-
-| Variable Name           | Description            |
-| ----------------------- | ---------------------- |
-| `CLOUDFLARE_ACCOUNT_ID` | Account ID from step 2 |
-
-### 7. Configure Worker Secrets
-
-Deploy the worker first to create it, then add secrets:
+## Local development
 
 ```bash
-cd services/api
-
-# Set Resend API key
-bunx wrangler secret put RESEND_API_KEY
-# Enter your Resend API key when prompted
-
-# Set Turnstile secret key
-bunx wrangler secret put TURNSTILE_SECRET_KEY
-# Enter your Turnstile secret key when prompted
-```
-
-### 8. Update Hugo Configuration
-
-After deploying the worker, update `services/www/hugo.yaml`:
-
-```yaml
-params:
-  # Turnstile site key (public, safe to commit)
-  turnstileSiteKey: "0x4AAAAAAA..."
-  # Worker URL (get from Cloudflare Dashboard > Workers & Pages > gatezh-com-email-worker)
-  contactWorkerUrl: "https://gatezh-com-email-worker.<your-subdomain>.workers.dev"
-```
-
-### 9. Deploy
-
-Push to the `master` branch to trigger deployment:
-
-```bash
-git add .
-git commit -m "Configure deployment"
-git push origin master
-```
-
-A single workflow, `deploy.yml`, runs four jobs:
-
-1. `check` — lint, format, typecheck and build, gating everything below
-2. `deploy-www` — build Hugo and deploy the website Worker
-3. `deploy-api` — deploy the API Worker
-4. `verify` — assert the deployed site's health and indexability invariants
-
-Both deploy jobs run on every push to `master` that is not excluded by the
-workflow's `paths-ignore` list; there is no per-app path filtering.
-
-## Monitoring Deployments
-
-### GitHub Actions
-
-View deployment status at:
-`https://github.com/<your-org>/blog/actions`
-
-### Cloudflare Dashboard
-
-- **Website**: Dashboard > Workers & Pages > gatezh-com
-- **API Worker**: Dashboard > Workers & Pages > `gatezh-com-email-worker`
-
-View logs, analytics, and errors for each worker.
-
-## Local Development
-
-### Website (Hugo)
-
-```bash
-# From repository root
+cp .env.example .env.local   # ports, plus optional Turnstile test keys and Resend
 bun install
-bun run dev
-
-# Or from services/www
-cd services/www
-bun install
-bun run dev
+bun run dev                  # www on WWW_PORT, api on API_PORT
 ```
 
-### API Worker
-
-```bash
-cd services/api
-bun install
-
-# Create .dev.vars for local testing (copy from .dev.vars.example)
-cp .dev.vars.example .dev.vars
-# Edit .dev.vars with your actual values
-
-# Run locally
-bun run dev
-```
+Local URLs are derived from the ports: the www dev server points the contact
+form at `http://localhost:${API_PORT}`, and the api allows
+`http://localhost:${WWW_PORT}` as its CORS origin.
 
 ## Troubleshooting
 
-### Contact Form Not Working
+### Contact form not working
 
-1. Check browser console for errors
-2. Verify `turnstileSiteKey` and `contactWorkerUrl` in hugo.yaml
-3. Check Worker logs in Cloudflare Dashboard
-4. Verify CORS settings (ALLOWED_ORIGIN in wrangler.jsonc)
+1. Browser console — a `Refused to connect` CSP error means `HUGO_PARAMS_APIURL`
+   and the Worker's `API_URL` disagree, which only happens if one deploy ran
+   without the other.
+2. The deploy run's step summary — the feature table says which credential is
+   missing.
+3. Worker logs in the Cloudflare dashboard.
 
-### Emails Not Sending
+### Emails not sending
 
-1. Check Resend dashboard for delivery status
-2. Verify domain is verified in Resend
-3. Check Worker logs for Resend API errors
-4. Verify RESEND_API_KEY secret is set
-5. Ensure FROM_EMAIL uses a verified domain
+Check the Resend dashboard, that `FROM_EMAIL` is on the verified domain, and the
+api Worker's logs for Resend errors.
 
-### Build Failures
+### Build fails with "Set HUGO_BASEURL"
 
-1. Check GitHub Actions logs
-2. Verify all secrets are configured
-3. Ensure Hugo and Bun versions match locally
-
-## Security Considerations
-
-- Never commit API keys or secrets to the repository
-- Use environment-specific secrets (dev vs production)
-- Regularly rotate API tokens
-- Monitor Worker analytics for abuse patterns
-- Consider rate limiting on the Worker for production
+The deploy job's environment has no `HUGO_BASEURL`. Add it — see the variables
+table above.

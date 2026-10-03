@@ -2,36 +2,41 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   // Deployed Worker name, deliberately still "email-worker" while the directory
   // is services/api. Renaming this orphans the live Worker and breaks the
-  // contact form until hugo.yaml's contactWorkerUrl is repointed, so it happens
-  // together with the staging/production env blocks and custom-domain routes —
-  // not as part of the directory rename.
+  // contact form until production's HUGO_PARAMS_APIURL is repointed, so it
+  // happens as step 7 of the cutover runbook in docs/deployment.md — not here.
   "name": "gatezh-com-email-worker",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-03",
   "compatibility_flags": ["nodejs_compat"],
-  "vars": {
-    // Allowed CORS origin for the contact form
-    "ALLOWED_ORIGIN": "https://gatezh.com",
-  },
   "observability": {
     "enabled": false,
     "logs": {
       "enabled": true,
     },
   },
-  // Secrets (set via `wrangler secret put`):
-  // - RESEND_API_KEY: Your Resend API key
-  // - TURNSTILE_SECRET_KEY: Your Cloudflare Turnstile secret key
-  // - TO_EMAIL: Email recipient for contact form submissions
-  // - FROM_EMAIL: Email sender (must be from a verified domain in Resend),
 
-  // Staging only — see the note in services/www/wrangler.jsonc. Secrets are
-  // supplied per environment by the deploy workflow, not stored here.
+  // All runtime configuration comes from the GitHub Environment the deploy job
+  // runs in (staging or production) — that is the single source of truth, and
+  // nothing here may duplicate it. Values in this file override dashboard and
+  // CLI state on every deploy. Local dev reads the repo-root `.env.local`
+  // (see services/api/package.json).
+  //
+  // Secrets (passed via wrangler-action `secrets:`, only when set):
+  // - RESEND_API_KEY, TURNSTILE_SECRET_KEY
+  // - TO_EMAIL, FROM_EMAIL — secrets rather than vars because Actions logs of
+  //   this public repo are world-readable, and a var's value is printed there.
+  //
+  // Vars (passed via wrangler-action `vars:`):
+  // - ALLOWED_ORIGIN (required — the deploy fails without it)
+
+  // Staging only — see the note in services/www/wrangler.jsonc. `vars` is not
+  // inherited by an env block, so the empty object is explicit rather than
+  // implied: everything arrives from the workflow.
   "env": {
     "staging": {
       "workers_dev": false,
       "routes": [{ "pattern": "staging-api.gatezh.com", "custom_domain": true }],
-      "vars": { "ALLOWED_ORIGIN": "https://staging.gatezh.com" },
+      "vars": {},
     },
   },
 }

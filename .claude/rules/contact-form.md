@@ -5,11 +5,17 @@ globs: services/api/**
 
 # Contact Form Configuration
 
-The contact form requires:
-1. **Turnstile Site Key** - Set in `services/www/hugo.yaml` as `turnstileSiteKey`
-2. **Worker URL** - Set in `services/www/hugo.yaml` as `contactWorkerUrl`
-3. **Worker Secrets** - Set via `wrangler secret put`:
-   - `RESEND_API_KEY` - Resend API key for sending emails
-   - `TURNSTILE_SECRET_KEY` - Turnstile secret for verification
-   - `TO_EMAIL` - Email recipient for contact form submissions
-   - `FROM_EMAIL` - Email sender (must be from a verified domain in Resend)
+All contact-form configuration lives in the `staging` / `production` GitHub
+Environments — never in `hugo.yaml`, `wrangler.jsonc` or `wrangler secret put`.
+Full tables in `docs/deployment.md`.
+
+- **Variables:** `HUGO_PARAMS_APIURL` (form POST target, also the Worker CSP's
+  `connect-src`), `HUGO_PARAMS_TURNSTILESITEKEY`, `ALLOWED_ORIGIN` (required).
+- **Secrets:** `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `TO_EMAIL`,
+  `FROM_EMAIL`.
+- **This repo is public and so are its Actions logs.** Variable values are
+  printed there; secret values are masked. Email addresses and anything else
+  not meant to be public are secrets, never variables.
+- Turnstile: set the site key and secret together, or neither. One widget per
+  environment (they are hostname-bound).
+- Local dev reads the repo-root `.env.local` (see `.env.example`).

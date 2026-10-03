@@ -18,7 +18,7 @@ description: Build commands, deployment workflow, and required GitHub secrets/va
 - `bun run deploy` - Deploy to Cloudflare Workers
 
 ## API Worker (services/api)
-- `bun run dev` - Run worker locally (needs .dev.vars)
+- `bun run dev` - Run worker locally (reads the repo-root `.env.local`)
 - `bun run deploy` - Deploy to Cloudflare Workers
 
 # Deployment
@@ -28,15 +28,26 @@ setup, including the cutover runbook.
 
 - `deploy.yml` — push to `master` → production. **The active path today.**
 - `release.yml` — manual dispatch → `v*` tag → production. Available, opt-in.
-- `deploy-staging.yml` — manual dispatch → staging. Blocked until the `staging`
-  GitHub Environment and DNS exist; the push trigger is commented out on purpose.
+- `deploy-staging.yml` — manual dispatch → staging (`staging-www.gatezh.com`,
+  `staging-api.gatezh.com`). The push trigger is commented out until the cutover.
 
 Deployed Worker names are `gatezh-com` and `gatezh-com-email-worker` and do not
-match the directory names. Renaming them is a cutover, not an edit — only
-`staging` has an `env` block in `wrangler.jsonc`, deliberately.
+match the directory names. Renaming them (to `gatezh-www-*` / `gatezh-api-*`,
+with the API on `api.gatezh.com`) is planned as step 8 of the cutover runbook —
+a cutover, not an edit. Only `staging` has an `env` block in
+`wrangler.jsonc` until then, deliberately.
 
-## GitHub Secrets Required
-- `CLOUDFLARE_API_TOKEN` - API token with Workers edit permission
+## Configuration
 
-## GitHub Variables Required
-- `CLOUDFLARE_ACCOUNT_ID` - Your Cloudflare account ID
+Every runtime value comes from the `staging` / `production` GitHub
+Environment the deploy job runs in — tables in `docs/deployment.md`. Nothing
+deployed reads `hugo.yaml`'s `baseURL`/`apiUrl` or `vars` in `wrangler.jsonc`;
+those are local-dev defaults.
+
+**This repo is public and so are its Actions logs.** Variable values are printed
+there; secret values are masked. Anything not meant to be public — email
+addresses included — is a secret, never a variable.
+
+Repository-level (inherited by both environments):
+- `CLOUDFLARE_API_TOKEN` (secret) - Workers edit + Zone DNS edit
+- `CLOUDFLARE_ACCOUNT_ID` (variable)
