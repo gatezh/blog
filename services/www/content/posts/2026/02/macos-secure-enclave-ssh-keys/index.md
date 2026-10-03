@@ -2,6 +2,7 @@
 title: "Protecting SSH Keys with macOS Secure Enclave (Native Approach)"
 date: "2026-02-12T22:41:55Z"
 description: "How to use macOS Secure Enclave for hardware-backed SSH key protection without third-party apps. A native approach to securing your keys."
+keywords: [macos, ssh, security, secure-enclave, developer-tooling]
 draft: false
 ---
 

@@ -142,3 +142,50 @@ test.describe("crawlable URL hygiene", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+test.describe("internal linking", () => {
+  /**
+   * The "ls --related" block in page.html calls .Site.RegularPages.Related.
+   * That call sat in the template rendering on ZERO posts, because Hugo's
+   * default related config indexes `keywords` and no post had any — a silent
+   * no-op, since a template that outputs nothing still builds green.
+   *
+   * Two posts are expected to have no related content and are named here
+   * rather than papered over: GraphQL schema naming and Anki study habits
+   * share a topic with nothing else on the site. Inventing links between
+   * unrelated posts is the thin-content signal this work is trying to avoid.
+   */
+  const NO_RELATED_CONTENT = [
+    "/posts/graphql-schema-use-it-in-a-sentence/",
+    "/posts/using-anki-to-study-programming/",
+  ];
+
+  test("posts link out to related posts", async ({ page, request }) => {
+    const paths = sitemapPaths(await (await request.get("/sitemap.xml")).text())
+      .filter((p) => p.startsWith("/posts/") && p !== "/posts/")
+      .filter((p) => !NO_RELATED_CONTENT.includes(p));
+
+    // Guards against the sweep quietly emptying out, the way the sitemap-derived
+    // sweeps did when four posts stopped being recognised as content.
+    expect(paths.length, "expected the site's posts to be in the sitemap").toBeGreaterThan(5);
+
+    const bare: string[] = [];
+
+    for (const path of paths) {
+      await page.goto(path);
+      const links = page.locator("nav a.post-list-link");
+      if ((await links.count()) === 0) bare.push(path);
+    }
+
+    expect(bare, "posts with no related-post links are crawl leaves").toEqual([]);
+  });
+
+  test("every post still offers prev/next navigation", async ({ page }) => {
+    // The fallback for the two posts above: they must not be dead ends.
+    for (const path of NO_RELATED_CONTENT) {
+      await page.goto(path);
+      const nav = page.locator('nav[aria-label="Post navigation"] a');
+      expect(await nav.count(), `${path} has no sibling navigation`).toBeGreaterThan(0);
+    }
+  });
+});
