@@ -1,3 +1,7 @@
+{{- define "head" }}
+{{- partial "turnstile.html" . }}
+{{- end }}
+
 {{- define "main" }}
 
 <article class="prose max-w-none">
@@ -78,12 +82,13 @@
 					></textarea>
 				</div>
 
-				{{/* Turnstile captcha - theme synced with site theme */}}
-				{{/* Note: Using explicit render mode - no cf-turnstile class or data-sitekey here */}}
-				{{/* Widget is rendered via turnstile.render() in turnstile.html partial */}}
+				{{/* Turnstile widget, rendered implicitly by api.js (see
+				     _partials/turnstile.html). Inside the <form>, so Turnstile adds
+				     the hidden cf-turnstile-response input the submit handler reads.
+				     No data-theme: the default, "auto", is what Cloudflare recommends. */}}
 				{{- with .Site.Params.turnstileSiteKey }}
 					<div class="form-group">
-						<div id="turnstile-container"></div>
+						<div id="contact-turnstile" class="cf-turnstile" data-sitekey="{{ . }}"></div>
 					</div>
 				{{- end }}
 
@@ -128,9 +133,6 @@
 		</section>
 	</div>
 </article>
-
-{{/* Turnstile lazy loading */}}
-{{- partial "turnstile.html" . }}
 
 <script>
 (function() {
@@ -223,7 +225,7 @@
       } catch (parseError) {
         showError('Server returned an invalid response. Please try again.');
         if (typeof turnstile !== 'undefined') {
-          turnstile.reset();
+          turnstile.reset('#contact-turnstile');
         }
         return;
       }
@@ -235,13 +237,13 @@
         showError(data.error || 'Failed to send message. Please try again.');
         // Reset Turnstile on error
         if (typeof turnstile !== 'undefined') {
-          turnstile.reset();
+          turnstile.reset('#contact-turnstile');
         }
       }
     } catch (err) {
       showError('Network error. Please check your connection and try again.');
       if (typeof turnstile !== 'undefined') {
-        turnstile.reset();
+        turnstile.reset('#contact-turnstile');
       }
     } finally {
       setLoading(false);
