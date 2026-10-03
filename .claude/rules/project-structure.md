@@ -33,7 +33,8 @@ This is a Bun monorepo for gatezh.com:
 │
 ├── .github/workflows/          # GitHub Actions
 │   ├── ci.yml                  # CI checks (lint, typecheck, build)
-│   └── deploy.yml              # Deployment (www + api)
+│   ├── deploy-staging.yml      # push to master → staging
+│   └── release.yml             # dispatch → v* tag → production
 │
 ├── .claude/                    # Claude Code configuration
 │   ├── CLAUDE.md               # Critical rules

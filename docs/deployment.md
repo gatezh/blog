@@ -4,11 +4,10 @@ How gatezh.com is configured and deployed.
 
 ## Deployment model
 
-| Path                 | Trigger                    | Target                                                          |
-| -------------------- | -------------------------- | --------------------------------------------------------------- |
-| `deploy-staging.yml` | push to `master`, dispatch | staging                                                         |
-| `release.yml`        | manual dispatch → `v*` tag | production                                                      |
-| `deploy.yml`         | manual dispatch only       | production, **untagged fallback** — delete after a few releases |
+| Path                 | Trigger                    | Target     |
+| -------------------- | -------------------------- | ---------- |
+| `deploy-staging.yml` | push to `master`, dispatch | staging    |
+| `release.yml`        | manual dispatch → `v*` tag | production |
 
 Same model as the other projects on this stack: merging to `master` deploys
 staging; production only ever runs a tagged release.
@@ -100,12 +99,11 @@ into GitHub.
 Production moved from push-to-deploy to tagged releases on 2026-10-03:
 environments and variables configured, a staging Turnstile widget created, the
 first staging deploy verified, the triggers flipped, and the zone's legacy
-**CSP** Transform Rule disabled so production serves the Worker's policy (see
+**CSP** Transform Rule removed so production serves the Worker's policy (see
 [CSP.md](CSP.md)). Production's Worker credentials were moved into the
-`production` environment at the same time.
-
-To go back to push-to-production in an emergency: restore the `push:` trigger
-in `deploy.yml` and remove the one from `deploy-staging.yml`.
+`production` environment at the same time. After the first release
+(`v0.0.1`), the untagged push-to-production workflow (`deploy.yml`) was
+deleted; its post-deploy indexability checks moved into `release.yml`.
 
 ## Remaining: rename the Workers
 
