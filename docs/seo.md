@@ -118,8 +118,7 @@ Five things that look redundant but are not:
 - **Self-hosted fonts.** Keep JetBrains Mono under `/fonts/`. The Worker's CSP
   ([CSP.md](./CSP.md)) allows neither `fonts.googleapis.com` in `style-src` nor
   `fonts.gstatic.com` for font fetches, so a Google-hosted webfont is blocked
-  wherever that policy is served — staging today, production once the legacy
-  Transform Rule is deleted. Self-hosting also removes a render-blocking
+  on staging and production alike. Self-hosting also removes a render-blocking
   third-party stylesheet and two extra handshakes.
 - **Two lines per alias in `/_redirects`.** `html_handling: auto-trailing-slash`
   answers the slash-less spelling of a path with its own 307 _before_ any

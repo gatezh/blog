@@ -57,11 +57,15 @@ stamps it on every `<script>` with `HTMLRewriter`. Two consequences:
 A **Modify Response Header** rule that sets `Content-Security-Policy` replaces
 the Worker's header wholesale on every request it matches.
 
-| Rule                       | Filter                                                                                                                                                                                                                                                          | Status                                                                  |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| CSP                        | `http.host eq "gatezh.com"` **Disabled** 2026-10-03, so production serves the Worker's policy. Delete it once a release has run cleanly. Re-enabling it would replace the Worker's policy with a `connect-src`-only one, and the deploy verify jobs would fail. |
-| CSP for comments subdomain | `http.host eq "comments.gatezh.com"`                                                                                                                                                                                                                            | Keep. Remark42 is self-hosted behind a tunnel, not served by this repo. |
-| Allow Picture-in-Picture   | `http.host eq "comments.gatezh.com"`                                                                                                                                                                                                                            | Keep. `Permissions-Policy: picture-in-picture=(self)` for Remark42.     |
+| Rule                       | Filter                               | Status                                                                  |
+| -------------------------- | ------------------------------------ | ----------------------------------------------------------------------- |
+| CSP for comments subdomain | `http.host eq "comments.gatezh.com"` | Keep. Remark42 is self-hosted behind a tunnel, not served by this repo. |
+| Allow Picture-in-Picture   | `http.host eq "comments.gatezh.com"` | Keep. `Permissions-Policy: picture-in-picture=(self)` for Remark42.     |
+
+The main site's old **CSP** rule was deleted on 2026-10-03, after the first
+release served the Worker's policy cleanly. Never add a rule that sets
+`Content-Security-Policy` on `gatezh.com` or the staging hosts — every
+deploy's verify job fails if the site stops serving the Worker's policy.
 
 The "CSP" rule originally matched every request, which would also have
 overridden the Worker on staging; it was scoped to the production host when the
