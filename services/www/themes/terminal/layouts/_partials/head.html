@@ -104,6 +104,9 @@
 	{{ end }}
 {{ end }}
 
+{{/* PostHog — alongside Google Analytics, production-only (see the partial) */}}
+{{- partial "posthog.html" . -}}
+
 {{/*
   Theme initialization script - runs immediately to prevent flash of wrong theme
 

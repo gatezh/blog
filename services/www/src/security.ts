@@ -25,6 +25,15 @@ const GOOGLE_ANALYTICS_CONNECT = [
 const REMARK42 = "https://comments.gatezh.com";
 // Cloudflare Turnstile renders its challenge in an iframe.
 const TURNSTILE = "https://challenges.cloudflare.com";
+// PostHog: its documented CSP. The wildcard is required — PostHog warns that
+// "the exact subdomains may change over time", and that narrowing the list is
+// not recommended. Its script-src entry is omitted on purpose: under
+// 'strict-dynamic' a host in script-src is ignored, and the nonce on the inline
+// snippet already trusts the array.js it loads. Session replay compresses in a
+// Web Worker created from a blob, hence worker-src.
+// https://posthog.com/docs/advanced/content-security-policy
+const POSTHOG = "https://*.posthog.com";
+const POSTHOG_WORKER = ["'self'", "blob:", "data:"];
 
 /** Headers that are correct on any response, HTML or not. */
 const COMMON_HEADERS: Record<string, string> = {
@@ -54,10 +63,11 @@ export function contentSecurityPolicy(nonce: string, apiUrl: string, secure: boo
     // Inline style attributes are used by the theme and by Turnstile.
     "style-src 'self' 'unsafe-inline'",
     ["img-src 'self' data:", ...GOOGLE_ANALYTICS_IMG].join(" "),
-    ["connect-src 'self'", originOf(apiUrl), REMARK42, ...GOOGLE_ANALYTICS_CONNECT]
+    ["connect-src 'self'", originOf(apiUrl), REMARK42, ...GOOGLE_ANALYTICS_CONNECT, POSTHOG]
       .filter(Boolean)
       .join(" "),
     `frame-src ${TURNSTILE} ${REMARK42}`,
+    ["worker-src", ...POSTHOG_WORKER].join(" "),
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",

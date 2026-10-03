@@ -135,6 +135,10 @@ jobs:
           HUGO_BASEURL: ${{ vars.HUGO_BASEURL }}
           HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
           HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
+          # Production only. deploy-staging.yml deliberately has no equivalent
+          # line, so a key set on staging by mistake still never reaches a build.
+          # Optional: unset means the site ships without PostHog.
+          HUGO_PARAMS_POSTHOGKEY: ${{ vars.HUGO_PARAMS_POSTHOGKEY }}
           # The tag's commit, not github.sha: on a redeploy those differ, and
           # the verify job must confirm the tag is what is live.
           HUGO_PARAMS_BUILDCOMMIT: ${{ needs.release.outputs.commit_sha }}
