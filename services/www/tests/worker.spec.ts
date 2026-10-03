@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /**
  * Cloudflare Worker behaviour, exercised against `wrangler dev --local` serving
@@ -8,6 +8,32 @@ import { expect, test } from "@playwright/test";
  */
 
 const MD = { Accept: "text/markdown" };
+
+/** Records every violation of the page's own policy, from the first byte. */
+async function trackCspViolations(page: Page): Promise<() => Promise<string[]>> {
+  // addInitScript runs through the DevTools protocol, outside the page's CSP,
+  // and before any of the page's own scripts. A violation is reported before
+  // any network fetch, so this holds offline too.
+  await page.addInitScript(() => {
+    const seen: string[] = [];
+    Object.defineProperty(window, "__cspViolations", { value: seen });
+    document.addEventListener("securitypolicyviolation", (event) => {
+      seen.push(`${event.effectiveDirective} ${event.blockedURI}`);
+    });
+  });
+  return () =>
+    page.evaluate(() => (window as unknown as { __cspViolations: string[] }).__cspViolations);
+}
+
+/** Answers a third party with an empty script, so no test reaches it. */
+async function stub(page: Page, pattern: string): Promise<string[]> {
+  const hits: string[] = [];
+  await page.route(pattern, (route) => {
+    hits.push(route.request().url());
+    return route.fulfill({ contentType: "application/javascript", body: "" });
+  });
+  return hits;
+}
 
 test.describe("Accept negotiation", () => {
   for (const path of ["/", "/posts/", "/ever-learning/", "/about/"]) {
@@ -118,6 +144,13 @@ test.describe("security headers", () => {
     expect(nonceOf(first)).not.toBe(nonceOf(second));
   });
 
+  test("the CSP grants PostHog the directives PostHog documents", async ({ request }) => {
+    // https://posthog.com/docs/advanced/content-security-policy
+    const csp = (await request.get("/")).headers()["content-security-policy"] ?? "";
+    expect(csp).toMatch(/connect-src [^;]*https:\/\/\*\.posthog\.com/);
+    expect(csp).toMatch(/worker-src 'self' blob: data:/);
+  });
+
   test("connect-src allows the contact-form API", async ({ request }) => {
     // API_URL is passed to `wrangler dev` in playwright.config.ts, mirroring
     // what the deploy workflows pass from HUGO_PARAMS_APIURL.
@@ -153,20 +186,13 @@ test.describe("security headers", () => {
   // reported before any network fetch, so this holds offline too.
   for (const path of ["/", "/contact/", "/posts/docker-desktop-disk-full-macos/"]) {
     test(`${path} raises no CSP violations`, async ({ page }) => {
-      await page.addInitScript(() => {
-        const seen: string[] = [];
-        (window as unknown as { __csp: string[] }).__csp = seen;
-        document.addEventListener("securitypolicyviolation", (e) => {
-          seen.push(`${e.violatedDirective} ${e.blockedURI}`);
-        });
-      });
+      const violations = await trackCspViolations(page);
+      // The worker build carries a placeholder PostHog token; never send it out.
+      await stub(page, "https://*.posthog.com/**");
       await page.goto(path);
       await page.waitForLoadState("load");
 
-      const violations = await page.evaluate(
-        () => (window as unknown as { __csp: string[] }).__csp,
-      );
-      expect(violations).toEqual([]);
+      expect(await violations()).toEqual([]);
     });
   }
 });
@@ -295,5 +321,55 @@ test.describe("legacy URLs redirect in one hop", () => {
 
   test("the redirect table itself is not served", async ({ request }) => {
     expect((await request.get("/_redirects")).status()).toBe(404);
+  });
+});
+
+/**
+ * The vendor snippets are copied verbatim from Cloudflare's and PostHog's docs
+ * and carry nothing CSP-specific. These tests are the evidence that this holds:
+ * a real browser runs each one under the policy the Worker enforces, and any
+ * violation of that policy fails the test.
+ */
+test.describe("vendor snippets run unmodified under the enforced CSP", () => {
+  test("PostHog's snippet loads its SDK with nothing blocked", async ({ page }) => {
+    const violations = await trackCspViolations(page);
+    await stub(page, "https://*.googletagmanager.com/**");
+    const posthog = await stub(page, "https://*.posthog.com/**");
+
+    await page.goto("/");
+
+    // The inline snippet injects array.js. A policy that blocked it would stop
+    // the request from ever being made, so reaching the stub is the proof.
+    await expect.poll(() => posthog.some((url) => url.endsWith("/static/array.js"))).toBe(true);
+    expect(await violations()).toEqual([]);
+  });
+
+  test("Turnstile renders, issues a token, and resets with nothing blocked", async ({ page }) => {
+    const violations = await trackCspViolations(page);
+    const pageErrors: string[] = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await stub(page, "https://*.googletagmanager.com/**");
+    await stub(page, "https://*.posthog.com/**");
+    // Fail the submission deterministically, which drives the handler into
+    // turnstile.reset('#contact-turnstile').
+    await page.route("http://localhost:8787/**", (route) => route.abort());
+
+    await page.goto("/contact/");
+
+    // Cloudflare's always-pass test key resolves without interaction, and the
+    // token lands in the hidden input Turnstile adds inside the <form>.
+    const token = page.locator('#contact-form input[name="cf-turnstile-response"]');
+    await expect(token).toHaveValue(/.+/, { timeout: 30_000 });
+
+    await page.locator("#contact-name").fill("Ada");
+    await page.locator("#contact-email").fill("ada@example.com");
+    await page.locator("#contact-message").fill("Hello");
+    await page.locator('#contact-form [type="submit"]').click();
+
+    await expect(page.locator("#contact-error")).toBeVisible();
+    // Reset by container selector was accepted, and the widget re-issued a token.
+    await expect(token).toHaveValue(/.+/, { timeout: 30_000 });
+    expect(pageErrors).toEqual([]);
+    expect(await violations()).toEqual([]);
   });
 });
