@@ -10,7 +10,7 @@ import { expect, test } from "@playwright/test";
  * Scope: these cover what Hugo *builds*. Worker- and edge-level rules (a real
  * 404 status on /404, X-Robots-Tag headers, http -> https) cannot be exercised
  * here — the suite runs against `hugo server`. Those are checked post-deploy by
- * the verify job in .github/workflows/deploy.yml.
+ * the verify jobs in .github/workflows/release.yml and deploy-staging.yml.
  */
 
 // Structural pages only. Individual posts come and go, and the sitemap sweep
