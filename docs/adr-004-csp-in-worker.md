@@ -32,7 +32,9 @@ The www Worker sets a strict, nonce-based CSP on every HTML response:
 
 - A fresh nonce per response, stamped on every `<script>` with `HTMLRewriter`,
   and `'strict-dynamic'` so scripts those load (gtag.js, the Remark42 embed,
-  Turnstile) are trusted without a host allowlist.
+  Turnstile's api.js, PostHog's array.js) are trusted without a host allowlist.
+  Vendor snippets therefore go into templates exactly as the vendor documents
+  them; nothing in a template is CSP-specific.
 - `connect-src` takes the contact-form origin from the same GitHub variable the
   form posts to (`HUGO_PARAMS_APIURL`, passed to the Worker as `API_URL`).
 - `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`,
@@ -81,4 +83,5 @@ stay: Remark42 is not served by this repo.
 - [web.dev: Mitigate XSS with a strict CSP](https://web.dev/articles/strict-csp)
 - [Cloudflare: JavaScript Detections and CSP](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/javascript-detections/)
 - [Google tag: CSP guide](https://developers.google.com/tag-platform/security/guides/csp)
+- [PostHog: Content Security Policy](https://posthog.com/docs/advanced/content-security-policy)
 - [docs/CSP.md](CSP.md)
