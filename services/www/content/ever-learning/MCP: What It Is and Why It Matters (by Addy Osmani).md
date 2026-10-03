@@ -4,6 +4,7 @@ date: '2025-07-08T10:59:31-06:00'
 learning_source: "https://addyo.substack.com/p/mcp-what-it-is-and-why-it-matters"
 learning_source_archive: "https://archive.ph/m5GH0"
 learning_date: '2025-07-07T10:59:31-06:00'
+keywords: [mcp, model-context-protocol, ai-agents, llm, developer-tooling]
 draft: false
 ---
 

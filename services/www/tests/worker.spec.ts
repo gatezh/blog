@@ -202,3 +202,98 @@ test.describe("request path handling", () => {
     }
   });
 });
+
+/**
+ * Legacy URLs are served a single 301 from the generated /_redirects table,
+ * rather than the meta-refresh stub Hugo writes for an `aliases:` entry.
+ *
+ * The pairs are spelled out rather than parsed out of public/_redirects on
+ * purpose. Deriving the fixture from the generated artefact is precisely how
+ * four published posts disappeared unnoticed in f683a0f: tests/seo.spec.ts swept
+ * whatever the sitemap advertised, so when the sitemap shrank the sweep shrank
+ * with it and stayed green. A list that cannot shrink by itself is the point.
+ */
+const CANONICAL = {
+  angular: "/posts/how-to-host-angular-application-on-github-pages/",
+  jekyll: "/posts/getting-started-with-jekyll/",
+  blog: "/posts/host-your-personal-blog-on-github-pages/",
+  anki: "/posts/using-anki-to-study-programming/",
+  graphql: "/posts/graphql-schema-use-it-in-a-sentence/",
+  www: "/posts/how-to-redirect-www-to-root-domain-on-cloudflare-pages/",
+  remark42: "/posts/add-remark42-comments-to-hugo-website/",
+} as const;
+
+/** Dated Hugo-era paths. Both spellings, because auto-trailing-slash would
+ *  otherwise answer the slash-less one with a 307 of its own first. */
+const DATED: Array<[string, string]> = [
+  ["/posts/2017/03/31/how-to-host-angular-application-on-github-pages", CANONICAL.angular],
+  ["/posts/2017/04/04/getting-started-with-jekyll", CANONICAL.jekyll],
+  ["/posts/2017/04/04/host-your-personal-blog-on-github-pages", CANONICAL.blog],
+  ["/posts/2017/07/16/using-anki-to-study-programming", CANONICAL.anki],
+  ["/posts/2020/06/22/graphql-schema-use-it-in-a-sentence", CANONICAL.graphql],
+  ["/posts/2024/06/15/posts/fixing-www-issue-for-cloudflare-pages-website", CANONICAL.www],
+  ["/posts/2024/06/22/add-remark42-comments-to-hugo-website", CANONICAL.remark42],
+];
+
+/** Jekyll-era URLs. Archived 200 in the Wayback CDX index for 2017-2019, so
+ *  these were real published URLs and not a guess from the dead `permalink:`
+ *  front matter they were recovered from. */
+const DOT_HTML: Array<[string, string]> = [
+  ["/how-to-host-angular-application-on-github-pages.html", CANONICAL.angular],
+  ["/getting-started-with-jekyll.html", CANONICAL.jekyll],
+  ["/host-your-personal-blog-on-github-pages.html", CANONICAL.blog],
+  ["/using-anki-to-study-programming.html", CANONICAL.anki],
+];
+
+/** The 2017 portfolio, restored at /early-projects/. Also archived 200 in the
+ *  CDX index. It reaches the redirect table the same way every other entry
+ *  does — an `aliases:` value on the page — with no special-casing anywhere. */
+const PAGES: Array<[string, string]> = [["/portfolio", "/early-projects/"]];
+
+test.describe("legacy URLs redirect in one hop", () => {
+  const directoryStyle = [...DATED, ...PAGES];
+  const cases: Array<[string, string]> = [
+    ...directoryStyle,
+    ...directoryStyle.map(([from, to]): [string, string] => [`${from}/`, to]),
+    ...DOT_HTML,
+  ];
+
+  for (const [from, to] of cases) {
+    test(`${from} -> ${to}`, async ({ request }, info) => {
+      const res = await request.get(from, { maxRedirects: 0 });
+
+      expect(
+        res.status(),
+        "a 307 here means the rule was missed and only the slash form is covered",
+      ).toBe(301);
+      // Cloudflare echoes the target as written in _redirects, which is a
+      // site-relative path — resolve before comparing rather than assuming a
+      // shape, so the assertion holds whichever form the edge returns.
+      const location = new URL(res.headers().location, info.project.use.baseURL as string);
+      expect(location.pathname).toBe(to);
+    });
+  }
+
+  test("destinations are pages, not further redirects", async ({ request }) => {
+    for (const to of [...Object.values(CANONICAL), ...PAGES.map(([, to]) => to)]) {
+      const res = await request.get(to, { maxRedirects: 0 });
+      expect(res.status(), `${to} must terminate the redirect chain`).toBe(200);
+    }
+  });
+
+  test("no meta-refresh alias stub survives", async ({ request }) => {
+    // disableAliases stops Hugo writing these. If it is ever removed, the stub
+    // is served 200 at the same URL and silently wins over the redirect rule —
+    // the failure this whole feature exists to prevent, and one that a status
+    // check alone would not catch.
+    for (const [from] of directoryStyle) {
+      const res = await request.get(`${from}/`, { maxRedirects: 0 });
+      expect(res.status()).toBe(301);
+      expect(await res.text()).not.toContain("http-equiv");
+    }
+  });
+
+  test("the redirect table itself is not served", async ({ request }) => {
+    expect((await request.get("/_redirects")).status()).toBe(404);
+  });
+});
