@@ -69,14 +69,14 @@ A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 
 ### Secrets
 
-| Name                            | Used by                                            | Notes                                    |
-| ------------------------------- | -------------------------------------------------- | ---------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`          | every deploy (repository-level)                    | inherited                                |
-| `RESEND_API_KEY`                | contact form                                       | separate key per environment             |
-| `TO_EMAIL`                      | contact form — where submissions are sent          | a secret only to keep it out of the logs |
-| `FROM_EMAIL`                    | contact form — sender, on a Resend-verified domain | staging: use a distinct sender           |
-| `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment          |
-| `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access                 | optional                                 |
+| Name                            | Used by                                            | Notes                                                  |
+| ------------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`          | every deploy                                       | same token in both; see [below](#cloudflare-api-token) |
+| `RESEND_API_KEY`                | contact form                                       | separate key per environment                           |
+| `TO_EMAIL`                      | contact form — where submissions are sent          | a secret only to keep it out of the logs               |
+| `FROM_EMAIL`                    | contact form — sender, on a Resend-verified domain | staging: use a distinct sender                         |
+| `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment                        |
+| `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access                 | optional                                               |
 
 The Worker degrades one feature at a time, and the staging deploy reports what
 is missing instead of failing:
@@ -161,11 +161,48 @@ tunnel do not use the zone's origin connection settings.
 
 ## Cloudflare API token
 
-Create an **Account API token** (Manage Account → Account API Tokens) from the
-**Edit Cloudflare Workers** template. Workers custom domains create DNS records
-on first deploy, so add **Zone → DNS → Edit** for `gatezh.com`. Store it as the
-repository secret `CLOUDFLARE_API_TOKEN`, and the account ID as the repository
-variable `CLOUDFLARE_ACCOUNT_ID`.
+One **account-owned** token, `gatezh-github-actions`, stored as the
+`CLOUDFLARE_API_TOKEN` secret in **both** GitHub Environments. An account token
+survives changes to individual members; a user token (My Profile → API Tokens)
+stops working if that user is removed.
+
+Only a **Super Administrator**, or a member with the **API Token Provisioning**
+role, can create one — an Administrator gets _Unauthorized to access requested
+resource_ at the last step. A token can only hold a subset of its creator's
+permissions.
+
+1. [Manage Account → **Account API Tokens**](https://dash.cloudflare.com/?to=/:account/api-tokens)
+   → **Create Token** → **Create Custom Token**. Not the _Edit Cloudflare
+   Workers_ template: it pre-fills **Workers Scripts**, now a legacy permission.
+2. Name: `gatezh-github-actions`. This account hosts other projects, so the
+   name says which one it serves.
+3. **Policy 1** — scope **Entire Account**: **Workers → Admin**. Admin rather
+   than Editor because a deploy that creates a Worker (the first staging deploy,
+   and the rename in runbook step 8) needs it; per-Worker roles cannot apply to
+   a Worker that does not exist yet.
+4. **Policy 2** — scope **Specified Domains → `gatezh.com`**: **Workers Routes →
+   Edit**, which attaches custom domains. No DNS permission is needed — the
+   custom domain creates its own record.
+5. Leave **Client IP Address Filtering** empty (GitHub runners' IPs change) and
+   expiry at your rotation preference → **Continue to summary** → **Create
+   Token**. Copy it now; it is not shown again.
+6. Add it as the environment secret `CLOUDFLARE_API_TOKEN` in `staging` and
+   `production`. Every job that deploys names its environment, so no workflow
+   reads a repository-level token — delete that one and revoke the token it held.
+7. Restrict both environments' **Deployment branches** to `master`. On a public
+   repository GitHub enforces this on every plan, so a pushed branch cannot
+   reach the token.
+
+**Blast radius.** Workers Admin at account scope reaches every Worker in this
+shared account, not only this project's. Narrowing it to **Specified Workers**
+with **Editor** is possible once every Worker the workflows deploy exists, but
+the token would then fail at runbook step 8, and Custom Domains do not yet
+support per-Worker roles. Revisit after step 8.
+
+Sources: [Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/),
+[account-owned tokens](https://developers.cloudflare.com/fundamentals/api/get-started/account-owned-tokens/).
+
+The account ID is the repository variable `CLOUDFLARE_ACCOUNT_ID`.
 
 ## Resend
 
