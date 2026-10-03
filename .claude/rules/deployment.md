@@ -24,16 +24,18 @@ description: Build commands, deployment workflow, and required GitHub secrets/va
 # Deployment
 
 Deployment is handled via GitHub Actions. See `docs/deployment.md` for the full
-setup, including the cutover runbook.
+setup and the planned Worker rename.
 
-- `deploy.yml` — push to `master` → production. **The active path today.**
-- `release.yml` — manual dispatch → `v*` tag → production. Available, opt-in.
-- `deploy-staging.yml` — manual dispatch → staging (`staging-www.gatezh.com`,
-  `staging-api.gatezh.com`). The push trigger is commented out until the cutover.
+- `deploy-staging.yml` — push to `master` (or dispatch) → staging
+  (`staging-www.gatezh.com`, `staging-api.gatezh.com`).
+- `release.yml` — manual dispatch → `v*` tag → production. **The only
+  production path**; `action: redeploy` rolls back to an earlier tag.
+- `deploy.yml` — dispatch-only, untagged production fallback. Delete after a
+  few successful releases.
 
 Deployed Worker names are `gatezh-com` and `gatezh-com-email-worker` and do not
 match the directory names. Renaming them (to `gatezh-www-*` / `gatezh-api-*`,
-with the API on `api.gatezh.com`) is planned as step 8 of the cutover runbook —
+with the API on `api.gatezh.com`) is planned in docs/deployment.md ("Remaining") —
 a cutover, not an edit. Only `staging` has an `env` block in
 `wrangler.jsonc` until then, deliberately.
 
