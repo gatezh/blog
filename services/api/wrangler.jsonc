@@ -3,7 +3,7 @@
   // Deployed Worker name, deliberately still "email-worker" while the directory
   // is services/api. Renaming this orphans the live Worker and breaks the
   // contact form until production's HUGO_PARAMS_APIURL is repointed, so it
-  // happens as step 7 of the cutover runbook in docs/deployment.md — not here.
+  // happens as the planned rename in docs/deployment.md — not here.
   "name": "gatezh-com-email-worker",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-03",
