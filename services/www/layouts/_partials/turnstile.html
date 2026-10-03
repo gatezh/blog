@@ -1,68 +1,18 @@
-{{/* Cloudflare Turnstile - lazy load when contact section approaches viewport */}}
-{{ if .Site.Params.turnstileSiteKey }}
-<script>
-  (function() {
-    var loaded = false;
-    var turnstileWidgetId = null;
-    var siteKey = {{ .Site.Params.turnstileSiteKey }};
+{{/* Cloudflare Turnstile — implicit rendering, as Cloudflare documents it for
+     static sites with straightforward forms: load api.js in <head>, and let it
+     find the `.cf-turnstile` element on its own. Cloudflare recommends running
+     the script "as early upon the visitor's page entry as possible, so that the
+     verification is complete … once the visitor attempts an action", so it is
+     neither deferred to viewport nor lazy-loaded.
+     https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/
 
-    // Get current theme (dark if html has .dark class)
-    function getCurrentTheme() {
-      return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-    }
+     Included only from contact.html's "head" block, and only when a site key is
+     configured. The Worker stamps its CSP nonce onto the script tag like every
+     other script, so nothing here is CSP-specific.
 
-    function loadTurnstile() {
-      if (loaded) return;
-      loaded = true;
-      var s = document.createElement('script');
-      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad';
-      s.async = true;
-      document.head.appendChild(s);
-    }
-
-    // Called when Turnstile script loads
-    window.onTurnstileLoad = function() {
-      var container = document.getElementById('turnstile-container');
-      if (container && typeof turnstile !== 'undefined') {
-        turnstileWidgetId = turnstile.render(container, {
-          sitekey: siteKey,
-          theme: getCurrentTheme()
-        });
-      }
-    };
-
-    // Re-render Turnstile when theme changes
-    window.addEventListener('themechange', function() {
-      if (typeof turnstile !== 'undefined' && turnstileWidgetId !== null) {
-        var container = document.getElementById('turnstile-container');
-        if (container) {
-          turnstile.remove(turnstileWidgetId);
-          turnstileWidgetId = turnstile.render(container, {
-            sitekey: siteKey,
-            theme: getCurrentTheme()
-          });
-        }
-      }
-    });
-
-    // Load when contact section is 500px from viewport
-    document.addEventListener('DOMContentLoaded', function() {
-      var contact = document.getElementById('contact');
-      if (!contact) return;
-
-      // Check for IntersectionObserver support, fallback to immediate load
-      if ('IntersectionObserver' in window) {
-        var observer = new IntersectionObserver(function(entries) {
-          if (entries[0].isIntersecting) {
-            loadTurnstile();
-            observer.disconnect();
-          }
-        }, { rootMargin: '500px' });
-        observer.observe(contact);
-      } else {
-        loadTurnstile();
-      }
-    });
-  })();
-</script>
-{{ end }}
+     api.js must be loaded from this exact URL — Cloudflare warns that proxying
+     or caching it breaks Turnstile when they ship updates. */}}
+{{- with site.Params.turnstileSiteKey }}
+	<link rel="preconnect" href="https://challenges.cloudflare.com">
+	<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{{- end }}
