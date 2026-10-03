@@ -7,7 +7,7 @@ name: Release
 # NOTE: this deploys under the CURRENT Worker names (gatezh-com,
 # gatezh-com-email-worker) using the top-level wrangler config. There is
 # deliberately no `production` env block — adding one renames the deployed
-# Workers and orphans the live ones. See the cutover runbook in
+# Workers and orphans the live ones. See "Remaining: rename the Workers" in
 # docs/deployment.md.
 on:
   workflow_dispatch:
@@ -268,11 +268,10 @@ jobs:
             fail=1
           fi
 
-          # A Transform Rule on the zone replaces the Worker's policy wholesale.
-          # Until the old "CSP" rule is deleted this is expected; see
-          # docs/CSP.md, then promote this to an error.
+          # The CSP comes from the Worker. A Transform Rule on the zone that sets
+          # the same header would replace it wholesale — see docs/CSP.md.
           printf '%s' "${headers}" | grep -i '^content-security-policy:' | grep -q "'strict-dynamic'" \
-            || echo "::warning::https://gatezh.com/ is not serving the Worker's CSP — a zone Transform Rule is overriding it (docs/CSP.md)"
+            || { echo "::error::https://gatezh.com/ is not serving the Worker's CSP — a zone Transform Rule is overriding it (docs/CSP.md)"; exit 1; }
 
           if [ -n "${API_URL}" ]; then
             preflight=$(fetch -i -X OPTIONS -H "Origin: ${ALLOWED_ORIGIN}" -H "Access-Control-Request-Method: POST" "${API_URL}" | tr -d '\r')

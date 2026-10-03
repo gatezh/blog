@@ -1,14 +1,17 @@
-name: Deploy
+name: Deploy (untagged fallback)
 
+# Retired as the production path: production deploys through release.yml, and
+# a push to master deploys staging (deploy-staging.yml). This deploys master to
+# production WITHOUT a tag and is kept only as a manual fallback while the
+# release flow beds in — delete it after a few successful releases.
+#
+# Rollback to push-to-production: restore the push trigger below (and remove
+# the one in deploy-staging.yml).
+#
+#  push:
+#    branches: [master]
+#    paths-ignore: ["docs/**", "*.md", "LICENSE", ".github/release.yml", ".devcontainer/**"]
 on:
-  push:
-    branches: [master]
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
-      - "LICENSE"
-      - ".github/release.yml"
-      - ".devcontainer/**"
   workflow_dispatch:
 
 permissions:
@@ -49,9 +52,7 @@ jobs:
         run: bun run check
 
   # Both deploy jobs read the `production` GitHub Environment — the same
-  # variables and secrets release.yml uses, so the two production paths cannot
-  # build different sites. This workflow is retired by step 5 of the cutover
-  # runbook in docs/deployment.md.
+  # variables and secrets release.yml uses, so the fallback builds the same site.
   deploy-www:
     needs: check
     runs-on: ubuntu-24.04
@@ -287,13 +288,10 @@ jobs:
             exit 1
           fi
 
-          # The CSP now comes from the Worker (services/www/src/security.ts). A
-          # zone Transform Rule that sets the same header replaces it wholesale,
-          # and the old "CSP" rule still does until it is deleted — so this is
-          # a warning, not an error, until then. See docs/CSP.md, and promote
-          # it to ::error:: once the rule is gone.
+          # The CSP comes from the Worker (services/www/src/security.ts). A zone
+          # Transform Rule that sets the same header would replace it wholesale.
           printf '%s' "${headers}" | grep -i '^content-security-policy:' | grep -q "'strict-dynamic'" \
-            || echo "::warning::https://gatezh.com/ is not serving the Worker's CSP — a zone Transform Rule is overriding it (docs/CSP.md)"
+            || { echo "::error::https://gatezh.com/ is not serving the Worker's CSP — a zone Transform Rule is overriding it (docs/CSP.md)"; exit 1; }
 
       - name: Deployment summary
         env:

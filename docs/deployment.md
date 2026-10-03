@@ -1,19 +1,22 @@
 # Deployment Guide
 
-How gatezh.com is configured and deployed, and the runbook for moving production
-from push-to-deploy to tagged releases.
+How gatezh.com is configured and deployed.
 
 ## Deployment model
 
-| Path                 | Trigger                    | Target     | Status                       |
-| -------------------- | -------------------------- | ---------- | ---------------------------- |
-| `deploy.yml`         | push to `master`           | production | **active today**             |
-| `release.yml`        | manual dispatch → `v*` tag | production | available, opt-in            |
-| `deploy-staging.yml` | manual dispatch            | staging    | **blocked on setup** (below) |
+| Path                 | Trigger                    | Target                                                          |
+| -------------------- | -------------------------- | --------------------------------------------------------------- |
+| `deploy-staging.yml` | push to `master`, dispatch | staging                                                         |
+| `release.yml`        | manual dispatch → `v*` tag | production                                                      |
+| `deploy.yml`         | manual dispatch only       | production, **untagged fallback** — delete after a few releases |
 
-The target model, shared with the other projects on this stack, is: `master`
-push → staging, release dispatch → production. See
-[Cutover runbook](#cutover-runbook).
+Same model as the other projects on this stack: merging to `master` deploys
+staging; production only ever runs a tagged release.
+
+**Releasing:** Actions → **Release** → Run workflow → `action: create` and a
+bump level. It tags `master`, generates release notes, deploys both Workers and
+verifies production. **Rolling back:** the same workflow with
+`action: redeploy` and an earlier version.
 
 ### Why release-anchored production
 
@@ -92,59 +95,39 @@ on the live Worker, because wrangler only replaces a secret it is given. That is
 what lets production keep its existing Cloudflare secrets until they are moved
 into GitHub.
 
-## Cutover runbook
+## Cutover history
 
-Run in order. Each step is independently reversible; rollback at any point is
-re-enabling the `push:` trigger in `deploy.yml`.
+Production moved from push-to-deploy to tagged releases on 2026-10-03:
+environments and variables configured, a staging Turnstile widget created, the
+first staging deploy verified, the triggers flipped, and the zone's legacy
+**CSP** Transform Rule disabled so production serves the Worker's policy (see
+[CSP.md](CSP.md)). Production's Worker credentials were moved into the
+`production` environment at the same time.
 
-1. **GitHub Environments.** `staging` and `production` exist. Restrict `staging`
-   deployments to `master`. Optionally add yourself as a required reviewer on
-   `production`.
-2. **Cloudflare zone.**
-   - Scope the legacy **CSP** response-header Transform Rule from "all incoming
-     requests" to `http.host eq "gatezh.com"`. It replaces the Worker's policy
-     on every host it matches, so until this is done staging serves the old
-     policy and its verify job fails. See [CSP.md](CSP.md).
-   - Create a **Turnstile widget** for `staging-www.gatezh.com` (Managed mode).
-     Its site key is the staging `HUGO_PARAMS_TURNSTILESITEKEY`; its secret is
-     the staging `TURNSTILE_SECRET_KEY`.
-3. **Staging configuration.** Set every variable and secret in the tables
-   above on `staging`. A separate Resend API key per environment limits the
-   blast radius of a leak.
-4. **Dispatch `Deploy (staging)`** and confirm the verify job passes: build
-   commit, `X-Robots-Tag: noindex` on every page, the Worker's CSP, a real 404,
-   API CORS and crawlability. Then submit the contact form on staging and check
-   the Turnstile widget renders and the email arrives.
-5. **Flip the triggers.** Uncomment the `push:` block in `deploy-staging.yml` and
-   remove the `push:` trigger from `deploy.yml`. Master pushes now reach staging
-   only.
-6. **Dispatch `Release`** (`action: create`). Confirm `gatezh.com` serves the
-   release and the contact form still submits. Then delete the zone's **CSP**
-   Transform Rule — production now gets the Worker's policy — and promote the
-   CSP warning in `release.yml`'s verify job to an error.
-7. **Optional, later — production secrets into GitHub.** Add `RESEND_API_KEY`,
-   `TURNSTILE_SECRET_KEY`, `TO_EMAIL` and `FROM_EMAIL` to the `production`
-   environment and dispatch `Release` with `action: redeploy`. They overwrite the
-   Worker's current values; no deletion step is needed because the binding type
-   stays `secret_text`.
-8. **Later — rename the Workers and move the API to `api.gatezh.com`**, the
-   layout the other projects on this stack use. This Cloudflare account is
-   shared with other projects, so the names carry a `gatezh-` prefix rather than
-   the bare `www`/`api` a dedicated account can use.
-   - **API first — no downtime.** Add a `production` env block to
-     `services/api/wrangler.jsonc` with `"name": "gatezh-api-production"` and a
-     custom domain `api.gatezh.com`, and deploy with `environment: production`.
-     The new Worker serves alongside the old one. Point production's
-     `HUGO_PARAMS_APIURL` at `https://api.gatezh.com` and release; once the
-     contact form submits through it, delete `gatezh-com-email-worker`.
-   - **www — about a minute of downtime.** The same with
-     `"name": "gatezh-www-production"` and custom domain `gatezh.com`. A custom
-     domain belongs to one Worker at a time, so detach `gatezh.com` from
-     `gatezh-com` immediately before the release, then delete `gatezh-com`.
-     Purely a rename; skip it if the name does not bother you.
-   - Give staging the matching names (`gatezh-api-staging`,
-     `gatezh-www-staging`) in the same change, and delete the old staging
-     Workers.
+To go back to push-to-production in an emergency: restore the `push:` trigger
+in `deploy.yml` and remove the one from `deploy-staging.yml`.
+
+## Remaining: rename the Workers
+
+**Rename the Workers and move the API to `api.gatezh.com`** — the
+layout the other projects on this stack use. This Cloudflare account is
+shared with other projects, so the names carry a `gatezh-` prefix rather than
+the bare `www`/`api` a dedicated account can use.
+
+- **API first — no downtime.** Add a `production` env block to
+  `services/api/wrangler.jsonc` with `"name": "gatezh-api-production"` and a
+  custom domain `api.gatezh.com`, and deploy with `environment: production`.
+  The new Worker serves alongside the old one. Point production's
+  `HUGO_PARAMS_APIURL` at `https://api.gatezh.com` and release; once the
+  contact form submits through it, delete `gatezh-com-email-worker`.
+- **www — about a minute of downtime.** The same with
+  `"name": "gatezh-www-production"` and custom domain `gatezh.com`. A custom
+  domain belongs to one Worker at a time, so detach `gatezh.com` from
+  `gatezh-com` immediately before the release, then delete `gatezh-com`.
+  Purely a rename; skip it if the name does not bother you.
+- Give staging the matching names (`gatezh-api-staging`,
+  `gatezh-www-staging`) in the same change, and delete the old staging
+  Workers.
 
 ## Zone settings
 
@@ -178,7 +161,7 @@ permissions.
    name says which one it serves.
 3. **Policy 1** — scope **Entire Account**: **Workers → Admin**. Admin rather
    than Editor because a deploy that creates a Worker (the first staging deploy,
-   and the rename in runbook step 8) needs it; per-Worker roles cannot apply to
+   and the planned Worker rename) needs it; per-Worker roles cannot apply to
    a Worker that does not exist yet.
 4. **Policy 2** — scope **Specified Domains → `gatezh.com`**: **Workers Routes →
    Edit**, which attaches custom domains. No DNS permission is needed — the
@@ -196,8 +179,8 @@ permissions.
 **Blast radius.** Workers Admin at account scope reaches every Worker in this
 shared account, not only this project's. Narrowing it to **Specified Workers**
 with **Editor** is possible once every Worker the workflows deploy exists, but
-the token would then fail at runbook step 8, and Custom Domains do not yet
-support per-Worker roles. Revisit after step 8.
+the token would then fail at the planned rename, and Custom Domains do not yet
+support per-Worker roles. Revisit after the rename.
 
 Sources: [Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/),
 [account-owned tokens](https://developers.cloudflare.com/fundamentals/api/get-started/account-owned-tokens/).
