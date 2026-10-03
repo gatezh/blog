@@ -48,6 +48,6 @@ those are local-dev defaults.
 there; secret values are masked. Anything not meant to be public — email
 addresses included — is a secret, never a variable.
 
-Repository-level (inherited by both environments):
-- `CLOUDFLARE_API_TOKEN` (secret) - Workers edit + Zone DNS edit
+Cloudflare credentials:
+- `CLOUDFLARE_API_TOKEN` (secret, per environment) - Workers Admin + gatezh.com Workers Routes Edit; see docs/deployment.md
 - `CLOUDFLARE_ACCOUNT_ID` (variable)
