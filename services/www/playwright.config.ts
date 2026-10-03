@@ -115,6 +115,16 @@ export default defineConfig({
       /* wrangler serves ./public, so the site has to be on disk first — this
          is the one place a real build is required rather than --renderToMemory. */
       command: `bun run build && bunx wrangler dev --local --port ${WORKER_PORT} --ip 127.0.0.1 --var API_URL:http://localhost:8787`,
+      // Public test values, never real keys. 1x00000000000000000000AA is
+      // Cloudflare's documented always-pass Turnstile site key, for automated
+      // tests; the PostHog token is a placeholder whose network calls the tests
+      // stub out. Both put the real vendor snippets into the build, so the
+      // worker project can show they run unmodified under the enforced CSP.
+      // Merged over process.env by Playwright, not a replacement for it.
+      env: {
+        HUGO_PARAMS_TURNSTILESITEKEY: "1x00000000000000000000AA",
+        HUGO_PARAMS_POSTHOGKEY: "phc_playwright_placeholder",
+      },
       url: `http://127.0.0.1:${WORKER_PORT}/`,
       reuseExistingServer: !process.env.CI,
       timeout: 180000,
