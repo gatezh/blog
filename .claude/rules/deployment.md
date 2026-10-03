@@ -30,8 +30,6 @@ setup and the planned Worker rename.
   (`staging-www.gatezh.com`, `staging-api.gatezh.com`).
 - `release.yml` — manual dispatch → `v*` tag → production. **The only
   production path**; `action: redeploy` rolls back to an earlier tag.
-- `deploy.yml` — dispatch-only, untagged production fallback. Delete after a
-  few successful releases.
 
 Deployed Worker names are `gatezh-com` and `gatezh-com-email-worker` and do not
 match the directory names. Renaming them (to `gatezh-www-*` / `gatezh-api-*`,

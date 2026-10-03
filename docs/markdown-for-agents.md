@@ -110,7 +110,7 @@ curl -sI localhost:8799/posts/<slug>/            # content-type: text/html
 curl -s -o /dev/null -w '%{http_code}\n' localhost:8799/404      # 404, not 200
 ```
 
-The post-deploy `verify` job in `.github/workflows/deploy.yml` asserts the same
+The post-deploy `verify` job in `.github/workflows/release.yml` asserts the same
 invariants against production.
 
 ## Future: Hugo native llms.txt
