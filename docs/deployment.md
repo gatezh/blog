@@ -57,14 +57,15 @@ the repo-root `.env.local` (copy `.env.example`).
 
 ### Variables
 
-| Name                           | Used by                                   | staging                           | production                                           |
-| ------------------------------ | ----------------------------------------- | --------------------------------- | ---------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`        | every deploy (repository-level)           | inherited                         | inherited                                            |
-| `HUGO_BASEURL`                 | Hugo build — canonical, sitemap, JSON-LD  | `https://staging-www.gatezh.com/` | `https://gatezh.com/`                                |
-| `HUGO_PARAMS_APIURL`           | contact form POST target, CSP connect-src | `https://staging-api.gatezh.com`  | `https://gatezh-com-email-worker.gatezh.workers.dev` |
-| `HUGO_PARAMS_TURNSTILESITEKEY` | contact form widget                       | the staging widget's site key     | the production widget's site key                     |
-| `ALLOWED_ORIGIN`               | api Worker CORS — **required**            | `https://staging-www.gatezh.com`  | `https://gatezh.com`                                 |
-| `CLOUDFLARE_ZERO_CLIENT_ID`    | staging verify, only behind Access        | optional                          | —                                                    |
+| Name                           | Used by                                           | staging                           | production                                           |
+| ------------------------------ | ------------------------------------------------- | --------------------------------- | ---------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`        | every deploy (repository-level)                   | inherited                         | inherited                                            |
+| `HUGO_BASEURL`                 | Hugo build — canonical, sitemap, JSON-LD          | `https://staging-www.gatezh.com/` | `https://gatezh.com/`                                |
+| `HUGO_PARAMS_APIURL`           | contact form POST target, CSP connect-src         | `https://staging-api.gatezh.com`  | `https://gatezh-com-email-worker.gatezh.workers.dev` |
+| `HUGO_PARAMS_TURNSTILESITEKEY` | contact form widget                               | the staging widget's site key     | the production widget's site key                     |
+| `HUGO_PARAMS_POSTHOGKEY`       | PostHog analytics — optional, see docs/posthog.md | — (never plumbed into staging)    | the PostHog project token                            |
+| `ALLOWED_ORIGIN`               | api Worker CORS — **required**                    | `https://staging-www.gatezh.com`  | `https://gatezh.com`                                 |
+| `CLOUDFLARE_ZERO_CLIENT_ID`    | staging verify, only behind Access                | optional                          | —                                                    |
 
 A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 `ALLOWED_ORIGIN` (every request would fail CORS). Everything else is optional.
