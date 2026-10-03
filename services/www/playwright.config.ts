@@ -114,7 +114,7 @@ export default defineConfig({
     {
       /* wrangler serves ./public, so the site has to be on disk first — this
          is the one place a real build is required rather than --renderToMemory. */
-      command: `bun run build && bunx wrangler dev --local --port ${WORKER_PORT} --ip 127.0.0.1`,
+      command: `bun run build && bunx wrangler dev --local --port ${WORKER_PORT} --ip 127.0.0.1 --var API_URL:http://localhost:8787`,
       url: `http://127.0.0.1:${WORKER_PORT}/`,
       reuseExistingServer: !process.env.CI,
       timeout: 180000,

@@ -2,6 +2,8 @@
 // worker-configuration.d.ts — see tsconfig.json. Declaring it by hand here
 // would shadow the generated type and silently drift from wrangler.jsonc.
 
+import { secure, stripValidators } from "./security";
+
 // Cloudflare's asset router rewrites /404.html -> /404 (html_handling:
 // auto-trailing-slash), and /404 then matches the asset and is served with a
 // 200 — making the error page an indexable URL of its own, which Google files
@@ -62,29 +64,38 @@ function acceptsMarkdown(accept: string): boolean {
 // https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-
-    if (NOT_FOUND_PATHS.has(url.pathname)) {
-      // Fetch via /404 — asking ASSETS for /404.html just returns the redirect.
-      const notFound = await env.ASSETS.fetch(new URL("/404", url.origin));
-      return new Response(notFound.body, { status: 404, headers: notFound.headers });
-    }
-
-    const negotiable = isPagePath(url.pathname);
-    const resolved = await resolve(request, env, url, negotiable);
-
-    // Headers on a subrequest response are immutable — clone before mutating.
-    const response = new Response(resolved.body, resolved);
-
-    // Only on paths this Worker actually negotiates. On a static asset it would
-    // needlessly fragment downstream caches by request Accept header.
-    if (negotiable) response.headers.append("Vary", "Accept");
-
-    if (isAgentText(url.pathname)) response.headers.set("X-Robots-Tag", "noindex");
-
-    return response;
+    return secure(await respond(request, env), request, env.API_URL);
   },
 } satisfies ExportedHandler<Env>;
+
+/** The response for a request, mutable so `secure()` can add headers to it. */
+async function respond(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (NOT_FOUND_PATHS.has(url.pathname)) {
+    // Fetch via /404 — asking ASSETS for /404.html just returns the redirect.
+    const notFound = await env.ASSETS.fetch(new URL("/404", url.origin));
+    return new Response(notFound.body, { status: 404, headers: notFound.headers });
+  }
+
+  const negotiable = isPagePath(url.pathname);
+  const resolved = await resolve(request, env, url, negotiable);
+
+  // Headers on a subrequest response are immutable — clone before mutating.
+  const response = new Response(resolved.body, resolved);
+
+  // Only on paths this Worker actually negotiates. On a static asset it would
+  // needlessly fragment downstream caches by request Accept header.
+  if (negotiable) response.headers.append("Vary", "Accept");
+
+  if (isAgentText(url.pathname)) response.headers.set("X-Robots-Tag", "noindex");
+
+  // Environment-wide override — staging sets it so the whole host stays out of
+  // the index. See wrangler.jsonc.
+  if (env.X_ROBOTS_TAG) response.headers.set("X-Robots-Tag", env.X_ROBOTS_TAG);
+
+  return response;
+}
 
 async function resolve(
   request: Request,
@@ -123,5 +134,7 @@ async function resolve(
     await mdResponse.body?.cancel();
   }
 
-  return env.ASSETS.fetch(request);
+  // A page's HTML gets a fresh nonce per response, so it must never be
+  // answered with a 304 — see stripValidators().
+  return env.ASSETS.fetch(negotiable ? stripValidators(request) : request);
 }

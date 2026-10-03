@@ -1,4 +1,7 @@
-baseURL: https://gatezh.com/
+# baseURL is overridden by HUGO_BASEURL at build time in every deploy workflow,
+# from the staging or production GitHub Environment. Local dev (`bun run dev`)
+# keeps the Hugo dev server's localhost URL. Deploys refuse to build without it.
+baseURL: http://localhost:1313/
 locale: en-US
 title: Serge Gatezh
 theme: terminal
@@ -152,13 +155,12 @@ params:
 
   comments: true
 
-  # Contact form configuration
-  # Turnstile site key (public, safe to commit)
-  # Get from Cloudflare Dashboard > Turnstile
-  turnstileSiteKey: "0x4AAAAAACUaMne4Sn7WV9Yo"
-  # Worker URL - set after deploying the API Worker
-  # Example: https://gatezh-com-email-worker.<subdomain>.workers.dev
-  contactWorkerUrl: "https://gatezh-com-email-worker.gatezh.workers.dev"
+  # Contact form Worker URL. The local default keeps `bun run dev` working
+  # without extra setup; every deploy overrides it via HUGO_PARAMS_APIURL on its
+  # GitHub Environment. Other env-driven params (turnstileSiteKey, buildCommit)
+  # are intentionally NOT declared here — Hugo creates them from HUGO_PARAMS_*
+  # env vars at build time, and unset means falsy in `{{ with }}` guards.
+  apiUrl: "http://localhost:8787"
 
   profileMode:
     enabled: true

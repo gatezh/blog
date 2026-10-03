@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-004](adr-004-csp-in-worker.md). The Transform Rule this
+describes drifted to `connect-src` alone; the main site's policy now lives in
+the www Worker.
 
 ## Context
 
