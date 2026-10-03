@@ -1,0 +1,295 @@
+name: Release
+
+# Production deploys are manual and tag-anchored. Every release is a tag you can
+# point at, and a redeploy of an existing tag is a first-class action rather than
+# a revert commit.
+#
+# NOTE: this deploys under the CURRENT Worker names (gatezh-com,
+# gatezh-com-email-worker) using the top-level wrangler config. There is
+# deliberately no `production` env block — adding one renames the deployed
+# Workers and orphans the live ones. See the cutover runbook in
+# docs/deployment.md.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Create a new release, or redeploy an existing tag
+        type: choice
+        options: [create, redeploy]
+        default: create
+      bump:
+        description: Version bump (create only)
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: Existing version to redeploy, e.g. v1.4.2 (redeploy only)
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  # Production deploys queue rather than cancel each other: a cancelled deploy
+  # can leave www and api on different commits.
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      commit_sha: ${{ steps.resolve.outputs.commit_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTION: ${{ inputs.action }}
+          BUMP: ${{ inputs.bump }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ "${ACTION}" = "redeploy" ]; then
+            [ -n "${VERSION}" ] || { echo "::error::redeploy requires a version"; exit 1; }
+            git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null \
+              || { echo "::error::tag ${VERSION} does not exist"; exit 1; }
+            echo "version=${VERSION#v}" >> "$GITHUB_OUTPUT"
+            echo "commit_sha=$(git rev-list -n 1 "${VERSION}")" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          latest=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          latest=${latest:-v0.0.0}
+          IFS=. read -r major minor patch <<< "${latest#v}"
+
+          case "${BUMP}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+
+          next="${major}.${minor}.${patch}"
+          echo "Releasing v${next} (previous: ${latest})"
+          gh release create "v${next}" --generate-notes --target "${GITHUB_SHA}"
+          echo "version=${next}" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+  check:
+    needs: release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: v${{ needs.release.outputs.version }}
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+      - name: Check
+        run: bun run check
+
+  deploy-www:
+    needs: [release, check]
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://gatezh.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: v${{ needs.release.outputs.version }}
+          # See the note in deploy-staging.yml: a shallow clone collapses every
+          # <lastmod> to the checkout's own commit date.
+          fetch-depth: 0
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build Hugo site
+        env:
+          HUGO_BASEURL: ${{ vars.HUGO_BASEURL }}
+          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
+          # The tag's commit, not github.sha: on a redeploy those differ, and
+          # the verify job must confirm the tag is what is live.
+          HUGO_PARAMS_BUILDCOMMIT: ${{ needs.release.outputs.commit_sha }}
+        run: |
+          : "${HUGO_BASEURL:?Set HUGO_BASEURL on the production environment}"
+          bun run --cwd services/www build
+
+      - name: Deploy www
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/www
+          packageManager: bun
+          vars: |
+            API_URL
+        env:
+          API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
+
+  deploy-api:
+    needs: [release, check]
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://gatezh.com/contact/
+    steps:
+      - name: Audit feature configuration
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
+        run: |
+          if [ -z "${ALLOWED_ORIGIN}" ]; then
+            echo "::error title=ALLOWED_ORIGIN not set::Set ALLOWED_ORIGIN on the production environment."
+            exit 1
+          fi
+
+          # Production keeps any credential GitHub does not hold: wrangler only
+          # replaces a secret it is given. So an unset secret here means "the
+          # Worker keeps what it has", not "disabled" — report it as such.
+          {
+            echo "## Feature configuration (production)"
+            echo ""
+            echo "| Value | Source |"
+            echo "|---|---|"
+            for name in RESEND_API_KEY TURNSTILE_SECRET_KEY TO_EMAIL FROM_EMAIL; do
+              if [ -n "${!name}" ]; then src="GitHub secret"; else src="kept from the Worker"; fi
+              echo "| \`${name}\` | ${src} |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "${TURNSTILE_SECRET_KEY}" ] && [ -z "${HUGO_PARAMS_TURNSTILESITEKEY}" ]; then
+            echo "::warning title=Bot gate half-configured::TURNSTILE_SECRET_KEY is set but HUGO_PARAMS_TURNSTILESITEKEY is not — every submission will be rejected."
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: v${{ needs.release.outputs.version }}
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Deploy api
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/api
+          packageManager: bun
+          # Every Worker credential is a secret, so its value is masked in the
+          # logs of this public repo. Only those GitHub holds are passed;
+          # wrangler replaces a secret it is given and leaves the rest alone, so
+          # the live Worker keeps any credential not yet moved to GitHub.
+          secrets: |
+            ${{ secrets.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
+            ${{ secrets.TURNSTILE_SECRET_KEY != '' && 'TURNSTILE_SECRET_KEY' || '' }}
+            ${{ secrets.TO_EMAIL != '' && 'TO_EMAIL' || '' }}
+            ${{ secrets.FROM_EMAIL != '' && 'FROM_EMAIL' || '' }}
+          vars: |
+            ALLOWED_ORIGIN
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+
+  verify:
+    needs: [release, deploy-www, deploy-api]
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - name: Verify production
+        env:
+          COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
+          VERSION: ${{ needs.release.outputs.version }}
+          API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+        run: |
+          fetch() {
+            curl -sf --max-time 20 "$@" || { echo "::error::fetch failed: $*"; exit 1; }
+          }
+
+          sleep 5
+          fail=0
+          home=$(fetch https://gatezh.com/)
+
+          deployed=$(printf '%s' "${home}" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1)
+          if [ "${deployed}" != "${COMMIT_SHA}" ]; then
+            echo "::error::Deployed build-commit '${deployed}' does not match v${VERSION} (${COMMIT_SHA})"
+            exit 1
+          fi
+
+          headers=$(fetch -I https://gatezh.com/ | tr -d '\r')
+
+          # Production must be indexable — the inverse of staging.
+          if printf '%s' "${headers}" | grep -qi '^x-robots-tag:'; then
+            echo "::error::https://gatezh.com/ sends X-Robots-Tag — production would drop out of search"
+            fail=1
+          fi
+
+          # A Transform Rule on the zone replaces the Worker's policy wholesale.
+          # Until the old "CSP" rule is deleted this is expected; see
+          # docs/CSP.md, then promote this to an error.
+          printf '%s' "${headers}" | grep -i '^content-security-policy:' | grep -q "'strict-dynamic'" \
+            || echo "::warning::https://gatezh.com/ is not serving the Worker's CSP — a zone Transform Rule is overriding it (docs/CSP.md)"
+
+          if [ -n "${API_URL}" ]; then
+            preflight=$(fetch -i -X OPTIONS -H "Origin: ${ALLOWED_ORIGIN}" -H "Access-Control-Request-Method: POST" "${API_URL}" | tr -d '\r')
+            printf '%s' "${preflight}" | grep -qi "^access-control-allow-origin: ${ALLOWED_ORIGIN}$" \
+              || { echo "::error::API CORS preflight did not allow ${ALLOWED_ORIGIN}"; fail=1; }
+          fi
+
+          # Zone settings that no deploy can enforce. Report, never fail.
+          code=$(curl -s -o /dev/null --max-time 20 -w '%{http_code}' http://gatezh.com/)
+          [ "${code}" = "301" ] || echo "::warning::http://gatezh.com/ returned ${code}, expected 301 — turn on Always Use HTTPS"
+          printf '%s' "${headers}" | grep -qi '^strict-transport-security:' \
+            || echo "::warning::no Strict-Transport-Security header — enable HSTS under SSL/TLS -> Edge Certificates"
+
+          [ "${fail}" = "0" ] || exit 1
+
+          {
+            echo "## Release v${VERSION}"
+            echo ""
+            echo "Deployed \`${deployed}\` to https://gatezh.com"
+          } >> "$GITHUB_STEP_SUMMARY"

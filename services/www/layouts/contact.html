@@ -134,9 +134,9 @@
 
 <script>
 (function() {
-  var workerUrl = {{ .Site.Params.contactWorkerUrl | default "" }};
+  var workerUrl = {{ .Site.Params.apiUrl | default "" }};
   if (!workerUrl) {
-    console.warn('Contact form: contactWorkerUrl not configured in hugo.yaml');
+    console.warn('Contact form: apiUrl is not configured (HUGO_PARAMS_APIURL)');
     return;
   }
 

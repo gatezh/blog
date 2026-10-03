@@ -138,3 +138,78 @@ describe("header safety", () => {
     expect(String(sentEmail?.subject)).not.toMatch(/[\r\n]/);
   });
 });
+
+describe("optional feature credentials", () => {
+  /** Same request shape as `submit`, but against a caller-supplied environment. */
+  function submitWith(env: Record<string, string>, body: Record<string, unknown>) {
+    return app.request(
+      "/",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Origin: "https://gatezh.com" },
+        body: JSON.stringify(body),
+      },
+      env,
+    );
+  }
+
+  const VALID = {
+    name: "Ada",
+    email: "ada@example.com",
+    message: "Hello",
+    turnstileToken: "token",
+  };
+
+  // A bare deploy — only ALLOWED_ORIGIN set — must come up and degrade one
+  // feature, not fail the whole Worker.
+  for (const missing of ["RESEND_API_KEY", "TO_EMAIL", "FROM_EMAIL"] as const) {
+    test(`POST / returns 503 when ${missing} is unset`, async () => {
+      const env: Record<string, string> = { ...ENV };
+      delete env[missing];
+
+      const res = await submitWith(env, VALID);
+
+      expect(res.status).toBe(503);
+      // Cast: Hono narrows .json() per typed route, and this 503 is emitted
+      // before any route handler, so the inferred body type is `undefined`.
+      expect((await res.json()) as { error: string }).toEqual({
+        error: "Contact form is not configured on this deployment.",
+      });
+    });
+  }
+
+  test("submissions are accepted without a captcha when the bot gate is unconfigured", async () => {
+    const env: Record<string, string> = { ...ENV };
+    delete env.TURNSTILE_SECRET_KEY;
+
+    // No turnstileToken at all: a client served no widget has nothing to send.
+    const { turnstileToken: _omitted, ...noToken } = VALID;
+    const res = await submitWith(env, noToken);
+
+    expect(res.status).toBe(200);
+  });
+
+  test("the captcha token is still required when the bot gate IS configured", async () => {
+    const { turnstileToken: _omitted, ...noToken } = VALID;
+    const res = await submitWith(ENV, noToken);
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("crawlability", () => {
+  // Googlebot crawls this host with GET. A 405 landed the origin in Search
+  // Console's "Blocked due to other 4xx issue" bucket.
+  test("GET / is 200 and asks not to be indexed", async () => {
+    const res = await app.request("/", { method: "GET" }, ENV);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Robots-Tag")).toBe("noindex");
+  });
+
+  test("other methods on / are still rejected", async () => {
+    const res = await app.request("/", { method: "DELETE" }, ENV);
+
+    expect(res.status).toBe(405);
+  });
+});

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "bun --env-file=../../.env.local x wrangler dev --port ${API_PORT:-8787}",
+    "dev": "bun --env-file=../../.env.local x wrangler dev --env-file=../../.env.local --var ALLOWED_ORIGIN:http://localhost:${WWW_PORT:-1313} --port ${API_PORT:-8787}",
     "build": "wrangler deploy --dry-run --outdir=dist",
     "deploy": "wrangler deploy",
     "types": "wrangler types",

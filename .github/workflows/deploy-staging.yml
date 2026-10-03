@@ -1,0 +1,256 @@
+name: Deploy (staging)
+
+# Dispatch-only until the staging environment is configured. Enabling the push
+# trigger is step 5 of the cutover runbook in docs/deployment.md — until the
+# `staging` GitHub Environment has its variables, an automatic trigger would
+# deploy a site with no base URL on every merge.
+#
+#  push:
+#    branches: [master]
+#    paths-ignore: ["docs/**", "*.md", "LICENSE", ".github/release.yml", ".devcontainer/**"]
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+      - name: Check
+        run: bun run check
+
+  deploy-www:
+    needs: check
+    runs-on: ubuntu-24.04
+    environment:
+      name: staging
+      url: https://staging-www.gatezh.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # enableGitInfo reads git history for each page's <lastmod>. On a
+          # shallow clone every lastmod collapses to the shallow HEAD's commit
+          # date, so the whole site claims to have been modified today.
+          fetch-depth: 0
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build Hugo site
+        env:
+          HUGO_BASEURL: ${{ vars.HUGO_BASEURL }}
+          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
+          HUGO_PARAMS_BUILDCOMMIT: ${{ github.sha }}
+        run: |
+          # hugo.yaml's baseURL is localhost on purpose; a deploy without the
+          # override would ship every canonical, sitemap and JSON-LD URL wrong.
+          : "${HUGO_BASEURL:?Set HUGO_BASEURL on the staging environment}"
+          bun run --cwd services/www build
+
+      - name: Deploy www
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/www
+          environment: staging
+          packageManager: bun
+          # The contact-form origin for the CSP's connect-src — the same value
+          # the form POSTs to, so the two cannot disagree.
+          vars: |
+            API_URL
+        env:
+          API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
+
+  deploy-api:
+    needs: check
+    runs-on: ubuntu-24.04
+    environment:
+      name: staging
+      url: https://staging-api.gatezh.com
+    steps:
+      - name: Audit feature configuration
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
+          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
+        run: |
+          # The Worker degrades one feature at a time, so a missing credential
+          # is a warning and a summary row — except ALLOWED_ORIGIN, without
+          # which the Worker answers every request with a CORS failure.
+          if [ -z "${ALLOWED_ORIGIN}" ]; then
+            echo "::error title=ALLOWED_ORIGIN not set::Set ALLOWED_ORIGIN on the staging environment."
+            exit 1
+          fi
+
+          {
+            echo "## Feature configuration (staging)"
+            echo ""
+            echo "| Feature | Status |"
+            echo "|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "${RESEND_API_KEY}" ] && [ -n "${TO_EMAIL}" ] && [ -n "${FROM_EMAIL}" ]; then
+            echo "| Contact form (Resend) | enabled |" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=Contact form disabled::POST / will return 503. Set RESEND_API_KEY, TO_EMAIL and FROM_EMAIL (all secrets) on the staging environment."
+            echo "| Contact form (Resend) | **disabled** (503) |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Half-configured Turnstile is worse than none: the widget renders and
+          # submissions are then accepted unverified, or every one is rejected.
+          if [ -n "${TURNSTILE_SECRET_KEY}" ] && [ -n "${HUGO_PARAMS_TURNSTILESITEKEY}" ]; then
+            echo "| Bot gate (Turnstile) | enabled |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ -z "${TURNSTILE_SECRET_KEY}" ] && [ -z "${HUGO_PARAMS_TURNSTILESITEKEY}" ]; then
+            echo "::warning title=Bot gate disabled::Submissions are accepted without a captcha. Set TURNSTILE_SECRET_KEY (secret) and HUGO_PARAMS_TURNSTILESITEKEY (variable) on the staging environment."
+            echo "| Bot gate (Turnstile) | **disabled** |" >> "$GITHUB_STEP_SUMMARY"
+          else
+            missing="TURNSTILE_SECRET_KEY"
+            [ -z "${HUGO_PARAMS_TURNSTILESITEKEY}" ] && missing="HUGO_PARAMS_TURNSTILESITEKEY"
+            echo "::warning title=Bot gate half-configured::Missing ${missing}. Set both or neither."
+            echo "| Bot gate (Turnstile) | **half-configured** (missing ${missing}) |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ -z "${HUGO_PARAMS_APIURL}" ]; then
+            echo "::warning title=HUGO_PARAMS_APIURL not set::The contact form has no Worker URL to POST to. Set HUGO_PARAMS_APIURL on the staging environment."
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            services/*/node_modules
+          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Deploy api
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: services/api
+          environment: staging
+          packageManager: bun
+          # Every Worker credential is a secret, so its value is masked in the
+          # logs of this public repo. Each is listed only when set, so an
+          # unconfigured feature stays unconfigured instead of shipping an
+          # empty string that reads as "configured". The Worker's runtime
+          # guards (services/api/src/index.ts) handle absence.
+          secrets: |
+            ${{ secrets.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
+            ${{ secrets.TURNSTILE_SECRET_KEY != '' && 'TURNSTILE_SECRET_KEY' || '' }}
+            ${{ secrets.TO_EMAIL != '' && 'TO_EMAIL' || '' }}
+            ${{ secrets.FROM_EMAIL != '' && 'FROM_EMAIL' || '' }}
+          vars: |
+            ALLOWED_ORIGIN
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+
+  verify:
+    needs: [deploy-www, deploy-api]
+    runs-on: ubuntu-24.04
+    environment: staging
+    steps:
+      - name: Verify staging
+        env:
+          # Optional: only needed once staging-www sits behind Cloudflare Access.
+          CLOUDFLARE_ZERO_CLIENT_ID: ${{ vars.CLOUDFLARE_ZERO_CLIENT_ID }}
+          CLOUDFLARE_ZERO_CLIENT_SECRET: ${{ secrets.CLOUDFLARE_ZERO_CLIENT_SECRET }}
+        run: |
+          WWW_URL="https://staging-www.gatezh.com"
+          API_URL="https://staging-api.gatezh.com"
+
+          AUTH_ARGS=()
+          if [ -n "${CLOUDFLARE_ZERO_CLIENT_ID}" ] && [ -n "${CLOUDFLARE_ZERO_CLIENT_SECRET}" ]; then
+            AUTH_ARGS=(-H "CF-Access-Client-Id: ${CLOUDFLARE_ZERO_CLIENT_ID}" -H "CF-Access-Client-Secret: ${CLOUDFLARE_ZERO_CLIENT_SECRET}")
+          fi
+
+          # Fetch through a helper that fails the build when the fetch fails.
+          # `curl -sf ... | grep -q` hides a failed fetch: grep sees empty input
+          # and returns 1, which reads as "assertion passed" under `bash -e`.
+          fetch() {
+            curl -sf --max-time 20 "${AUTH_ARGS[@]}" "$@" || { echo "::error::fetch failed: $*"; exit 1; }
+          }
+
+          sleep 5
+          fail=0
+
+          home=$(fetch "${WWW_URL}/")
+          deployed=$(printf '%s' "${home}" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1)
+          if [ "${deployed}" != "${GITHUB_SHA}" ]; then
+            echo "::error::Deployed build-commit '${deployed}' does not match ${GITHUB_SHA}"
+            exit 1
+          fi
+          echo "Staging is serving ${deployed}."
+
+          headers=$(fetch -I "${WWW_URL}/" | tr -d '\r')
+
+          # Staging must never be indexed: its pages are self-canonical copies
+          # of production. Set by X_ROBOTS_TAG in services/www/wrangler.jsonc.
+          printf '%s' "${headers}" | grep -qi '^x-robots-tag: noindex' \
+            || { echo "::error::${WWW_URL}/ is missing X-Robots-Tag: noindex"; fail=1; }
+
+          # The CSP comes from the Worker. A Transform Rule matching this host
+          # would silently replace it — that is what this check catches.
+          printf '%s' "${headers}" | grep -i '^content-security-policy:' | grep -q "'strict-dynamic'" \
+            || { echo "::error::${WWW_URL}/ is not serving the Worker's CSP"; fail=1; }
+
+          code=$(curl -s -o /dev/null --max-time 20 -w '%{http_code}' "${AUTH_ARGS[@]}" "${WWW_URL}/404")
+          [ "${code}" = "404" ] || { echo "::error::${WWW_URL}/404 returned ${code}, expected 404"; fail=1; }
+
+          # CORS preflight from the staging origin must be allowed, and echo it.
+          preflight=$(fetch -i -X OPTIONS -H "Origin: ${WWW_URL}" -H "Access-Control-Request-Method: POST" "${API_URL}/" | tr -d '\r')
+          printf '%s' "${preflight}" | grep -qi "^access-control-allow-origin: ${WWW_URL}$" \
+            || { echo "::error::API CORS preflight did not allow ${WWW_URL}"; fail=1; }
+
+          # Googlebot crawls the API host too: GET / must be 200 + noindex.
+          api_headers=$(fetch -i "${API_URL}/" | tr -d '\r')
+          printf '%s' "${api_headers}" | head -1 | grep -q ' 200' \
+            || { echo "::error::GET ${API_URL}/ did not return 200"; fail=1; }
+          printf '%s' "${api_headers}" | grep -qi '^x-robots-tag: noindex' \
+            || { echo "::error::GET ${API_URL}/ is missing X-Robots-Tag: noindex"; fail=1; }
+
+          [ "${fail}" = "0" ] && echo "Staging verified." || exit 1

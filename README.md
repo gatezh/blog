@@ -65,7 +65,7 @@ hugo new ever-learning/name-of-a-post
 
 ## Deployment
 
-See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for complete deployment instructions.
+See [docs/deployment.md](./docs/deployment.md) for complete deployment instructions.
 
 ### Quick Overview
 
@@ -73,12 +73,12 @@ See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for complete deployment instructi
 2. Configure GitHub variables (`CLOUDFLARE_ACCOUNT_ID`)
 3. Set up Cloudflare Turnstile for contact form
 4. Set up Resend for email delivery
-5. Configure worker secrets via `wrangler secret put`
+5. Set the per-environment variables and secrets — see [docs/deployment.md](docs/deployment.md)
 6. Push to `master` branch to trigger deployment
 
 ## Documentation
 
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Full deployment setup
+- [Deployment Guide](./docs/deployment.md) - Full deployment setup
 - [Architecture Decision Records](./docs/README.md) - Project decisions
 
 ## License

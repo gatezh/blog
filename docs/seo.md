@@ -4,7 +4,7 @@ Search-engine indexability for `gatezh.com`: the settings that live outside this
 repo, the Search Console actions only a human can take, and a record of what is
 already enforced in code so nobody re-fixes it.
 
-Not required for a working deploy — see [deployment.md](./DEPLOYMENT.md) for
+Not required for a working deploy — see [deployment.md](./deployment.md) for
 that. Everything here is about being _found_, not about the site functioning.
 
 ---
@@ -115,10 +115,12 @@ Five things that look redundant but are not:
   rather than on the config under test. This is not hypothetical: the `/page/1/`
   stubs appeared to survive `disableAliases` purely because six of them were
   leftovers from earlier builds.
-- **Self-hosted fonts.** See [CSP.md](./CSP.md) — the policy allows neither
-  `fonts.googleapis.com` nor `fonts.gstatic.com`, so a Google-hosted webfont is
-  blocked in production and the site silently falls back to the local monospace
-  stack. Keep JetBrains Mono under `/fonts/`.
+- **Self-hosted fonts.** Keep JetBrains Mono under `/fonts/`. The Worker's CSP
+  ([CSP.md](./CSP.md)) allows neither `fonts.googleapis.com` in `style-src` nor
+  `fonts.gstatic.com` for font fetches, so a Google-hosted webfont is blocked
+  wherever that policy is served — staging today, production once the legacy
+  Transform Rule is deleted. Self-hosting also removes a render-blocking
+  third-party stylesheet and two extra handshakes.
 - **Two lines per alias in `/_redirects`.** `html_handling: auto-trailing-slash`
   answers the slash-less spelling of a path with its own 307 _before_ any
   redirect rule is consulted, so emitting only the canonical slash form turns
