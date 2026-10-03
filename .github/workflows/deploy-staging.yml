@@ -1,14 +1,16 @@
 name: Deploy (staging)
 
-# Dispatch-only until the staging environment is configured. Enabling the push
-# trigger is step 5 of the cutover runbook in docs/deployment.md — until the
-# `staging` GitHub Environment has its variables, an automatic trigger would
-# deploy a site with no base URL on every merge.
-#
-#  push:
-#    branches: [master]
-#    paths-ignore: ["docs/**", "*.md", "LICENSE", ".github/release.yml", ".devcontainer/**"]
+# Every push to master deploys staging. Production deploys only through
+# release.yml.
 on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+      - "LICENSE"
+      - ".github/release.yml"
+      - ".devcontainer/**"
   workflow_dispatch:
 
 permissions:
