@@ -3,9 +3,11 @@
      verbatim from PostHog's docs. Do not edit the loader line; replace it
      wholesale from the docs when updating.
 
-     `defaults` is PostHog's dated configuration snapshot; use the latest date
-     the docs show. It bundles autocapture, pageviews, session replay and web
-     vitals, so no per-feature options are needed here.
+     `defaults` is PostHog's dated snapshot of SDK option defaults (pageview
+     capture, rage clicks, storage). It does not switch features on:
+     autocapture, session replay and web vitals have their own options and
+     project settings. Pinned deliberately — see "Updating" in
+     docs/posthog.md before changing the date.
 
      Emitted only when HUGO_PARAMS_POSTHOGKEY is set at build time. That
      variable exists on the production GitHub Environment only, so staging and
