@@ -33,10 +33,12 @@ script loads — `array.js`, the session-replay recorder. That is why:
 
 - **`script-src` has no PostHog host.** PostHog's documented policy lists one,
   but under `'strict-dynamic'` a host in `script-src` is ignored.
-- **`prepare_external_dependency_script` is not used.** PostHog documents it for
-  nonce policies _without_ `'strict-dynamic'`, where every injected script needs
-  the nonce itself. Using it here would mean threading a per-response nonce into
-  a statically built page for no effect.
+- **`prepare_external_dependency_script` is not used.** PostHog documents it as
+  the hook for adding a nonce to the scripts it injects. Under
+  `'strict-dynamic'` they need none: a script that a nonced script inserts is
+  trusted already. (That is CSP's rule, not something PostHog's page says.)
+  Using it here would mean threading a per-response nonce into a statically
+  built page for no effect.
 - **The wildcard stays.** PostHog warns that "the exact subdomains may change
   over time" and that narrowing the list is not recommended.
 
@@ -48,9 +50,13 @@ requesting `array.js`, with no violation raised.
 
 - **The snippet:** replace the whole loader line from the docs; never edit it in
   place.
-- **`defaults`:** use the latest date the docs show. It is a dated configuration
-  snapshot, so a newer date can change which features are on by default — read
-  PostHog's changelog for it before bumping.
+- **`defaults`:** pinned at `2026-05-30`, the date PostHog's install snippet
+  shows. It sets SDK option defaults only — autocapture, session replay and web
+  vitals are separate options and project settings. The
+  [config reference](https://posthog.com/docs/libraries/js/config) lists newer
+  dates, and each adds behaviour: `2026-06-25` turns on
+  `session_recording.streamNetworkBody`, which matters on a page with a contact
+  form. Read what a date adds there before bumping to it.
 
 ## Not used, on purpose
 
