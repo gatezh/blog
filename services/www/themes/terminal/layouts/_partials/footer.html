@@ -22,7 +22,8 @@
 						<a
 							href="{{ .url }}"
 							target="_blank"
-							rel="noopener noreferrer"
+							{{- /* `me`: these profiles are the site owner, which is what lets them link back to verify it. */}}
+							rel="me noopener noreferrer"
 							class="text-terminal-muted hover:text-terminal-accent transition-colors no-underline"
 							aria-label="{{ .name }}"
 							title="{{ .name }}"

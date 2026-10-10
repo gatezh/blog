@@ -3,30 +3,41 @@
 
   Outputs schema.org structured data as JSON-LD:
   - Homepage: Person + WebSite schemas
-  - Article pages (posts): Article schema
+  - About page: ProfilePage whose mainEntity is the same Person
+  - Article pages (posts): Article schema, authored by that Person
   - Other pages: WebPage schema
+
+  The Person's @id (<home>#person) is shared with every other site that credits
+  Serge (uxcringe.com's Article author uses it), so search engines resolve them all
+  to one entity. Changing it breaks that link.
 */}}
 
 {{- $description := .Description | default site.Params.description -}}
 {{- $author := site.Params.author -}}
 
+{{- $personRef := dict "@type" "Person" "@id" (print site.Home.Permalink "#person") "name" $author "url" (site.BaseURL | strings.TrimRight "/") -}}
+{{- $person := merge $personRef (dict
+	"jobTitle" "Full Stack Developer"
+	"address" (dict
+	"@type" "PostalAddress"
+	"addressLocality" "Calgary"
+	"addressRegion" "Alberta"
+	"addressCountry" "Canada"
+	)
+	"worksFor" (dict "@type" "Organization" "name" "Just Right Systems" "url" "https://justright.systems/")
+	"sameAs" (slice "https://github.com/gatezh" "https://linkedin.com/in/gatezh")
+) -}}
+{{- with site.GetPage "/about" }}
+	{{- with .Resources.GetMatch .Params.portrait }}
+		{{- $src := .RelPermalink }}
+		{{- if eq hugo.Environment "production" }}{{ $src = print "/cdn-cgi/image/format=auto,width=900" $src }}{{ end }}
+		{{- $person = merge $person (dict "image" ($src | absURL)) }}
+	{{- end }}
+{{- end }}
+
 {{ if .IsHome -}}
-	{{- $person := dict
-		"@context" "https://schema.org"
-		"@type" "Person"
-		"name" $author
-		"url" (site.BaseURL | strings.TrimRight "/")
-		"jobTitle" "Full Stack Developer"
-		"address" (dict
-		"@type" "PostalAddress"
-		"addressLocality" "Calgary"
-		"addressRegion" "Alberta"
-		"addressCountry" "Canada"
-		)
-		"sameAs" (slice "https://github.com/gatezh" "https://linkedin.com/in/gatezh")
-	-}}
 <script type="application/ld+json">
-{{- $person | jsonify (dict "indent" "  ") | safeJS -}}
+{{- merge (dict "@context" "https://schema.org") $person | jsonify (dict "indent" "  ") | safeJS -}}
 </script>
 	{{- $website := dict
 		"@context" "https://schema.org"
@@ -39,9 +50,20 @@
 {{- $website | jsonify (dict "indent" "  ") | safeJS -}}
 </script>
 
+{{- else if eq .Layout "about" -}}
+	{{- $profile := dict
+		"@context" "https://schema.org"
+		"@type" "ProfilePage"
+		"url" .Permalink
+		"mainEntity" $person
+	-}}
+<script type="application/ld+json">
+{{- $profile | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+
 {{- else if and .IsPage (eq .Section "posts") -}}
 	{{- $articleDescription := .Description | default (.Summary | plainify | truncate 160) | default site.Params.description -}}
-	{{- $authorPerson := dict "@type" "Person" "name" $author "url" (site.BaseURL | strings.TrimRight "/") -}}
+	{{- $authorPerson := $personRef -}}
 	{{- $article := dict
 		"@context" "https://schema.org"
 		"@type" "Article"

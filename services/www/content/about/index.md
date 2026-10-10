@@ -38,4 +38,6 @@ Outside work, I still explore personal-finance products with equal parts curiosi
 
 This site is my working notebook: a place for solutions worth remembering, experiments worth explaining, and the occasional lesson learned the hard way. You can also find my open-source work on [GitHub](https://github.com/gatezh) or connect with me on [LinkedIn](https://linkedin.com/in/gatezh).
 
+I also curate [UX Cringe](https://uxcringe.com/), a collection of real interfaces that failed the people using them, written up step by step. And I build websites for small businesses at [Just Right Systems](https://justright.systems/).
+
 If you'd like to compare notes or work together, [send me a message](/contact/).
