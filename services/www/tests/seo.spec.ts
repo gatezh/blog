@@ -189,3 +189,34 @@ test.describe("internal linking", () => {
     }
   });
 });
+
+test.describe("identity structured data", () => {
+  // Other sites (uxcringe.com) reference this exact @id as their Article author.
+  const PERSON_ID = /^https?:\/\/[^/]+\/#person$/;
+
+  async function jsonLd(page: import("@playwright/test").Page, path: string) {
+    await page.goto(path);
+    const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
+    return blocks.map((b) => JSON.parse(b));
+  }
+
+  test("the home page Person carries the shared @id", async ({ page }) => {
+    const person = (await jsonLd(page, "/")).find((b) => b["@type"] === "Person");
+    expect(person["@id"]).toMatch(PERSON_ID);
+    expect(person.image).toMatch(/^https?:\/\//);
+  });
+
+  test("/about/ is a ProfilePage about that same Person", async ({ page }) => {
+    const [profile] = await jsonLd(page, "/about/");
+    expect(profile["@type"]).toBe("ProfilePage");
+    expect(profile.mainEntity.name).toBe("Serge Gatezh");
+    expect(profile.mainEntity["@id"]).toMatch(PERSON_ID);
+  });
+
+  test("footer profile links declare rel=me", async ({ page }) => {
+    await page.goto("/");
+    for (const host of ["github.com", "linkedin.com"]) {
+      await expect(page.locator(`footer a[href*="${host}"]`)).toHaveAttribute("rel", /\bme\b/);
+    }
+  });
+});
