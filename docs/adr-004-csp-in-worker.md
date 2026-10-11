@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted. Supersedes [ADR-002](adr-002-csp-configuration.md).
+Superseded by [ADR-005](adr-005-static-headers-no-worker-code.md). The www
+Worker is gone; the policy is now an allowlist in a Hugo-generated `_headers`
+file. Superseded [ADR-002](adr-002-csp-configuration.md).
 
 ## Context
 

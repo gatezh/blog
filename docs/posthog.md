@@ -4,17 +4,19 @@ Product analytics for `gatezh.com`, alongside Google Analytics. Production only.
 
 ## How it is wired
 
-| Piece    | Where                                                                                                 |
-| -------- | ----------------------------------------------------------------------------------------------------- |
-| Snippet  | `services/www/themes/terminal/layouts/_partials/posthog.html`, included from `_partials/head.html`    |
-| Key      | `HUGO_PARAMS_POSTHOGKEY`, a variable on the **production** GitHub Environment                         |
-| Plumbing | `release.yml` passes it to the Hugo build. `deploy-staging.yml` has no equivalent line.               |
-| CSP      | `services/www/src/security.ts` — `connect-src https://*.posthog.com`, `worker-src 'self' blob: data:` |
+| Piece    | Where                                                                                                                                               |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Snippet  | `services/www/themes/terminal/assets/js/posthog.ts`, loaded by `_partials/posthog.html` from `_partials/head.html`                                  |
+| Key      | `HUGO_PARAMS_POSTHOGKEY`, a variable on the **production** GitHub Environment                                                                       |
+| Plumbing | `release.yml` passes it to the Hugo build. `deploy-staging.yml` has no equivalent line.                                                             |
+| CSP      | `services/www/layouts/home._outputformat_headers_.txt` — `https://*.posthog.com` in `script-src` and `connect-src`, `worker-src 'self' blob: data:` |
 
 The snippet is PostHog's [Option 1, "Recommended"](https://posthog.com/docs/libraries/js):
-the inline loader in `<head>`, copied verbatim from the docs, with
-`api_host: 'https://us.i.posthog.com'` and a `defaults` date. Nothing in it is
-specific to this site's CSP.
+the loader copied verbatim from the docs, with
+`api_host: 'https://us.i.posthog.com'` and a `defaults` date. It runs from a
+bundled file rather than an inline `<script>`, because the site's CSP allows no
+inline script; the project token reaches it as `data-posthog-key`. Nothing in
+the loader is specific to this site's CSP.
 
 **Production only, structurally.** It is not enough to leave the variable unset
 on staging: the staging workflow has no line that could pass it, so a key set
@@ -25,31 +27,27 @@ so your own browsing never lands in the data.
 written into every page's HTML. Everything genuinely private stays a secret
 (see `docs/deployment.md`).
 
-## Under the strict CSP
+## Under the CSP
 
-The Worker stamps a per-response nonce on every `<script>`, including this
-inline snippet, and the policy's `'strict-dynamic'` then trusts whatever that
-script loads — `array.js`, the session-replay recorder. That is why:
+The policy is a host allowlist generated into `_headers` (see `docs/CSP.md`), so
+PostHog's documented directives are what it gets, and only in builds that
+include the snippet:
 
-- **`script-src` has no PostHog host.** PostHog's documented policy lists one,
-  but under `'strict-dynamic'` a host in `script-src` is ignored.
-- **`prepare_external_dependency_script` is not used.** PostHog documents it as
-  the hook for adding a nonce to the scripts it injects. Under
-  `'strict-dynamic'` they need none: a script that a nonced script inserts is
-  trusted already. (That is CSP's rule, not something PostHog's page says.)
-  Using it here would mean threading a per-response nonce into a statically
-  built page for no effect.
+- **`script-src https://*.posthog.com`** for `array.js` and the session-replay
+  recorder, which the loader injects from PostHog's assets host.
+- **`connect-src https://*.posthog.com`** for event capture.
+- **`worker-src 'self' blob: data:`** for session replay's compression Worker.
 - **The wildcard stays.** PostHog warns that "the exact subdomains may change
   over time" and that narrowing the list is not recommended.
 
-`tests/worker.spec.ts` proves this rather than asserting it: a real browser loads
+`tests/assets.spec.ts` proves this rather than asserting it: a real browser loads
 the page through the enforced policy and the snippet must get as far as
 requesting `array.js`, with no violation raised.
 
 ## Updating
 
-- **The snippet:** replace the whole loader line from the docs; never edit it in
-  place.
+- **The snippet:** replace the whole loader line in `js/posthog.ts` from the
+  docs; never edit it in place.
 - **`defaults`:** pinned at `2026-05-30`, the date PostHog's install snippet
   shows. It sets SDK option defaults only — autocapture, session replay and web
   vitals are separate options and project settings. The

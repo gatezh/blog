@@ -97,7 +97,7 @@ Recorded so a future reader does not "discover" and undo any of it.
 | Every sitemap URL is reachable and indexable              | —                                                                            | `tests/seo.spec.ts`    |
 | No `/page/1/` pagination alias stubs are emitted          | `hugo.yaml` → `pagination.disableAliases`                                    | `tests/seo.spec.ts`    |
 | Internal page links all carry a trailing slash            | —                                                                            | `tests/seo.spec.ts`    |
-| Legacy URLs 301 in one hop, with no meta-refresh stub     | `hugo.yaml` → `disableAliases` + `layouts/home._outputformat_redirects_.txt` | `tests/worker.spec.ts` |
+| Legacy URLs 301 in one hop, with no meta-refresh stub     | `hugo.yaml` → `disableAliases` + `layouts/home._outputformat_redirects_.txt` | `tests/assets.spec.ts` |
 | Every post links out to related posts                     | `hugo.yaml` → `related`                                                      | `tests/seo.spec.ts`    |
 | `<lastmod>` tracks the last commit, not the authored date | `hugo.yaml` → `enableGitInfo`                                                | needs `fetch-depth: 0` |
 | The deployed artifact is the build CI expects             | `<meta name="build-commit">`                                                 | `verify` job           |
@@ -115,7 +115,7 @@ Five things that look redundant but are not:
   rather than on the config under test. This is not hypothetical: the `/page/1/`
   stubs appeared to survive `disableAliases` purely because six of them were
   leftovers from earlier builds.
-- **Self-hosted fonts.** Keep JetBrains Mono under `/fonts/`. The Worker's CSP
+- **Self-hosted fonts.** Keep JetBrains Mono under `/fonts/`. The site's CSP
   ([CSP.md](./CSP.md)) allows neither `fonts.googleapis.com` in `style-src` nor
   `fonts.gstatic.com` for font fetches, so a Google-hosted webfont is blocked
   on staging and production alike. Self-hosting also removes a render-blocking
@@ -124,7 +124,7 @@ Five things that look redundant but are not:
   answers the slash-less spelling of a path with its own 307 _before_ any
   redirect rule is consulted, so emitting only the canonical slash form turns
   every legacy URL into a 307 → 301 chain. Verified against
-  `wrangler dev --local`; `tests/worker.spec.ts` asserts both spellings.
+  `wrangler dev --local`; `tests/assets.spec.ts` asserts both spellings.
 - **`disableAliases` and `pagination.disableAliases` are different settings.**
   Both are set and both are load-bearing. The top-level one stops Hugo writing a
   meta-refresh stub per `aliases:` entry — without it the stub is served `200` at

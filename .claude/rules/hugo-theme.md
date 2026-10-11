@@ -8,6 +8,11 @@ globs: services/www/**
 - Uses custom terminal theme in `services/www/themes/terminal/`
 - Theme uses Tailwind CSS v4 via Hugo's `css.TailwindCSS` function
 - Site-specific layouts in `services/www/layouts/` override theme (e.g., `contact.html`)
+- **No inline `<script>`.** Scripts are TypeScript files under `assets/js/`
+  (theme or site), built by the theme's `_partials/js.html` (`js.Build` +
+  fingerprint, loaded with SRI). Pass Hugo values via `data-*` attributes and
+  read them from `document.currentScript.dataset`. The CSP in the generated
+  `_headers` allows no inline script. JSON-LD stays inline (it is data).
 
 ## Layout structure (Hugo v0.146+)
 

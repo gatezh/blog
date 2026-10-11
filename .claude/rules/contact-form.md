@@ -9,8 +9,8 @@ All contact-form configuration lives in the `staging` / `production` GitHub
 Environments — never in `hugo.yaml`, `wrangler.jsonc` or `wrangler secret put`.
 Full tables in `docs/deployment.md`.
 
-- **Variables:** `HUGO_PARAMS_APIURL` (form POST target, also the Worker CSP's
-  `connect-src`), `HUGO_PARAMS_TURNSTILESITEKEY`, `ALLOWED_ORIGIN` (required).
+- **Variables:** `HUGO_PARAMS_APIURL` (form POST target, also the CSP's
+  `connect-src` in the generated `_headers`), `HUGO_PARAMS_TURNSTILESITEKEY`, `ALLOWED_ORIGIN` (required).
 - **Secrets:** `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `TO_EMAIL`,
   `FROM_EMAIL`.
 - **This repo is public and so are its Actions logs.** Variable values are
