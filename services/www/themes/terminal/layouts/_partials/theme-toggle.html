@@ -7,7 +7,7 @@
   - Dark (moon icon)
 
   The toggle uses a segmented button design with the active position highlighted.
-  JavaScript handles theme switching, localStorage persistence, and system preference detection.
+  js/theme-toggle.ts handles theme switching, localStorage persistence, and system preference detection.
 */}}
 <div class="theme-toggle" role="radiogroup" aria-label="Theme selection">
 	{{/* Light mode button */}}
@@ -66,107 +66,6 @@
 	</button>
 </div>
 
-<script>
-(function() {
-  // Theme management
-  var themeToggle = {
-    // Get current stored theme or default to 'system'
-    getStoredTheme: function() {
-      try {
-        return localStorage.getItem('theme') || 'system';
-      } catch (e) {
-        return 'system';
-      }
-    },
-
-    // Check if system prefers dark mode
-    systemPrefersDark: function() {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    },
-
-    // Determine if dark mode should be active
-    isDarkMode: function(theme) {
-      if (theme === 'system') {
-        return this.systemPrefersDark();
-      }
-      return theme === 'dark';
-    },
-
-    // Apply theme to document
-    applyTheme: function(theme) {
-      var isDark = this.isDarkMode(theme);
-
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-
-      // Dispatch event for other components (e.g., Remark42)
-      window.dispatchEvent(new CustomEvent('themechange', {
-        detail: { theme: theme, isDark: isDark }
-      }));
-    },
-
-    // Set theme and persist to localStorage
-    setTheme: function(theme) {
-      try {
-        localStorage.setItem('theme', theme);
-      } catch (e) {
-        // localStorage unavailable (private browsing, etc.)
-      }
-      this.applyTheme(theme);
-      this.updateToggleUI(theme);
-    },
-
-    // Update toggle button states
-    updateToggleUI: function(theme) {
-      var buttons = document.querySelectorAll('.theme-toggle-btn');
-      buttons.forEach(function(btn) {
-        var btnTheme = btn.getAttribute('data-theme');
-        if (btnTheme === theme) {
-          btn.classList.add('active');
-          btn.setAttribute('aria-checked', 'true');
-        } else {
-          btn.classList.remove('active');
-          btn.setAttribute('aria-checked', 'false');
-        }
-      });
-    },
-
-    // Initialize toggle
-    init: function() {
-      var self = this;
-      var currentTheme = this.getStoredTheme();
-
-      // Set initial UI state
-      this.updateToggleUI(currentTheme);
-
-      // Add click handlers
-      var buttons = document.querySelectorAll('.theme-toggle-btn');
-      buttons.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          var newTheme = this.getAttribute('data-theme');
-          self.setTheme(newTheme);
-        });
-      });
-
-      // Listen for system preference changes
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
-        if (self.getStoredTheme() === 'system') {
-          self.applyTheme('system');
-        }
-      });
-    }
-  };
-
-  // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      themeToggle.init();
-    });
-  } else {
-    themeToggle.init();
-  }
-})();
-</script>
+{{ with partial "js.html" "js/theme-toggle.ts" }}
+	<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" defer></script>
+{{ end }}

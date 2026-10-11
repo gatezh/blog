@@ -1,61 +1,67 @@
 # Content Security Policy (CSP)
 
-The main site's CSP is set by the www Worker in
-[`services/www/src/security.ts`](../services/www/src/security.ts), on every HTML
-response. It is versioned with the templates it has to match, differs per
-environment where it must, and is tested before it ships. Why it moved there
-from a Cloudflare Transform Rule: [ADR-004](adr-004-csp-in-worker.md).
+The main site's CSP is part of `public/_headers`, which Hugo generates from
+[`services/www/layouts/home._outputformat_headers_.txt`](../services/www/layouts/home._outputformat_headers_.txt)
+and Workers static assets applies to every response, with no Worker code. It is
+versioned with the templates it has to match, built per environment, and tested
+before it ships. History: [ADR-004](adr-004-csp-in-worker.md) moved it from a
+Transform Rule into a Worker; [ADR-005](adr-005-static-headers-no-worker-code.md)
+replaced the Worker with the generated file.
 
 ## The policy
 
-A strict, nonce-based policy ([web.dev: strict CSP](https://web.dev/articles/strict-csp)):
+A host allowlist. No template has an inline `<script>` — every script is a file
+under `assets/js/`, built by `js.Build` and loaded with SRI — so `script-src`
+needs neither `'unsafe-inline'` nor a nonce.
 
-| Directive                                                      | Why                                                                                                                                                            |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `script-src 'nonce-…' 'strict-dynamic' https: 'unsafe-inline'` | Only scripts carrying this response's nonce run, plus what they load. `https:` and `'unsafe-inline'` are pre-CSP3 fallbacks; nonce-aware browsers ignore both. |
-| `default-src 'self'`                                           | Everything not listed below is first-party only — including the self-hosted fonts.                                                                             |
-| `style-src 'self' 'unsafe-inline'`                             | Inline style attributes from the theme and Turnstile.                                                                                                          |
-| `img-src 'self' data: …`                                       | Plus Google Analytics' pixel hosts.                                                                                                                            |
-| `connect-src 'self' <API> …`                                   | The contact-form API (per environment, from `HUGO_PARAMS_APIURL`), Remark42, Google Analytics.                                                                 |
-| `frame-src`                                                    | Turnstile's challenge and the Remark42 comment thread.                                                                                                         |
-| `object-src 'none'`, `base-uri 'none'`                         | No plugins; no `<base>` hijacking.                                                                                                                             |
-| `form-action 'self'`                                           | Native form posts only to this site. `fetch()` is governed by `connect-src`.                                                                                   |
-| `frame-ancestors 'none'`                                       | Nothing may frame the site (clickjacking). `X-Frame-Options: DENY` for older browsers.                                                                         |
-| `upgrade-insecure-requests`                                    | Only over https — under `wrangler dev` it would break every same-origin request.                                                                               |
+| Directive                              | Why                                                                                                                                       |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `default-src 'self'`                   | Everything not listed below is first-party only — including the self-hosted fonts.                                                        |
+| `script-src 'self' …`                  | Plus Remark42, Turnstile (when a site key is set) and `https://*.googletagmanager.com` (production builds, where Google Analytics loads). |
+| `style-src 'self' 'unsafe-inline'`     | Inline style attributes from the theme and Turnstile.                                                                                     |
+| `img-src 'self' data: …`               | Plus Google Analytics' pixel hosts, in production builds.                                                                                 |
+| `connect-src 'self' <API> …`           | The contact-form API (per environment, from `HUGO_PARAMS_APIURL`), Remark42, Google Analytics.                                            |
+| `frame-src`                            | Turnstile's challenge and the Remark42 comment thread.                                                                                    |
+| `object-src 'none'`, `base-uri 'none'` | No plugins; no `<base>` hijacking.                                                                                                        |
+| `form-action 'self'`                   | Native form posts only to this site. `fetch()` is governed by `connect-src`.                                                              |
+| `frame-ancestors 'none'`               | Nothing may frame the site (clickjacking). `X-Frame-Options: DENY` for older browsers.                                                    |
 
-Every response from the Worker also carries `X-Content-Type-Options: nosniff`,
-`Referrer-Policy: strict-origin-when-cross-origin` and a `Permissions-Policy`
-that disables camera, geolocation, microphone, payment and USB.
+Each third-party origin comes from the same param or condition the templates
+use to load it (`params.apiUrl`, `params.remark42Host`,
+`params.turnstileSiteKey`, the Google Analytics ID in production), so a build
+never allows a service it does not include. There is no
+`upgrade-insecure-requests`: every URL the site emits is relative or https, the
+zone redirects http to https, and under `wrangler dev` it would break every
+same-origin request.
 
-### How the nonce works
+The same `/*` rule sets `X-Content-Type-Options: nosniff`,
+`Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY` and
+a `Permissions-Policy` that disables camera, geolocation, microphone, payment
+and USB — on every response, HTML or not. Staging builds add
+`X-Robots-Tag: noindex` to it.
 
-The Worker generates a 128-bit nonce per response, adds it to the policy, and
-stamps it on every `<script>` with `HTMLRewriter`. Two consequences:
+### Cloudflare features that inject scripts
 
-- **HTML is never revalidated.** The Worker strips `ETag`/`Last-Modified` from
-  HTML and the conditional headers from page requests. A `304` would pair the
-  browser's cached body — old nonce — with the new policy and block every
-  script on the page.
-- **Cloudflare's injected scripts keep working.** Bot Fight Mode's JavaScript
-  Detections script is injected at the edge, after the Worker. Cloudflare
-  [reads the nonce from the CSP header](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/javascript-detections/)
-  and adds it to what it injects. This only works with a header — never move the
-  policy into a `<meta>` tag.
+Rocket Loader and Bot Fight Mode's JavaScript Detections inject scripts at the
+edge. With no nonce in the policy, an injected inline script can be blocked. Keep
+them off for this zone, or check the console for violations after enabling one.
 
 ## Adding a third-party service
 
-1. Load it from a script the templates already render; `'strict-dynamic'` trusts
-   whatever a nonced script loads, so `script-src` needs no host.
-2. Add its iframe host to `frame-src`, its API host to `connect-src` and its
-   image host to `img-src` — the constants at the top of `security.ts`.
-3. Run `bun run test`. The worker project loads real pages and fails on any
-   `securitypolicyviolation` event.
+1. Load it from a file under `assets/js/` (built through the theme's `js.html`
+   partial), never an inline `<script>`. Pass values with `data-*` attributes.
+2. Add its script host to `script-src`, its iframe host to `frame-src`, its API
+   host to `connect-src` and its image host to `img-src` — in
+   `layouts/home._outputformat_headers_.txt`, under the same condition the
+   template uses to load it.
+3. Run `bun run test`. The `assets` project serves a real build with
+   `wrangler dev` and fails on any `securitypolicyviolation` event.
 4. Deploy to staging and check the browser console before releasing.
 
 ## Cloudflare Transform Rules
 
 A **Modify Response Header** rule that sets `Content-Security-Policy` replaces
-the Worker's header wholesale on every request it matches.
+the generated header wholesale on every request it matches.
 
 | Rule                       | Filter                               | Status                                                                  |
 | -------------------------- | ------------------------------------ | ----------------------------------------------------------------------- |
@@ -63,13 +69,9 @@ the Worker's header wholesale on every request it matches.
 | Allow Picture-in-Picture   | `http.host eq "comments.gatezh.com"` | Keep. `Permissions-Policy: picture-in-picture=(self)` for Remark42.     |
 
 The main site's old **CSP** rule was deleted on 2026-10-03, after the first
-release served the Worker's policy cleanly. Never add a rule that sets
+release served the (then Worker-set) policy cleanly. Never add a rule that sets
 `Content-Security-Policy` on `gatezh.com` or the staging hosts — every
-deploy's verify job fails if the site stops serving the Worker's policy.
-
-The "CSP" rule originally matched every request, which would also have
-overridden the Worker on staging; it was scoped to the production host when the
-policy moved into the Worker.
+deploy's verify job fails if the site stops serving the generated policy.
 
 The comments subdomain's policy, for reference:
 
@@ -87,5 +89,6 @@ render on staging.
 $ curl -sI https://gatezh.com/ | grep -i content-security-policy
 ```
 
-The policy should contain `'strict-dynamic'` and a fresh `'nonce-…'` on every
-request. Every deploy workflow's verify job fails if the site does not serve it.
+The policy should match `public/_headers` from that release's build. Every
+deploy workflow's verify job fails if the site does not serve it, or if its
+`connect-src` does not allow the contact API.

@@ -47,8 +47,8 @@ deploy — there is no DNS to add by hand.
 
 **The GitHub Environment is the single source of truth.** Every deploy job runs
 in the `staging` or `production` environment and reads its values from there.
-Nothing deployed reads `hugo.yaml`'s `apiUrl`/`baseURL` or any `vars` in
-`wrangler.jsonc` — those are local-development defaults. Local development reads
+Nothing deployed reads `hugo.yaml`'s `apiUrl`/`baseURL` — those are
+local-development defaults. Local development reads
 the repo-root `.env.local` (copy `.env.example`).
 
 > **This repository is public, and so are its Actions logs.** GitHub prints
@@ -99,7 +99,7 @@ into GitHub.
 Production moved from push-to-deploy to tagged releases on 2026-10-03:
 environments and variables configured, a staging Turnstile widget created, the
 first staging deploy verified, the triggers flipped, and the zone's legacy
-**CSP** Transform Rule removed so production serves the Worker's policy (see
+**CSP** Transform Rule removed so production serves the site's own policy (see
 [CSP.md](CSP.md)). Production's Worker credentials were moved into the
 `production` environment at the same time. After the first release
 (`v0.0.1`), the untagged push-to-production workflow (`deploy.yml`) was
@@ -207,9 +207,9 @@ form at `http://localhost:${API_PORT}`, and the api allows
 
 ### Contact form not working
 
-1. Browser console — a `Refused to connect` CSP error means `HUGO_PARAMS_APIURL`
-   and the Worker's `API_URL` disagree, which only happens if one deploy ran
-   without the other.
+1. Browser console — a `Refused to connect` CSP error means the page and its
+   `_headers` came from different builds, or a zone Transform Rule is overriding
+   the CSP (see [CSP.md](CSP.md)). Both are built from `HUGO_PARAMS_APIURL`.
 2. The deploy run's step summary — the feature table says which credential is
    missing.
 3. Worker logs in the Cloudflare dashboard.

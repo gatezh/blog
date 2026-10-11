@@ -1,10 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
-/** Specs that exercise the Cloudflare Worker rather than the Hugo output. */
-const WORKER_SPEC = /worker\.spec\.ts/;
+/** Specs that exercise Cloudflare's asset server rather than the Hugo output. */
+const ASSETS_SPEC = /assets\.spec\.ts/;
 
-/** Port `wrangler dev` binds for the worker project. */
-const WORKER_PORT = 8788;
+/** Port `wrangler dev` binds for the assets project. */
+const ASSETS_PORT = 8788;
 
 /**
  * Playwright configuration for Hugo site testing.
@@ -53,12 +53,12 @@ export default defineConfig({
   },
 
   /* Configure projects for different viewports and color schemes.
-     Worker tests are excluded here: they need `wrangler dev`, not `hugo
-     server`, and they run in the dedicated `worker` project below. */
+     Asset-server tests are excluded here: they need `wrangler dev`, not `hugo
+     server`, and they run in the dedicated `assets` project below. */
   projects: [
     {
       name: "desktop-light",
-      testIgnore: WORKER_SPEC,
+      testIgnore: ASSETS_SPEC,
       use: {
         ...devices["Desktop Chrome"],
         colorScheme: "light",
@@ -66,7 +66,7 @@ export default defineConfig({
     },
     {
       name: "desktop-dark",
-      testIgnore: WORKER_SPEC,
+      testIgnore: ASSETS_SPEC,
       use: {
         ...devices["Desktop Chrome"],
         colorScheme: "dark",
@@ -74,7 +74,7 @@ export default defineConfig({
     },
     {
       name: "mobile-light",
-      testIgnore: WORKER_SPEC,
+      testIgnore: ASSETS_SPEC,
       use: {
         ...devices["Pixel 7"],
         colorScheme: "light",
@@ -82,20 +82,20 @@ export default defineConfig({
     },
     {
       name: "mobile-dark",
-      testIgnore: WORKER_SPEC,
+      testIgnore: ASSETS_SPEC,
       use: {
         ...devices["Pixel 7"],
         colorScheme: "dark",
       },
     },
     {
-      /* Content negotiation, the real 404 status and X-Robots-Tag headers are
-         Worker behaviour and cannot be exercised against `hugo server`. Before
-         this project existed, the only check on them was the post-deploy
-         verify job — i.e. after the code was already live. */
-      name: "worker",
-      testMatch: WORKER_SPEC,
-      use: { baseURL: `http://127.0.0.1:${WORKER_PORT}` },
+      /* The generated _headers and _redirects, and the 404 status, are applied
+         by Cloudflare's asset server and cannot be exercised against `hugo
+         server`. Without this project the only check on them would be the
+         post-deploy verify job — i.e. after the build was already live. */
+      name: "assets",
+      testMatch: ASSETS_SPEC,
+      use: { baseURL: `http://127.0.0.1:${ASSETS_PORT}` },
     },
   ],
 
@@ -114,8 +114,8 @@ export default defineConfig({
     {
       /* wrangler serves ./public, so the site has to be on disk first — this
          is the one place a real build is required rather than --renderToMemory. */
-      command: `bun run build && bunx wrangler dev --local --port ${WORKER_PORT} --ip 127.0.0.1 --var API_URL:http://localhost:8787`,
-      url: `http://127.0.0.1:${WORKER_PORT}/`,
+      command: `bun run build && bunx wrangler dev --local --port ${ASSETS_PORT} --ip 127.0.0.1`,
+      url: `http://127.0.0.1:${ASSETS_PORT}/`,
       reuseExistingServer: !process.env.CI,
       timeout: 180000,
     },

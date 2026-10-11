@@ -41,8 +41,10 @@ a cutover, not an edit. Only `staging` has an `env` block in
 
 Every runtime value comes from the `staging` / `production` GitHub
 Environment the deploy job runs in — tables in `docs/deployment.md`. Nothing
-deployed reads `hugo.yaml`'s `baseURL`/`apiUrl` or `vars` in `wrangler.jsonc`;
-those are local-dev defaults.
+deployed reads `hugo.yaml`'s `baseURL`/`apiUrl`; those are local-dev defaults.
+The www Worker has no script and no `vars`: staging differs from production
+only by being built with `HUGO_ENVIRONMENT=staging` (adds noindex to
+`_headers`).
 
 **This repo is public and so are its Actions logs.** Variable values are printed
 there; secret values are masked. Anything not meant to be public — email

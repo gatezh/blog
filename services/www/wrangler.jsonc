@@ -1,3 +1,9 @@
+// Assets only, deliberately no `main`: every request is served by the asset
+// store, which is free and unmetered, and never counts against the Workers
+// request quota. Response headers (CSP, security headers, X-Robots-Tag) come
+// from the public/_headers file Hugo generates
+// (layouts/home._outputformat_headers_.txt), and legacy-URL redirects from the
+// generated public/_redirects. See docs/adr-005-static-headers-no-worker-code.md.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gatezh-com",
@@ -5,26 +11,12 @@
   // workerd 1.20260722). Raising it past the runtime's own ceiling makes
   // `wrangler dev` refuse to start. Bump together with the wrangler catalog pin.
   "compatibility_date": "2026-07-29",
-  "main": "src/index.ts",
   "assets": {
     "directory": "./public",
-    // Exposes the asset fetcher as `env.ASSETS` in the Worker. Mandatory:
-    // without it env.ASSETS is undefined at runtime.
-    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
+    // Unknown paths get public/404.html with a real 404 status. The page itself
+    // carries robots noindex.
     "not_found_handling": "404-page",
-    // The Worker has to run before asset matching, or /<slug>/ matches an
-    // asset and the handler never sees the request — so no negotiation, no
-    // 404 status override and no X-Robots-Tag.
-    //
-    // Scoped to a route list rather than `true`. Requests to static assets are
-    // free and unlimited; requests that reach the Worker script are billed, and
-    // on the free plan exhausting that budget returns 429 for the WHOLE SITE
-    // instead of falling back to serving assets. With `true`, every stylesheet,
-    // font and image spent from that budget for nothing. Negative rules send
-    // the hashed-asset directories straight to the asset router.
-    // https://developers.cloudflare.com/workers/static-assets/routing/worker-script/
-    "run_worker_first": ["/*", "!/css/*", "!/fonts/*", "!/images/*"],
   },
   "observability": {
     "logs": {
@@ -32,36 +24,18 @@
     },
   },
 
-  // API_URL is the contact-form Worker's URL, used for the CSP's connect-src.
-  // Declared empty so `wrangler types` knows the binding; every deployed
-  // environment overrides it from HUGO_PARAMS_APIURL — the same GitHub variable
-  // the contact form POSTs to, so the form and the policy cannot disagree.
-  // Empty means no contact-form origin is allowed, which is correct for a
-  // deployment with no API.
-  //
-  // X_ROBOTS_TAG, when set, is sent on every response. It is what keeps a
-  // non-production environment out of search results: its pages carry their
-  // own host as canonical, so without it staging is a crawlable duplicate of
-  // the whole site. Production leaves it empty.
-  "vars": {
-    "API_URL": "",
-    "X_ROBOTS_TAG": "",
-  },
-
   // Staging only. Production deliberately has NO env block: it keeps deploying
   // under the top-level config and the existing Worker name, so nothing is
   // orphaned and the gatezh.com custom domain does not have to move. Adding a
   // `production` block here renames the deployed Worker — see
   // "Remaining: rename the Workers" in docs/deployment.md before doing that.
+  //
+  // Staging differs from production only at build time: the deploy builds it
+  // with HUGO_ENVIRONMENT=staging, which adds X-Robots-Tag: noindex to _headers.
   "env": {
     "staging": {
       "workers_dev": false,
       "routes": [{ "pattern": "staging-www.gatezh.com", "custom_domain": true }],
-      // `vars` is not inherited by an env block.
-      "vars": {
-        "API_URL": "",
-        "X_ROBOTS_TAG": "noindex",
-      },
     },
   },
 }

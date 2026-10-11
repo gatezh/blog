@@ -5,11 +5,11 @@ Cloudflare's native equivalent if the site moves to a paid plan.
 
 ## What this gives you
 
-- **`Accept: text/markdown` content negotiation.** Any client — an agent, or
-  `curl -H 'Accept: text/markdown' ...` — gets clean Markdown for the home
-  page, any section listing and any regular page. Paths that address a file
-  rather than a page (`/sitemap.xml`, hashed assets) are served unchanged.
-  Browsers continue to get HTML.
+- **A Markdown mirror of every page.** The home page, every section listing and
+  every regular page has an `index.md` beside its `index.html`, advertised from
+  the HTML with `<link rel="alternate" type="text/markdown" href="…/index.md">`.
+  There is no `Accept: text/markdown` negotiation: agents fetch the `.md` URL
+  directly (see [ADR-005](adr-005-static-headers-no-worker-code.md) for why).
 - **Generated `/llms.txt` and `/llms-full.txt`.** A site index in the
   [llmstxt.org](https://llmstxt.org) format plus a single-fetch full-text
   corpus, both rebuilt from content on every build. No manual maintenance.
@@ -19,14 +19,16 @@ Cloudflare's native equivalent if the site moves to a paid plan.
 
 ## How it works
 
-Three cooperating layers.
+Three cooperating layers, all static: nothing runs per request.
 
 ### 1. Hugo output formats
 
-`services/www/hugo.yaml` declares two custom formats. Both set `isPlainText`
-(so Hugo uses `text/template` and stops HTML-escaping) and `notAlternative`
-(so no `<link rel="alternate">` tags are emitted — agents arrive by URL or by
-negotiation, not from `<head>`).
+The mirrors use Hugo's built-in `markdown` format. `llms*.txt` use a custom
+`LLMText` format in `services/www/hugo.yaml`, which sets `isPlainText` (so Hugo
+uses `text/template` and stops HTML-escaping) and `notAlternative` (so pages do
+not link to it). The `<link rel="alternate" type="text/markdown">` for the
+mirror is emitted by `themes/terminal/layouts/_partials/head.html`, only on
+pages that have one.
 
 | Output                       | Driven by                                                  | Rendered by                                                 |
 | ---------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------- |
@@ -55,43 +57,31 @@ real descriptive content, so it is converted rather than discarded:
 
 The regexes use `(?s)` because these shortcodes span multiple lines.
 
-### 3. Cloudflare Worker
+### 3. Response headers
 
-`services/www/src/index.ts` runs in front of the asset bundle. It requires all
-three of `main`, `assets.binding: "ASSETS"` and `assets.run_worker_first: true`
-in `wrangler.jsonc` — without the binding, `env.ASSETS` is `undefined` at
-runtime; without `run_worker_first`, the asset router serves `/<slug>/index.md`
-directly and the negotiation never runs.
+`.md` and `llms*.txt` carry `X-Robots-Tag: noindex`: they stay crawlable for
+agents without publishing a full-text duplicate of every page at a second URL.
+The header comes from rules in the generated `public/_headers`
+(`layouts/home._outputformat_headers_.txt`), which Workers static assets
+applies with no Worker code
+([docs](https://developers.cloudflare.com/workers/static-assets/headers/)):
 
 ```
-GET /posts/foo/                    ┌──────────────────────────────┐
-Accept: text/markdown          ──▶ │ run_worker_first: true       │
-                                   │   └─ src/index.ts            │
-                                   │        ├ /404? → real 404    │
-                                   │        ├ Accept matches?     │
-                                   │        │   → ASSETS          │
-                                   │        │     /posts/foo/     │
-                                   │        │        index.md     │
-                                   │        └ else → ASSETS (HTML)│
-                                   └──────────────────────────────┘
+/index.md
+  X-Robots-Tag: noindex
+
+/*/index.md
+  X-Robots-Tag: noindex
+
+/llms.txt
+  X-Robots-Tag: noindex
+
+/llms-full.txt
+  X-Robots-Tag: noindex
 ```
 
-It also carries two SEO fixes that cannot live anywhere else:
-
-- **`/404` and `/404.html` return a real 404.** Cloudflare's asset router
-  rewrites `/404.html` to `/404` and serves it `200`, making the error page an
-  indexable URL that Google files as a soft 404. Neither a zone setting nor
-  `_headers` can change a response status, and `_redirects` only issues 3xx.
-- **`.md` and `llms*.txt` carry `X-Robots-Tag: noindex`.** They stay crawlable
-  for agents without publishing a full-text duplicate of every page at a second
-  URL. An `_headers` file cannot do this either: Cloudflare
-  [documents](https://developers.cloudflare.com/workers/static-assets/headers/)
-  that `_headers` does not apply to Worker-generated responses when
-  `run_worker_first` is set.
-
-`Vary: Accept` is added on content pages only. Putting it on hashed assets like
-`/css/main.<hash>.css` would fragment the CDN cache by request header for no
-benefit.
+Rules with different patterns merge with the site-wide `/*` rule, so these
+responses also get the security headers.
 
 ## Verification
 
@@ -102,12 +92,10 @@ cat services/www/public/llms.txt                 # generated index
 
 cd services/www && bunx wrangler dev --port 8799 --local
 # in another shell:
-curl -sI -H 'Accept: text/markdown' localhost:8799/posts/<slug>/
+curl -sI localhost:8799/posts/<slug>/index.md
 #   content-type: text/markdown; charset=utf-8
-#   vary: Accept
 #   x-robots-tag: noindex
-curl -sI localhost:8799/posts/<slug>/            # content-type: text/html
-curl -s -o /dev/null -w '%{http_code}\n' localhost:8799/404      # 404, not 200
+curl -s localhost:8799/posts/<slug>/ | grep -o '<link rel=alternate type=text/markdown[^>]*>'
 ```
 
 The post-deploy `verify` job in `.github/workflows/release.yml` asserts the same
@@ -119,7 +107,7 @@ Hugo has an open issue to generate `llms.txt` natively
 ([gohugoio/hugo#14121](https://github.com/gohugoio/hugo/issues/14121)),
 currently milestoned v0.167.0 after slipping from several earlier releases.
 When it ships, the two `content/llms*.md` stubs and their templates can likely
-be retired. The per-page Markdown mirrors and the Worker are unaffected.
+be retired. The per-page Markdown mirrors are unaffected.
 
 ## Future: Cloudflare's native Markdown for Agents
 
@@ -135,51 +123,17 @@ The native conversion adds `Content-Type: text/markdown`, an
 `x-markdown-tokens` estimate, and a `Content-Signal` header. It handles HTML
 only, origin responses up to 2 MB, and is in beta.
 
-### Operating modes
-
-The two are not mutually exclusive — together they give three valid modes:
-
-| Mode              | `run_worker_first` | Zone toggle | Behaviour on `Accept: text/markdown`  |
-| ----------------- | ------------------ | ----------- | ------------------------------------- |
-| Today (free plan) | `true`             | n/a         | Worker serves the pre-built `.md`     |
-| Paid, native only | `false`            | on          | Edge converts HTML on the fly         |
-| Paid, keep custom | `true`             | off         | Worker serves curated pre-built `.md` |
-
-Keeping the custom path after upgrading is reasonable for **curated framing**
-(the H1/blockquote/date header is authored, not inferred) and **determinism**
-(the same source deterministically produces the same response, in version
-control; edge conversion is implementation-defined and may change).
-
-### Migration sequence
-
-1. Enable **Markdown for Agents**: Cloudflare → zone → **AI Crawl Control**.
-2. Smoke test: `curl -sI -H 'Accept: text/markdown' https://gatezh.com/`. This
-   is safe alongside the Worker, which still intercepts first.
-3. Decide whether to keep the custom path. Keeping it needs no further change.
-4. To go fully native, set `assets.run_worker_first: false`. The Worker becomes
-   a no-op.
-5. Optionally remove the unused code: delete `services/www/src/`,
-   `services/www/tsconfig.json`, `"main"` from `wrangler.jsonc`, the `Markdown`
-   output format and its `outputs.page` entry, and
-   `layouts/page._outputformat_markdown_.md`. **Keep the `llms*` templates and
-   stubs** — the generated indexes remain valuable.
-6. Rollback: set `run_worker_first` back to `true`.
-
-> **Caveat.** The native feature is documented as converting "the original HTML
-> version from the origin". With `run_worker_first: true` the Worker generates
-> the response, and the docs are not explicit about whether the edge converter
-> runs on Worker output. When committing to native, also set
-> `run_worker_first: false` so HTML is served straight from the asset bundle,
-> which is what the documented conversion path expects.
-
-Note that step 5 would also remove the soft-404 fix and the `X-Robots-Tag`
-headers, which are unrelated to negotiation. Keep the Worker unless those are
-re-homed.
+It is a zone toggle (Cloudflare → zone → **AI Crawl Control**) and needs no
+code: HTML is served straight from the asset store, which is the response the
+documented conversion path expects. Turning it on would bring back
+`Accept: text/markdown` negotiation without a Worker. The pre-built mirrors can
+stay either way: their framing (the H1/blockquote/date header) is authored, not
+inferred, and the same source always produces the same file.
 
 ## References
 
 - [Cloudflare Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/)
-- [Static Assets binding (`run_worker_first`)](https://developers.cloudflare.com/workers/static-assets/binding/)
+- [Static Assets headers (`_headers`)](https://developers.cloudflare.com/workers/static-assets/headers/)
 - [Cloudflare Markdown for Agents](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/)
 - [Hugo custom output formats](https://gohugo.io/configuration/output-formats/)
 - [Hugo media types](https://gohugo.io/configuration/media-types/)

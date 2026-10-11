@@ -1,0 +1,18 @@
+{{/*
+  JS partial - Builds one TypeScript entry point from assets/ into a
+  fingerprinted script and returns the resource
+
+  Usage: {{ with partial "js.html" "js/theme-toggle.ts" }}<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" defer></script>{{ end }}
+
+  Every script on the site goes through here rather than sitting inline, so the
+  Content Security Policy (layouts/home._outputformat_headers_.txt) can allow
+  scripts from 'self' alone, with no 'unsafe-inline' and no per-response nonce.
+  The SRI hash pins each file to the build that referenced it.
+
+  js.Build emits a classic IIFE, so document.currentScript works at the top
+  level of each entry point; that is how templates hand values to a script,
+  through data-* attributes on its <script> tag, never by templating into JS.
+  Callers write the tag themselves because each needs different loading
+  (render-blocking, async or defer) and data attributes.
+*/}}
+{{- return (resources.Get . | js.Build (dict "minify" hugo.IsProduction) | fingerprint) -}}
