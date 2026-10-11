@@ -7,8 +7,8 @@
      https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/
 
      Included only from contact.html's "head" block, and only when a site key is
-     configured. The Worker stamps its CSP nonce onto the script tag like every
-     other script, so nothing here is CSP-specific.
+     configured. A third-party file, not inline script, so the CSP allows it by
+     host (layouts/home._outputformat_headers_.txt).
 
      api.js must be loaded from this exact URL — Cloudflare warns that proxying
      or caching it breaks Turnstile when they ship updates. */}}
