@@ -10,7 +10,7 @@
     "test": "bunx playwright test",
     "test:ui": "bunx playwright test --ui",
     "test:report": "bunx playwright show-report",
-    "typecheck": "wrangler types && tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@tailwindcss/cli": "4.3.3",
