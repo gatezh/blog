@@ -87,6 +87,13 @@
 	<link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">
 {{- end }}
 
+{{/* Markdown mirror (index.md) for agents, on every page that has one (the
+     kinds listed under `outputs` in hugo.yaml). Agents find it here or fetch
+     the .md URL directly; there is no Accept-header negotiation. */}}
+{{ with .OutputFormats.Get "markdown" -}}
+	<link rel="alternate" type="{{ .MediaType.Type }}" href="{{ .Permalink }}">
+{{- end }}
+
 {{/* Self-hosted JetBrains Mono. Preload the upright face only — the italic
      is used sparingly and preloading both would contend for bandwidth with
      the stylesheet. @font-face rules live in the theme's main.css. */}}

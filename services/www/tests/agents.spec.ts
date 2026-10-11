@@ -4,9 +4,9 @@ import { expect, test } from "@playwright/test";
  * Agent-facing output: the generated llms.txt index, the llms-full.txt corpus,
  * and the per-page Markdown mirrors.
  *
- * Scope: these cover what Hugo *builds*. Content negotiation, the real 404
- * status and the X-Robots-Tag headers are Worker behaviour and live in
- * worker.spec.ts, which runs against `wrangler dev`.
+ * Scope: these cover what Hugo *builds*. The X-Robots-Tag headers come from
+ * the generated _headers file and live in assets.spec.ts, which runs against
+ * `wrangler dev`.
  */
 
 // Posts authored with a `.markdown` extension. Hugo's built-in text/markdown
@@ -108,6 +108,22 @@ test.describe("markdown mirrors", () => {
       const res = await request.get(`${path}index.md`);
       expect(res.status(), `${path}index.md should exist`).toBe(200);
       expect((await res.text()).trim().length).toBeGreaterThan(0);
+    });
+  }
+
+  // There is no Accept-header negotiation, so the <link rel="alternate"> is
+  // how an agent that lands on the HTML finds the Markdown.
+  for (const path of ["/", "/posts/", "/about/", "/posts/docker-desktop-disk-full-macos/"]) {
+    test(`${path} advertises its Markdown mirror`, async ({ page, request }) => {
+      await page.goto(path);
+      const href = await page
+        .locator('link[rel="alternate"][type="text/markdown"]')
+        .getAttribute("href");
+      expect(href, "no text/markdown alternate link").toBeTruthy();
+
+      const url = new URL(href as string, page.url());
+      expect(url.pathname).toBe(`${path}index.md`);
+      expect((await request.get(url.pathname)).status()).toBe(200);
     });
   }
 
