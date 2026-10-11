@@ -15,12 +15,15 @@ globs: services/www/**
   updates both automatically.
 - Home, section listings and regular pages each emit an `index.md` Markdown
   mirror (`outputs` in `hugo.yaml` lists all three kinds — a kind that is not
-  listed gets no mirror). Served on
-  `Accept: text/markdown` by the Worker at `services/www/src/index.ts`. That
-  Worker also forces a real 404 status on `/404` and sets
-  `X-Robots-Tag: noindex` on `.md` and `llms*.txt`, because neither a response
-  status nor a header can come from `_headers` once
-  `assets.run_worker_first` is set.
+  listed gets no mirror). Each HTML page advertises its mirror with
+  `<link rel="alternate" type="text/markdown">` (theme `head.html`). There is
+  no `Accept: text/markdown` negotiation and no Worker code in www
+  (docs/adr-005-static-headers-no-worker-code.md) — do not add one back.
+- Response headers come from a **generated** `public/_headers`, rendered by
+  `services/www/layouts/home._outputformat_headers_.txt`: security headers, the
+  CSP, `X-Robots-Tag: noindex` on `.md` and `llms*.txt`, and on every response
+  outside production (staging builds with `HUGO_ENVIRONMENT=staging`). Never
+  hand-edit it. Unknown paths 404 through `not_found_handling`.
 - Legacy URLs are redirected by a **generated** `public/_redirects`, built from
   each page's `aliases:` front matter by
   `services/www/layouts/home._outputformat_redirects_.txt`. Never hand-edit it.
@@ -28,5 +31,5 @@ globs: services/www/**
   meta-refresh stubs that would otherwise shadow those rules — it is a different
   setting from `pagination.disableAliases`, and both are needed.
 - Indexability rules are pinned by `services/www/tests/seo.spec.ts`,
-  `services/www/tests/worker.spec.ts` and the post-deploy `verify` job. See
+  `services/www/tests/assets.spec.ts` and the post-deploy `verify` job. See
   `docs/seo.md` before changing any of them.
