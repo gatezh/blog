@@ -67,18 +67,6 @@
 	</div>
 </header>
 
-<script>
-(function() {
-  var menuBtn = document.getElementById('mobile-menu-btn');
-  var mobileMenu = document.getElementById('mobile-menu');
-
-  if (menuBtn && mobileMenu) {
-    menuBtn.addEventListener('click', function() {
-      var isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
-      menuBtn.setAttribute('aria-expanded', !isExpanded);
-      mobileMenu.classList.toggle('hidden');
-      mobileMenu.setAttribute('aria-hidden', isExpanded);
-    });
-  }
-})();
-</script>
+{{ with partial "js.html" "js/mobile-menu.ts" }}
+	<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" defer></script>
+{{ end }}
