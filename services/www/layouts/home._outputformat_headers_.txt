@@ -1,0 +1,89 @@
+{{- /* _headers — response headers for every page and file, applied by Workers
+       static assets with no Worker code involved, so page views stay free and
+       unmetered.
+       https://developers.cloudflare.com/workers/static-assets/headers/
+
+       The Content Security Policy is a host allowlist. Every script is a file
+       served from this site (assets/js, built with js.Build and loaded with
+       SRI) or comes from one of the third parties below, so script-src needs
+       neither 'unsafe-inline' nor a per-response nonce:
+
+       - Google Analytics (production builds only, like the tag in head.html):
+         Google's documented GA4 policy. The wildcards are required, because
+         collection goes to regional hosts such as region1.google-analytics.com.
+         https://developers.google.com/tag-platform/security/guides/csp
+       - Remark42 (params.remark42Host): its embed script renders the comment
+         thread in an iframe from that host.
+       - Cloudflare Turnstile (only when a site key is configured): api.js and
+         the challenge iframe.
+
+       Each third-party origin is derived from the same param or condition the
+       templates use to load it, so the policy cannot allow less than the page
+       needs, and omits a service the build does not include. connect-src takes
+       the contact API's origin from params.apiUrl, the URL the form posts to.
+
+       style-src keeps 'unsafe-inline' for the style attributes the theme and
+       Turnstile set. There is no upgrade-insecure-requests: every URL the site
+       emits is relative or https, the zone redirects http to https, and under
+       `wrangler dev` it would rewrite same-origin requests to an https port
+       nothing listens on.
+
+       Outside production (staging builds with HUGO_ENVIRONMENT=staging) every
+       response also gets X-Robots-Tag: noindex: staging pages carry their own
+       host as canonical, so without it staging is a crawlable duplicate of the
+       whole site. It stays inside the one /* rule, because a second rule with
+       the same pattern replaces the first rather than merging with it. Rules
+       with different patterns do merge, which is what the agent-text rules at
+       the end rely on.
+
+       Same one-line-printf idiom as _redirects and llms.txt: this format is
+       isPlainText, so the template IS the output, and gotmplfmt indents the
+       body of a block with a literal tab. A header line has to be indented and
+       a path line must not be. Limits: 100 rules, 2,000 characters per line. */ -}}
+{{- $script := slice "'self'" -}}
+{{- $img := slice "'self'" "data:" -}}
+{{- $connect := slice "'self'" -}}
+{{- $frame := slice -}}
+{{- with site.Params.apiUrl -}}
+	{{- with urls.Parse . -}}
+		{{- if .Host }}{{ $connect = $connect | append (printf "%s://%s" .Scheme .Host) }}{{ end -}}
+	{{- end -}}
+{{- end -}}
+{{- if site.Params.comments -}}
+	{{- with site.Params.remark42Host -}}
+		{{- with urls.Parse . -}}
+			{{- $remark42 := printf "%s://%s" .Scheme .Host -}}
+			{{- $script = $script | append $remark42 -}}
+			{{- $connect = $connect | append $remark42 -}}
+			{{- $frame = $frame | append $remark42 -}}
+		{{- end -}}
+	{{- end -}}
+{{- end -}}
+{{- if site.Params.turnstileSiteKey -}}
+	{{- $script = $script | append "https://challenges.cloudflare.com" -}}
+	{{- $frame = $frame | append "https://challenges.cloudflare.com" -}}
+{{- end -}}
+{{- if and hugo.IsProduction site.Config.Services.GoogleAnalytics.ID -}}
+	{{- $script = $script | append "https://*.googletagmanager.com" -}}
+	{{- $img = $img | append (slice "https://*.google-analytics.com" "https://*.googletagmanager.com") -}}
+	{{- $connect = $connect | append (slice "https://*.google-analytics.com" "https://*.analytics.google.com" "https://*.googletagmanager.com") -}}
+{{- end -}}
+{{- $csp := slice "default-src 'self'" (printf "script-src %s" (delimit $script " ")) "style-src 'self' 'unsafe-inline'" (printf "img-src %s" (delimit $img " ")) (printf "connect-src %s" (delimit $connect " ")) -}}
+{{- with $frame }}{{ $csp = $csp | append (printf "frame-src %s" (delimit . " ")) }}{{ end -}}
+{{- $csp = $csp | append (slice "object-src 'none'" "base-uri 'none'" "form-action 'self'" "frame-ancestors 'none'") -}}
+{{- printf "/*\n" -}}
+{{- printf "  X-Content-Type-Options: nosniff\n" -}}
+{{- printf "  Referrer-Policy: strict-origin-when-cross-origin\n" -}}
+{{- printf "  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()\n" -}}
+{{- /* Superseded by frame-ancestors in current browsers; kept for older ones. */ -}}
+{{- printf "  X-Frame-Options: DENY\n" -}}
+{{- printf "  Content-Security-Policy: %s\n" (delimit $csp "; ") -}}
+{{- if not hugo.IsProduction }}{{ printf "  X-Robots-Tag: noindex\n" }}{{ end -}}
+{{- /* Agent-facing text: the Markdown mirror of every page and the llms*.txt
+       indexes. Crawlable, so an agent can fetch them, but never indexed —
+       otherwise every page ships a full-text duplicate at a second URL.
+       The splat rule matches mirrors at any depth but not the home page's,
+       hence the separate /index.md rule. */ -}}
+{{- range slice "/index.md" "/*/index.md" "/llms.txt" "/llms-full.txt" -}}
+	{{- printf "\n%s\n  X-Robots-Tag: noindex\n" . -}}
+{{- end -}}
