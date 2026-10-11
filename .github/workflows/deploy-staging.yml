@@ -68,6 +68,10 @@ jobs:
 
       - name: Build Hugo site
         env:
+          # Not production: the generated _headers gains X-Robots-Tag: noindex,
+          # which is what keeps staging out of search results
+          # (services/www/layouts/home._outputformat_headers_.txt).
+          HUGO_ENVIRONMENT: staging
           HUGO_BASEURL: ${{ vars.HUGO_BASEURL }}
           HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
           HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
@@ -86,12 +90,6 @@ jobs:
           workingDirectory: services/www
           environment: staging
           packageManager: bun
-          # The contact-form origin for the CSP's connect-src — the same value
-          # the form POSTs to, so the two cannot disagree.
-          vars: |
-            API_URL
-        env:
-          API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
 
   deploy-api:
     needs: check
@@ -201,6 +199,9 @@ jobs:
           # Optional: only needed once staging-www sits behind Cloudflare Access.
           CLOUDFLARE_ZERO_CLIENT_ID: ${{ vars.CLOUDFLARE_ZERO_CLIENT_ID }}
           CLOUDFLARE_ZERO_CLIENT_SECRET: ${{ secrets.CLOUDFLARE_ZERO_CLIENT_SECRET }}
+          # What the contact form was built to POST to; the CSP's connect-src
+          # must allow its origin.
+          FORM_API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
         run: |
           WWW_URL="https://staging-www.gatezh.com"
           API_URL="https://staging-api.gatezh.com"
@@ -231,17 +232,34 @@ jobs:
           headers=$(fetch -I "${WWW_URL}/" | tr -d '\r')
 
           # Staging must never be indexed: its pages are self-canonical copies
-          # of production. Set by X_ROBOTS_TAG in services/www/wrangler.jsonc.
+          # of production. The staging build adds it to the generated _headers.
           printf '%s' "${headers}" | grep -qi '^x-robots-tag: noindex' \
             || { echo "::error::${WWW_URL}/ is missing X-Robots-Tag: noindex"; fail=1; }
 
-          # The CSP comes from the Worker. A Transform Rule matching this host
-          # would silently replace it — that is what this check catches.
-          printf '%s' "${headers}" | grep -i '^content-security-policy:' | grep -q "'strict-dynamic'" \
-            || { echo "::error::${WWW_URL}/ is not serving the Worker's CSP"; fail=1; }
+          printf '%s' "${headers}" | grep -qi '^x-content-type-options: nosniff' \
+            || { echo "::error::${WWW_URL}/ is missing X-Content-Type-Options: nosniff"; fail=1; }
 
-          code=$(curl -s -o /dev/null --max-time 20 -w '%{http_code}' "${AUTH_ARGS[@]}" "${WWW_URL}/404")
-          [ "${code}" = "404" ] || { echo "::error::${WWW_URL}/404 returned ${code}, expected 404"; fail=1; }
+          # The CSP comes from the generated _headers. A Transform Rule matching
+          # this host would silently replace it — that is what this checks.
+          csp=$(printf '%s' "${headers}" | grep -i '^content-security-policy:' || true)
+          if ! printf '%s' "${csp}" | grep -q "frame-ancestors 'none'"; then
+            echo "::error::${WWW_URL}/ is not serving the site's CSP (services/www/layouts/home._outputformat_headers_.txt)"
+            fail=1
+          elif [ -n "${FORM_API_URL}" ]; then
+            api_origin=$(printf '%s' "${FORM_API_URL}" | grep -oE '^https?://[^/]+')
+            printf '%s' "${csp}" | grep -qE "connect-src [^;]*${api_origin}" \
+              || { echo "::error::CSP connect-src does not allow the contact API (${api_origin})"; fail=1; }
+          fi
+
+          code=$(curl -s -o /dev/null --max-time 20 -w '%{http_code}' "${AUTH_ARGS[@]}" "${WWW_URL}/no-such-page-${GITHUB_RUN_ID}/")
+          [ "${code}" = "404" ] || { echo "::error::an unknown path returned ${code}, expected 404"; fail=1; }
+
+          # Agent-facing text must be noindex. On staging the site-wide rule
+          # also covers it; release.yml checks its own rules on production.
+          for path in /llms.txt /about/index.md; do
+            fetch -I "${WWW_URL}${path}" | tr -d '\r' | grep -qi '^x-robots-tag: noindex' \
+              || { echo "::error::${WWW_URL}${path} is missing X-Robots-Tag: noindex"; fail=1; }
+          done
 
           # CORS preflight from the staging origin must be allowed, and echo it.
           preflight=$(fetch -i -X OPTIONS -H "Origin: ${WWW_URL}" -H "Access-Control-Request-Method: POST" "${API_URL}/" | tr -d '\r')
