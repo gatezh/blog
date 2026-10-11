@@ -149,10 +149,6 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: services/www
           packageManager: bun
-          vars: |
-            API_URL
-        env:
-          API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
 
   deploy-api:
     needs: [release, check]
@@ -268,10 +264,20 @@ jobs:
             fail=1
           fi
 
-          # The CSP comes from the Worker. A Transform Rule on the zone that sets
-          # the same header would replace it wholesale — see docs/CSP.md.
-          printf '%s' "${headers}" | grep -i '^content-security-policy:' | grep -q "'strict-dynamic'" \
-            || { echo "::error::https://gatezh.com/ is not serving the Worker's CSP — a zone Transform Rule is overriding it (docs/CSP.md)"; exit 1; }
+          printf '%s' "${headers}" | grep -qi '^x-content-type-options: nosniff' \
+            || { echo "::error::https://gatezh.com/ is missing X-Content-Type-Options: nosniff"; fail=1; }
+
+          # The CSP comes from the generated _headers. A Transform Rule on the
+          # zone that sets the same header would replace it wholesale — see
+          # docs/CSP.md. connect-src must allow what the contact form POSTs to.
+          csp=$(printf '%s' "${headers}" | grep -i '^content-security-policy:' || true)
+          printf '%s' "${csp}" | grep -q "frame-ancestors 'none'" \
+            || { echo "::error::https://gatezh.com/ is not serving the site's CSP — a zone Transform Rule may be overriding it (docs/CSP.md)"; exit 1; }
+          if [ -n "${API_URL}" ]; then
+            api_origin=$(printf '%s' "${API_URL}" | grep -oE '^https?://[^/]+')
+            printf '%s' "${csp}" | grep -qE "connect-src [^;]*${api_origin}" \
+              || { echo "::error::CSP connect-src does not allow the contact API (${api_origin})"; fail=1; }
+          fi
 
           if [ -n "${API_URL}" ]; then
             preflight=$(fetch -i -X OPTIONS -H "Origin: ${ALLOWED_ORIGIN}" -H "Access-Control-Request-Method: POST" "${API_URL}" | tr -d '\r')
@@ -309,16 +315,14 @@ jobs:
             fi
           }
 
-          # Cloudflare's asset router rewrites /404.html -> /404 and would serve
-          # it with a 200, making the error page an indexable URL Google files
-          # as a soft 404. src/index.ts overrides the status.
-          for path in /404 /404.html; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://gatezh.com${path}")
-            if [ "${code}" != "404" ]; then
-              echo "::error::${path} returned ${code}, expected 404"
-              fail=1
-            fi
-          done
+          # Unknown paths must return a real 404 (not_found_handling: 404-page),
+          # never a 200 that Google files as a soft 404. /404 itself answers
+          # 200; that page carries robots noindex (tests/seo.spec.ts).
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://gatezh.com/no-such-page-${GITHUB_RUN_ID}/")
+          if [ "${code}" != "404" ]; then
+            echo "::error::an unknown path returned ${code}, expected 404"
+            fail=1
+          fi
 
           # Taxonomy listings must stay out of the index.
           for path in /tags/ /categories/; do
@@ -340,7 +344,8 @@ jobs:
 
           # Agent-facing text stays crawlable but must never be indexed —
           # otherwise every page ships a full-text duplicate at a second URL.
-          for path in /llms.txt /llms-full.txt; do
+          # Set by their own rules in the generated _headers.
+          for path in /llms.txt /llms-full.txt /index.md /about/index.md; do
             if ! headers=$(curl -sfI --max-time 15 "https://gatezh.com${path}"); then
               echo "::error::could not fetch ${path}"
               fail=1
@@ -349,13 +354,5 @@ jobs:
               fail=1
             fi
           done
-
-          # Accept-based content negotiation must return Markdown, not HTML.
-          ct=$(curl -sfI --max-time 15 -H 'Accept: text/markdown' https://gatezh.com/ \
-            | grep -i '^content-type:' | tr -d '\r')
-          case "${ct}" in
-            *text/markdown*) ;;
-            *) echo "::error::Accept: text/markdown returned '${ct}', expected text/markdown"; fail=1 ;;
-          esac
 
           [ "${fail}" = "0" ] && echo "Indexability invariants hold." || exit 1
