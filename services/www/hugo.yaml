@@ -162,6 +162,10 @@ params:
   # env vars at build time, and unset means falsy in `{{ with }}` guards.
   apiUrl: "http://localhost:8787"
 
+  # Self-hosted Remark42. Read by the comments partial and by the CSP in
+  # layouts/home._outputformat_headers_.txt, so the two cannot disagree.
+  remark42Host: "https://comments.gatezh.com"
+
   profileMode:
     enabled: true
     title: "Serge Gatezh"
