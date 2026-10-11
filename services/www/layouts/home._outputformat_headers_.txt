@@ -16,6 +16,12 @@
          thread in an iframe from that host.
        - Cloudflare Turnstile (only when a site key is configured): api.js and
          the challenge iframe.
+       - PostHog (only when params.posthogKey is set, i.e. production): its
+         documented policy. The wildcard is required — PostHog warns that "the
+         exact subdomains may change over time". script-src covers the array.js
+         and recorder the snippet injects; session replay compresses in a Web
+         Worker created from a blob, hence worker-src.
+         https://posthog.com/docs/advanced/content-security-policy
 
        Each third-party origin is derived from the same param or condition the
        templates use to load it, so the policy cannot allow less than the page
@@ -44,6 +50,7 @@
 {{- $img := slice "'self'" "data:" -}}
 {{- $connect := slice "'self'" -}}
 {{- $frame := slice -}}
+{{- $worker := slice -}}
 {{- with site.Params.apiUrl -}}
 	{{- with urls.Parse . -}}
 		{{- if .Host }}{{ $connect = $connect | append (printf "%s://%s" .Scheme .Host) }}{{ end -}}
@@ -63,6 +70,11 @@
 	{{- $script = $script | append "https://challenges.cloudflare.com" -}}
 	{{- $frame = $frame | append "https://challenges.cloudflare.com" -}}
 {{- end -}}
+{{- if site.Params.posthogKey -}}
+	{{- $script = $script | append "https://*.posthog.com" -}}
+	{{- $connect = $connect | append "https://*.posthog.com" -}}
+	{{- $worker = slice "'self'" "blob:" "data:" -}}
+{{- end -}}
 {{- if and hugo.IsProduction site.Config.Services.GoogleAnalytics.ID -}}
 	{{- $script = $script | append "https://*.googletagmanager.com" -}}
 	{{- $img = $img | append (slice "https://*.google-analytics.com" "https://*.googletagmanager.com") -}}
@@ -70,6 +82,7 @@
 {{- end -}}
 {{- $csp := slice "default-src 'self'" (printf "script-src %s" (delimit $script " ")) "style-src 'self' 'unsafe-inline'" (printf "img-src %s" (delimit $img " ")) (printf "connect-src %s" (delimit $connect " ")) -}}
 {{- with $frame }}{{ $csp = $csp | append (printf "frame-src %s" (delimit . " ")) }}{{ end -}}
+{{- with $worker }}{{ $csp = $csp | append (printf "worker-src %s" (delimit . " ")) }}{{ end -}}
 {{- $csp = $csp | append (slice "object-src 'none'" "base-uri 'none'" "form-action 'self'" "frame-ancestors 'none'") -}}
 {{- printf "/*\n" -}}
 {{- printf "  X-Content-Type-Options: nosniff\n" -}}

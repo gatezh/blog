@@ -7,10 +7,11 @@ import { expect, test } from "@playwright/test";
  * and the 404 page stay out of the index, the sitemap advertises only
  * indexable URLs, and no unlinked canonical-stub URLs get emitted.
  *
- * Scope: these cover what Hugo *builds*. Worker- and edge-level rules (a real
- * 404 status on /404, X-Robots-Tag headers, http -> https) cannot be exercised
- * here — the suite runs against `hugo server`. Those are checked post-deploy by
- * the verify jobs in .github/workflows/release.yml and deploy-staging.yml.
+ * Scope: these cover what Hugo *builds*. Edge-level rules (404 statuses,
+ * X-Robots-Tag headers, http -> https) cannot be exercised here — the suite
+ * runs against `hugo server`. The first two are in assets.spec.ts, against
+ * `wrangler dev`; all are checked post-deploy by the verify jobs in
+ * .github/workflows/release.yml and deploy-staging.yml.
  */
 
 // Structural pages only. Individual posts come and go, and the sitemap sweep
