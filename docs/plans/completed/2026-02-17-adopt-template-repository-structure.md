@@ -2,11 +2,11 @@
 
 ## Overview
 
-Restructure the gatezh.com monorepo to align with the SurgeGate template repository conventions. The primary change is moving from `apps/` to `services/` directory naming, along with adopting mise for tool version management, OXC for linting, and modernizing the devcontainer setup.
+Restructure the gatezh.com monorepo to align with the template repository's conventions. The primary change is moving from `apps/` to `services/` directory naming, along with adopting mise for tool version management, OXC for linting, and modernizing the devcontainer setup.
 
 ## Context
 
-- Template remote: `template/master` (SurgeGate template)
+- Template remote: `template/master`
 - Current project: gatezh.com blog monorepo with Hugo site + email worker
 - Files involved: Nearly all configuration files, CI workflows, devcontainer, docs
 - This project does NOT have: api, app, packages/shared, postgres, neon-proxy (template-specific services to ignore)

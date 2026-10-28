@@ -12,17 +12,43 @@ How gatezh.com is configured and deployed.
 Same model as the other projects on this stack: merging to `master` deploys
 staging; production only ever runs a tagged release.
 
-**Releasing:** Actions → **Release** → Run workflow → `action: create` and a
-bump level. It tags `master`, generates release notes, deploys both Workers and
-verifies production. **Rolling back:** the same workflow with
-`action: redeploy` and an earlier version.
+Both deploy workflows run the whole of CI (`ci.yml`: `bun run check` and
+`bun run test`) on the commit they ship before deploying it, so nothing reaches
+staging or production without the checks and tests a pull request runs.
+
+**Releasing:** Actions → **Release** → Run workflow (from `master`) →
+`action: create` and a bump level. It runs CI, then tags `master` and
+generates release notes, deploys both Workers and verifies production. A CI
+failure leaves no tag behind. Each Worker version is labelled with the release
+tag (`wrangler deploy --tag`), so the dashboard's **Deployments** list says
+which release every version is.
+
+### Rolling back
+
+- **Instantly:** Workers & Pages → the Worker → **Deployments** → the version
+  tagged with the previous release → **Rollback**, or
+  `bunx wrangler rollback <version-id>` from `services/www` or `services/api`.
+  No rebuild; Cloudflare keeps the last 100 versions. Roll back both Workers.
+  The next release replaces the rollback.
+- **Through a release:** the same workflow with `action: redeploy` and an
+  earlier version (e.g. `1.4.2`). It rebuilds and redeploys that tag and
+  verifies it, without re-running CI — a rollback must not wait on, or be
+  blocked by, today's checks against an old tree. Only tags on `master` are
+  accepted.
 
 ### Why release-anchored production
 
 A release is a tag you can point at, and redeploying an existing tag is a
-first-class action (`action: redeploy`) rather than a revert commit. The
-`concurrency` group does not cancel in progress: a cancelled production deploy
-can leave `www` and `api` on different commits.
+first-class action rather than a revert commit. **Immutable releases** are on
+(Settings → General → Releases), so a published release's tag cannot be moved
+or deleted, and a redeploy ships what was released.
+
+Both deploy workflows queue rather than cancel (`concurrency.queue: max`): a
+cancelled deploy can leave `www` and `api` on different commits.
+
+Only the Release workflow's tagging job holds a token that can write to the
+repository; every job that runs `bun install`, the build or a deploy action has
+read-only access, and no checkout keeps credentials on disk.
 
 ### Worker names
 
@@ -81,8 +107,8 @@ A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 | `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment                        |
 | `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access                 | optional                                               |
 
-The Worker degrades one feature at a time, and the staging deploy reports what
-is missing instead of failing:
+The Worker degrades one feature at a time, and each api deploy reports what is
+missing (`.github/actions/check-deploy-config`) instead of failing:
 
 - Contact form needs `RESEND_API_KEY` + `TO_EMAIL` + `FROM_EMAIL`. Without all
   three, `POST /` returns 503.
@@ -90,10 +116,15 @@ is missing instead of failing:
   both or neither** — half a bot gate either accepts submissions unverified or
   rejects every one.
 
-Production differs in one way: a secret GitHub does not hold is **left alone**
-on the live Worker, because wrangler only replaces a secret it is given. That is
-what lets production keep its existing Cloudflare secrets until they are moved
-into GitHub.
+Secrets go up with the code, in the same Worker version
+(`wrangler deploy --secrets-file`). A deploy only ever **adds or replaces**
+secrets: one GitHub does not hold is left alone on the Worker. So deleting a
+GitHub secret does not remove it from the Worker — do that as well:
+
+```bash
+cd services/api && bunx wrangler secret delete TURNSTILE_SECRET_KEY            # production
+cd services/api && bunx wrangler secret delete TURNSTILE_SECRET_KEY --env staging
+```
 
 ## Cutover history
 

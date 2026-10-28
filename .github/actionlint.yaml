@@ -1,0 +1,9 @@
+# actionlint 1.7.12 predates two GitHub Actions features these workflows use,
+# and reports both as errors. Drop each ignore once actionlint supports it.
+# - `concurrency.queue` (docs: "Workflow syntax" → concurrency)
+# - `uses: $/...` self-repository references (GitHub changelog, 2026-07-30)
+paths:
+  .github/workflows/**/*.yml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'
+      - '"\$/\.github/'
