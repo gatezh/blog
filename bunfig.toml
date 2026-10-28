@@ -15,3 +15,7 @@ linker = "isolated"
 # malicious uploads, and against same-week regressions. Value is in SECONDS.
 # This gate is deliberate: do not raise a pin past it to "catch up".
 minimumReleaseAge = 604800
+# Except @types/bun and the bun-types it wraps: their version tracks the Bun
+# runtime pinned in .mise.toml, and they move together on the day Bun is
+# upgraded.
+minimumReleaseAgeExcludes = ["@types/bun", "bun-types"]
