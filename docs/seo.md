@@ -219,3 +219,39 @@ deliberately not repeated here.
       field still pointing at dead `http://gatezh.com/<project>` URLs. Those
       are real project demos rather than duplicates, so they are cleanup, not
       an indexing problem.
+
+## 6. Roadmap
+
+Open items, highest value first. Each is a gap against the other sites on this
+stack, or a decision only the owner can make.
+
+- [ ] **Decide the AI crawler policy.** The zone blocks AI crawlers: ClaudeBot
+      and GPTBot get `403` from `https://gatezh.com/` (checked 2026-10-28),
+      while `robots.txt` says `Allow: /` and the site publishes `llms.txt` and
+      Markdown mirrors for exactly those agents. Either allow them (Security →
+      Bots: AI bots off, and Cloudflare's managed robots.txt off) or stop
+      advertising `llms.txt`. Record the decision here. Confirm the zone state
+      with `cf` rather than a spoofed user agent, then add a
+      `curl -A ClaudeBot` check to the verify job so it cannot drift.
+- [ ] **Favicon.** `/favicon.ico` is a 404 and `<head>` has no `rel=icon`.
+      Google shows the favicon beside every result. An SVG, a 32 px PNG and a
+      180 px `apple-touch-icon`, fingerprinted from `assets/`.
+- [ ] **`og:image`.** `params.ogImage` is unset, so shared links have no
+      preview and Article JSON-LD has no `image`. A 1200 × 630 PNG rendered
+      from an HTML template with Playwright and committed, emitted with
+      `og:image:width`, `og:image:height` and `og:image:alt`; the same image as
+      the Article `image`.
+- [ ] **Post-deploy redirect check.** Assert in the verify job that one known
+      legacy URL (e.g. a `.html` path) answers `301`. Today only
+      `tests/assets.spec.ts` covers `_redirects`, locally.
+- [ ] **Sitemap `lastmod` tripwire.** A test that every `<loc>` has a
+      parseable `<lastmod>` and that more than one distinct value exists — a
+      shallow CI checkout collapses them all to one date.
+
+Checked and dropped:
+
+- **FAQ structured data:** Google no longer shows the FAQ rich result.
+- **`llms.txt` for ranking:** Google says it does not affect Search; it stays
+  for agents, not for rank.
+- **IndexNow, verification meta tags, hreflang, a web manifest:** no gain for
+  a single-language personal site already verified in Search Console.
