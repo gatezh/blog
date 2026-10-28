@@ -1,0 +1,25 @@
+name: Set up Bun and dependencies
+description: >-
+  Installs the tools pinned in .mise.toml (Bun, Hugo) and the workspace's
+  dependencies from bun.lock. The calling job checks the repository out first,
+  so this file exists.
+
+runs:
+  using: composite
+  steps:
+    - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+    # Bun's download cache, not node_modules (actions/cache advises against
+    # caching node_modules). `bun install` therefore always runs and links from
+    # this cache, so what a job builds is always exactly what bun.lock says.
+    - name: Cache Bun's package cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ runner.os }}-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+        restore-keys: |
+          bun-${{ runner.os }}-
+
+    - name: Install dependencies
+      shell: bash
+      run: bun install --frozen-lockfile

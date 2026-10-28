@@ -10,61 +10,47 @@ on:
       - "*.md"
       - "LICENSE"
       - ".github/release.yml"
+      - ".github/dependabot.yml"
       - ".devcontainer/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Queue, never cancel: a cancelled run can leave www and api on different
+# commits. `queue: max` because by default GitHub keeps only one pending run and
+# cancels it when the next arrives.
 concurrency:
   group: deploy-staging
-  cancel-in-progress: true
+  cancel-in-progress: false
+  queue: max
+
+# An explicit `bash` runs `bash -eo pipefail`; the implicit default is
+# `bash -e` alone, which lets a failed curl hide behind a later pipe stage.
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  check:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            node_modules
-            services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-      - name: Check
-        run: bun run check
+  ci:
+    uses: $/.github/workflows/ci.yml
 
   deploy-www:
-    needs: check
+    needs: ci
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     environment:
       name: staging
       url: https://staging-www.gatezh.com
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           # enableGitInfo reads git history for each page's <lastmod>. On a
           # shallow clone every lastmod collapses to the shallow HEAD's commit
           # date, so the whole site claims to have been modified today.
           fetch-depth: 0
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            node_modules
-            services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - uses: $/.github/actions/setup
 
       - name: Build Hugo site
         env:
@@ -83,115 +69,86 @@ jobs:
           bun run --cwd services/www build
 
       - name: Deploy www
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: services/www
           environment: staging
           packageManager: bun
+          # The commit, on the Worker version, so the dashboard's Deployments
+          # list says what each version is.
+          command: deploy --message ${{ github.sha }}
 
   deploy-api:
-    needs: check
+    needs: ci
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     environment:
       name: staging
       url: https://staging-api.gatezh.com
     steps:
-      - name: Audit feature configuration
+      # First, before anything changes. `$/` loads the action from this
+      # workflow's own commit, so it needs no checkout.
+      - uses: $/.github/actions/check-deploy-config
+        with:
+          environment: staging
+        env:
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
+          HAS_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY != '' }}
+          HAS_TO_EMAIL: ${{ secrets.TO_EMAIL != '' }}
+          HAS_FROM_EMAIL: ${{ secrets.FROM_EMAIL != '' }}
+          HAS_TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY != '' }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+
+      # The secrets go up in the same Worker version as the code (`deploy
+      # --secrets-file`), not as a separate `wrangler secret bulk` deployment
+      # of the old code first, which is what wrangler-action's `secrets:` input
+      # does. Every credential is a secret, so its value is masked in this
+      # public repo's logs. Unset ones are left out rather than shipped as an
+      # empty string that reads as "configured". The file lives in RUNNER_TEMP
+      # and is deleted after the deploy.
+      - name: Write the secrets file
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
-          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
-          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
         run: |
-          # The Worker degrades one feature at a time, so a missing credential
-          # is a warning and a summary row — except ALLOWED_ORIGIN, without
-          # which the Worker answers every request with a CORS failure.
-          if [ -z "${ALLOWED_ORIGIN}" ]; then
-            echo "::error title=ALLOWED_ORIGIN not set::Set ALLOWED_ORIGIN on the staging environment."
-            exit 1
-          fi
+          umask 077
+          jq -n 'env | {RESEND_API_KEY, TURNSTILE_SECRET_KEY, TO_EMAIL, FROM_EMAIL}
+            | with_entries(select(.value != null and .value != ""))' > "${RUNNER_TEMP}/secrets.json"
 
-          {
-            echo "## Feature configuration (staging)"
-            echo ""
-            echo "| Feature | Status |"
-            echo "|---|---|"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          if [ -n "${RESEND_API_KEY}" ] && [ -n "${TO_EMAIL}" ] && [ -n "${FROM_EMAIL}" ]; then
-            echo "| Contact form (Resend) | enabled |" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::warning title=Contact form disabled::POST / will return 503. Set RESEND_API_KEY, TO_EMAIL and FROM_EMAIL (all secrets) on the staging environment."
-            echo "| Contact form (Resend) | **disabled** (503) |" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          # Half-configured Turnstile is worse than none: the widget renders and
-          # submissions are then accepted unverified, or every one is rejected.
-          if [ -n "${TURNSTILE_SECRET_KEY}" ] && [ -n "${HUGO_PARAMS_TURNSTILESITEKEY}" ]; then
-            echo "| Bot gate (Turnstile) | enabled |" >> "$GITHUB_STEP_SUMMARY"
-          elif [ -z "${TURNSTILE_SECRET_KEY}" ] && [ -z "${HUGO_PARAMS_TURNSTILESITEKEY}" ]; then
-            echo "::warning title=Bot gate disabled::Submissions are accepted without a captcha. Set TURNSTILE_SECRET_KEY (secret) and HUGO_PARAMS_TURNSTILESITEKEY (variable) on the staging environment."
-            echo "| Bot gate (Turnstile) | **disabled** |" >> "$GITHUB_STEP_SUMMARY"
-          else
-            missing="TURNSTILE_SECRET_KEY"
-            [ -z "${HUGO_PARAMS_TURNSTILESITEKEY}" ] && missing="HUGO_PARAMS_TURNSTILESITEKEY"
-            echo "::warning title=Bot gate half-configured::Missing ${missing}. Set both or neither."
-            echo "| Bot gate (Turnstile) | **half-configured** (missing ${missing}) |" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          if [ -z "${HUGO_PARAMS_APIURL}" ]; then
-            echo "::warning title=HUGO_PARAMS_APIURL not set::The contact form has no Worker URL to POST to. Set HUGO_PARAMS_APIURL on the staging environment."
-          fi
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            node_modules
-            services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
+      # wrangler-action has no --secrets-file input, but adds --env and the
+      # --var flags below to a custom command that starts with `deploy`.
       - name: Deploy api
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: services/api
           environment: staging
           packageManager: bun
-          # Every Worker credential is a secret, so its value is masked in the
-          # logs of this public repo. Each is listed only when set, so an
-          # unconfigured feature stays unconfigured instead of shipping an
-          # empty string that reads as "configured". The Worker's runtime
-          # guards (services/api/src/index.ts) handle absence.
-          secrets: |
-            ${{ secrets.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
-            ${{ secrets.TURNSTILE_SECRET_KEY != '' && 'TURNSTILE_SECRET_KEY' || '' }}
-            ${{ secrets.TO_EMAIL != '' && 'TO_EMAIL' || '' }}
-            ${{ secrets.FROM_EMAIL != '' && 'FROM_EMAIL' || '' }}
+          command: deploy --secrets-file ${{ runner.temp }}/secrets.json --message ${{ github.sha }}
           vars: |
             ALLOWED_ORIGIN
         env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
-          TO_EMAIL: ${{ secrets.TO_EMAIL }}
-          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
           ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+
+      - name: Delete the secrets file
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/secrets.json"
 
   verify:
     needs: [deploy-www, deploy-api]
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     environment: staging
     steps:
       - name: Verify staging
@@ -211,18 +168,26 @@ jobs:
             AUTH_ARGS=(-H "CF-Access-Client-Id: ${CLOUDFLARE_ZERO_CLIENT_ID}" -H "CF-Access-Client-Secret: ${CLOUDFLARE_ZERO_CLIENT_SECRET}")
           fi
 
-          # Fetch through a helper that fails the build when the fetch fails.
-          # `curl -sf ... | grep -q` hides a failed fetch: grep sees empty input
-          # and returns 1, which reads as "assertion passed" under `bash -e`.
+          # A failed fetch fails the step (`-eo pipefail`), so no assertion
+          # below can pass on an empty response. Assertions read with `<<<`,
+          # not a pipe: under pipefail, `printf | grep -q` can fail on SIGPIPE
+          # when grep matches early.
           fetch() {
-            curl -sf --max-time 20 "${AUTH_ARGS[@]}" "$@" || { echo "::error::fetch failed: $*"; exit 1; }
+            curl -sf --max-time 20 "${AUTH_ARGS[@]}" "$@" || { echo "::error::fetch failed: $*"; return 1; }
+          }
+          status() {
+            curl -s -o /dev/null --max-time 20 -w '%{http_code}' "${AUTH_ARGS[@]}" "$1" || true
           }
 
-          sleep 5
           fail=0
 
-          home=$(fetch "${WWW_URL}/")
-          deployed=$(printf '%s' "${home}" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1)
+          # A new version takes a few seconds to reach every edge location.
+          # Plain curl, not fetch: an early miss here is expected, not an error.
+          for _ in 1 2 3 4 5 6; do
+            deployed=$(curl -sf --max-time 20 "${AUTH_ARGS[@]}" "${WWW_URL}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
+            [ "${deployed}" = "${GITHUB_SHA}" ] && break
+            sleep 5
+          done
           if [ "${deployed}" != "${GITHUB_SHA}" ]; then
             echo "::error::Deployed build-commit '${deployed}' does not match ${GITHUB_SHA}"
             exit 1
@@ -233,44 +198,46 @@ jobs:
 
           # Staging must never be indexed: its pages are self-canonical copies
           # of production. The staging build adds it to the generated _headers.
-          printf '%s' "${headers}" | grep -qi '^x-robots-tag: noindex' \
+          grep -qi '^x-robots-tag: noindex' <<< "${headers}" \
             || { echo "::error::${WWW_URL}/ is missing X-Robots-Tag: noindex"; fail=1; }
 
-          printf '%s' "${headers}" | grep -qi '^x-content-type-options: nosniff' \
+          grep -qi '^x-content-type-options: nosniff' <<< "${headers}" \
             || { echo "::error::${WWW_URL}/ is missing X-Content-Type-Options: nosniff"; fail=1; }
 
           # The CSP comes from the generated _headers. A Transform Rule matching
           # this host would silently replace it — that is what this checks.
-          csp=$(printf '%s' "${headers}" | grep -i '^content-security-policy:' || true)
-          if ! printf '%s' "${csp}" | grep -q "frame-ancestors 'none'"; then
+          csp=$(grep -i '^content-security-policy:' <<< "${headers}" || true)
+          if ! grep -q "frame-ancestors 'none'" <<< "${csp}"; then
             echo "::error::${WWW_URL}/ is not serving the site's CSP (services/www/layouts/home._outputformat_headers_.txt)"
             fail=1
           elif [ -n "${FORM_API_URL}" ]; then
-            api_origin=$(printf '%s' "${FORM_API_URL}" | grep -oE '^https?://[^/]+')
-            printf '%s' "${csp}" | grep -qE "connect-src [^;]*${api_origin}" \
+            api_origin=$(grep -oE '^https?://[^/]+' <<< "${FORM_API_URL}")
+            grep -qE "connect-src [^;]*${api_origin}" <<< "${csp}" \
               || { echo "::error::CSP connect-src does not allow the contact API (${api_origin})"; fail=1; }
           fi
 
-          code=$(curl -s -o /dev/null --max-time 20 -w '%{http_code}' "${AUTH_ARGS[@]}" "${WWW_URL}/no-such-page-${GITHUB_RUN_ID}/")
+          code=$(status "${WWW_URL}/no-such-page-${GITHUB_RUN_ID}/")
           [ "${code}" = "404" ] || { echo "::error::an unknown path returned ${code}, expected 404"; fail=1; }
 
           # Agent-facing text must be noindex. On staging the site-wide rule
           # also covers it; release.yml checks its own rules on production.
           for path in /llms.txt /about/index.md; do
-            fetch -I "${WWW_URL}${path}" | tr -d '\r' | grep -qi '^x-robots-tag: noindex' \
+            agent_headers=$(fetch -I "${WWW_URL}${path}" | tr -d '\r')
+            grep -qi '^x-robots-tag: noindex' <<< "${agent_headers}" \
               || { echo "::error::${WWW_URL}${path} is missing X-Robots-Tag: noindex"; fail=1; }
           done
 
           # CORS preflight from the staging origin must be allowed, and echo it.
           preflight=$(fetch -i -X OPTIONS -H "Origin: ${WWW_URL}" -H "Access-Control-Request-Method: POST" "${API_URL}/" | tr -d '\r')
-          printf '%s' "${preflight}" | grep -qi "^access-control-allow-origin: ${WWW_URL}$" \
+          grep -qi "^access-control-allow-origin: ${WWW_URL}$" <<< "${preflight}" \
             || { echo "::error::API CORS preflight did not allow ${WWW_URL}"; fail=1; }
 
           # Googlebot crawls the API host too: GET / must be 200 + noindex.
           api_headers=$(fetch -i "${API_URL}/" | tr -d '\r')
-          printf '%s' "${api_headers}" | head -1 | grep -q ' 200' \
+          head -1 <<< "${api_headers}" | grep -q ' 200' \
             || { echo "::error::GET ${API_URL}/ did not return 200"; fail=1; }
-          printf '%s' "${api_headers}" | grep -qi '^x-robots-tag: noindex' \
+          grep -qi '^x-robots-tag: noindex' <<< "${api_headers}" \
             || { echo "::error::GET ${API_URL}/ is missing X-Robots-Tag: noindex"; fail=1; }
 
-          [ "${fail}" = "0" ] && echo "Staging verified." || exit 1
+          [ "${fail}" = "0" ] || exit 1
+          echo "Staging verified."

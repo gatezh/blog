@@ -33,10 +33,17 @@ This is a Bun monorepo for gatezh.com:
 │       ├── wrangler.jsonc      # Cloudflare Workers config
 │       └── tsconfig.json       # TypeScript configuration
 │
-├── .github/workflows/          # GitHub Actions
-│   ├── ci.yml                  # CI checks (lint, typecheck, build)
-│   ├── deploy-staging.yml      # push to master → staging
-│   └── release.yml             # dispatch → v* tag → production
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml              # PR checks + tests; also called by both deploys
+│   │   ├── deploy-staging.yml  # push to master → staging
+│   │   └── release.yml         # dispatch → v* tag → production
+│   ├── actions/
+│   │   ├── setup/              # mise tools + bun install (composite)
+│   │   └── check-deploy-config/ # api deploy config gate (composite)
+│   ├── dependabot.yml          # keeps action SHA pins current (7-day cooldown)
+│   ├── actionlint.yaml         # ignores for GitHub features actionlint lacks
+│   └── release.yml             # release-notes categories
 │
 ├── .claude/                    # Claude Code configuration
 │   ├── CLAUDE.md               # Critical rules

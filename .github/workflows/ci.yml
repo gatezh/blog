@@ -6,41 +6,32 @@ on:
   # except the base one.
   pull_request:
     types: [opened, synchronize, reopened]
+  # deploy-staging.yml and release.yml run this whole workflow on the commit
+  # they are about to ship, so nothing deploys without the checks and tests a
+  # pull request runs.
+  workflow_call:
 
 permissions:
   contents: read
 
+# A new push to a pull request cancels its older run. head_ref is empty when
+# another workflow calls this one; run_id (the caller's run) then gives each
+# deploy's CI a group of its own, so one deploy never cancels another's.
 concurrency:
-  group: ci-${{ github.head_ref }}
+  group: ci-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            node_modules
-            services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+          persist-credentials: false
 
-      - name: Cache Bun global cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.bun/install/cache
-          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
-
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - uses: $/.github/actions/setup
 
       # `check` is lint + format + hugo-format + typecheck + build. The
       # production build runs here, which is why there is no separate build
@@ -51,29 +42,13 @@ jobs:
   test-browser:
     name: Test (Browser)
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            node_modules
-            services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+          persist-credentials: false
 
-      - name: Cache Bun global cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.bun/install/cache
-          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
-
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - uses: $/.github/actions/setup
 
       - name: Extract Playwright version
         id: playwright-version

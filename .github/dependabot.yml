@@ -1,0 +1,20 @@
+# Every action in .github/workflows and .github/actions is pinned to a commit
+# SHA (they run next to the Cloudflare deploy token). Dependabot keeps those
+# pins, and the version comment beside each, up to date.
+#
+# There is no `bun` entry: npm dependencies are pinned exactly and upgraded by
+# deliberate decision (.claude/CLAUDE.md).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    # `/` covers .github/workflows only; the composite actions need their own
+    # entry.
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    # The same 7-day gate bunfig.toml's minimumReleaseAge puts on packages: a
+    # release is not proposed until it has been public for a week.
+    cooldown:
+      default-days: 7

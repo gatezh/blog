@@ -28,7 +28,15 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
 - `deploy-staging.yml` — push to `master` (or dispatch) → staging
   (`staging-www.gatezh.com`, `staging-api.gatezh.com`).
 - `release.yml` — manual dispatch → `v*` tag → production. **The only
-  production path**; `action: redeploy` rolls back to an earlier tag.
+  production path**; `action: redeploy` rolls back to an earlier tag, and
+  `wrangler rollback` / the dashboard rolls back instantly.
+- Both run the whole of `ci.yml` (`workflow_call`) before deploying.
+- Shared steps live in composite actions under `.github/actions/` (`setup`,
+  `check-deploy-config`), referenced as `uses: $/...` — GitHub's
+  self-repository syntax, which loads them from the workflow's own commit even
+  when a job has checked out an older tag.
+- Only the Release workflow's tagging job gets `contents: write`; every
+  checkout sets `persist-credentials: false`.
 
 Deployed Worker names are `gatezh-com` and `gatezh-com-email-worker` and do not
 match the directory names. Renaming them (to `gatezh-www-*` / `gatezh-api-*`,
