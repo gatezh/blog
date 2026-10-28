@@ -23,8 +23,9 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Use fewer workers on CI for stability */
-  workers: process.env.CI ? 1 : undefined,
+  /* Two workers on CI; fullyParallel spreads tests across both. Locally
+     Playwright picks half the logical cores. */
+  workers: process.env.CI ? 2 : undefined,
 
   /* Reporter configuration */
   reporter: [["html", { open: "never" }], ["list"]],
