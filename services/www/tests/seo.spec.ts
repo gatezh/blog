@@ -95,7 +95,39 @@ test.describe("sitemap", () => {
       const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
       expect(canonical, `${path} has no canonical`).not.toBeNull();
       expect(new URL(canonical as string).pathname, `${path} canonicalises elsewhere`).toBe(path);
+
+      // Every JSON-LD block must parse, and the site-level entities belong to
+      // the home page alone: a Person or WebSite on every page tells search
+      // engines each page is about the site owner rather than its own topic.
+      const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
+      const types = blocks.map((b) => JSON.parse(b)["@type"]);
+      if (path !== "/") {
+        expect(types, `${path} repeats the home page's entities`).not.toContain("Person");
+        expect(types, `${path} repeats the home page's entities`).not.toContain("WebSite");
+      }
     }
+  });
+});
+
+test.describe("titles and descriptions", () => {
+  // Search results truncate longer titles and descriptions mid-word.
+  for (const path of INDEXABLE_PAGES) {
+    test(`${path} title and description fit a results page`, async ({ page }) => {
+      await page.goto(path);
+      expect((await page.title()).length, "title over 60 characters").toBeLessThanOrEqual(60);
+      const description = await page.locator('meta[name="description"]').getAttribute("content");
+      expect(description, `${path} has no meta description`).toBeTruthy();
+      expect((description as string).length, "description over 160 characters").toBeLessThan(160);
+    });
+  }
+
+  test("the home page title names the role, not just the person", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveTitle(/^Serge Gatezh · Product Engineer/);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      "content",
+      /Product Engineer/,
+    );
   });
 });
 
@@ -205,6 +237,25 @@ test.describe("identity structured data", () => {
     const person = (await jsonLd(page, "/")).find((b) => b["@type"] === "Person");
     expect(person["@id"]).toMatch(PERSON_ID);
     expect(person.image).toMatch(/^https?:\/\//);
+    expect(person.jobTitle).toBe("Product Engineer");
+    expect(person.description).toMatch(/^Serge Gatezh is a product engineer/);
+    // The same spelling as the canonical link: the home URL with its slash.
+    expect(person.url).toMatch(/^https?:\/\/[^/]+\/$/);
+  });
+
+  test("a post is an Article about its own page, under a breadcrumb trail", async ({ page }) => {
+    const path = "/posts/docker-desktop-disk-full-macos/";
+    const blocks = await jsonLd(page, path);
+
+    const article = blocks.find((b) => b["@type"] === "Article");
+    expect(new URL(article.mainEntityOfPage).pathname).toBe(path);
+
+    const crumbs = blocks.find((b) => b["@type"] === "BreadcrumbList");
+    const items = crumbs.itemListElement;
+    expect(items.map((i: { position: number }) => i.position)).toEqual([1, 2, 3]);
+    expect(new URL(items[0].item).pathname).toBe("/");
+    expect(new URL(items[1].item).pathname).toBe("/posts/");
+    expect(new URL(items[2].item).pathname).toBe(path);
   });
 
   test("/about/ is a ProfilePage about that same Person", async ({ page }) => {
@@ -220,6 +271,19 @@ test.describe("identity structured data", () => {
     await page.goto("/");
     for (const host of ["github.com", "linkedin.com"]) {
       await expect(page.locator(`footer a[href*="${host}"]`)).toHaveAttribute("rel", /\bme\b/);
+    }
+  });
+});
+
+test.describe("RSS", () => {
+  test("the home feed lists articles, not site pages", async ({ request }) => {
+    const xml = await (await request.get("/index.xml")).text();
+    const links = [...xml.matchAll(/<item>[\s\S]*?<link>([^<]+)<\/link>/g)].map(
+      (m) => new URL(m[1]).pathname,
+    );
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link, `${link} is not an article`).toMatch(/^\/(posts|ever-learning)\//);
     }
   });
 });

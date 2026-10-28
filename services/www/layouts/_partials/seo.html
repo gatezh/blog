@@ -6,6 +6,10 @@
   - About page: ProfilePage whose mainEntity is the same Person
   - Article pages (posts): Article schema, authored by that Person
   - Other pages: WebPage schema
+  - Every page but the home page and 404: a BreadcrumbList (Home › Section › Page)
+
+  `url` fields use site.Home.Permalink ("https://gatezh.com/"), the spelling
+  the canonical link and the Person @id use, rather than a trimmed BaseURL.
 
   The Person's @id (<home>#person) is shared with every other site that credits
   Serge (uxcringe.com's Article author uses it), so search engines resolve them all
@@ -15,9 +19,11 @@
 {{- $description := .Description | default site.Params.description -}}
 {{- $author := site.Params.author -}}
 
-{{- $personRef := dict "@type" "Person" "@id" (print site.Home.Permalink "#person") "name" $author "url" (site.BaseURL | strings.TrimRight "/") -}}
+{{- $personRef := dict "@type" "Person" "@id" (print site.Home.Permalink "#person") "name" $author "url" site.Home.Permalink -}}
 {{- $person := merge $personRef (dict
-	"jobTitle" "Full Stack Developer"
+	"jobTitle" site.Params.jobTitle
+	"description" site.Params.bio
+	"knowsAbout" (slice "Product engineering" "TypeScript" "React" "Cloudflare Workers" "Edge computing" "Application security" "AI-assisted software development" "User experience design")
 	"address" (dict
 	"@type" "PostalAddress"
 	"addressLocality" "Calgary"
@@ -44,7 +50,7 @@
 		"@context" "https://schema.org"
 		"@type" "WebSite"
 		"name" site.Title
-		"url" (site.BaseURL | strings.TrimRight "/")
+		"url" site.Home.Permalink
 		"description" $description
 	-}}
 <script type="application/ld+json">
@@ -79,8 +85,14 @@
 		"author" $authorPerson
 		"description" $articleDescription
 		"url" .Permalink
+		"mainEntityOfPage" .Permalink
 		"publisher" $authorPerson
 	-}}
+	{{- with .GetTerms "tags" }}
+		{{- $keywords := slice }}
+		{{- range . }}{{ $keywords = $keywords | append .LinkTitle }}{{ end }}
+		{{- $article = merge $article (dict "keywords" $keywords) }}
+	{{- end }}
 <script type="application/ld+json">
 {{- $article | jsonify (dict "indent" "  ") | safeJS -}}
 </script>
@@ -96,5 +108,22 @@
 	-}}
 <script type="application/ld+json">
 {{- $page | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+{{- end }}
+
+{{- if not (or .IsHome (eq .Kind "404")) }}
+	{{- $items := slice }}
+	{{- range $i, $p := .Ancestors.Reverse | append . }}
+		{{- $name := $p.LinkTitle }}
+		{{- if $p.IsHome }}{{ $name = site.Title }}{{ end }}
+		{{- $items = $items | append (dict "@type" "ListItem" "position" (add $i 1) "name" $name "item" $p.Permalink) }}
+	{{- end }}
+	{{- $breadcrumbs := dict
+		"@context" "https://schema.org"
+		"@type" "BreadcrumbList"
+		"itemListElement" $items
+	-}}
+<script type="application/ld+json">
+{{- $breadcrumbs | jsonify (dict "indent" "  ") | safeJS -}}
 </script>
 {{- end }}

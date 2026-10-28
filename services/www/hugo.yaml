@@ -159,9 +159,25 @@ menu:
       weight: 40
 
 params:
-  description: "Personal blog of Serge Gatezh, a Full Stack Developer in Calgary. Posts about building clear, dependable web products, security, infrastructure, and software engineering."
+  # Identity copy. One positioning statement is the source for every surface
+  # (this site, LinkedIn, GitHub, talk bios); these are its gatezh.com variants.
+  # Change the wording there first, then here — never only here.
+  #
+  # Home <title>: name first, then the role a recruiter searches for. Keep it
+  # under 60 characters (tests/seo.spec.ts) so results pages don't truncate it.
+  homeTitle: "Serge Gatezh · Product Engineer in Calgary"
+  # Meta description and WebSite description, under 160 characters.
+  description: "Serge Gatezh, product engineer in Calgary. Simple, secure software, shipped end to end on zero-cost edge infrastructure."
+  # Person.description in the JSON-LD: the positioning sentence, verbatim.
+  bio: "Serge Gatezh is a product engineer who turns messy business processes into simple, secure software, shipped end to end on zero-cost edge infrastructure using security-first AI workflows."
+  jobTitle: "Product Engineer"
   author: "Serge Gatezh"
-  keywords: "Serge Gatezh, full stack developer, web development, React, TypeScript, security, Calgary"
+  # Searchable nouns first (role, stack), as the per-surface headlines do.
+  keywords: "Serge Gatezh, product engineer, Calgary, TypeScript, React, Cloudflare Workers, edge infrastructure, application security, security-first AI workflows, UX"
+
+  # Sections whose pages are articles. The home RSS feed lists only these, so
+  # /about/, /contact/ and /early-projects/ don't reach feed readers as posts.
+  mainSections: ["posts", "ever-learning"]
 
   comments: true
 
@@ -179,7 +195,7 @@ params:
   profileMode:
     enabled: true
     title: "Serge Gatezh"
-    subtitle: "Full Stack Developer"
+    subtitle: "Product Engineer"
 
   socialIcons:
     - name: "GitHub"

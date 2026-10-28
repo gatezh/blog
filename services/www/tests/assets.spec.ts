@@ -165,6 +165,19 @@ test.describe("security headers", () => {
     }
   });
 
+  test("fingerprinted assets are cached as immutable", async ({ request }) => {
+    const html = await (await request.get("/")).text();
+    for (const pattern of [/\/css\/[A-Za-z0-9._-]+\.css/, /\/js\/[A-Za-z0-9._-]+\.js/]) {
+      const href = pattern.exec(html)?.[0];
+      expect(href, `no ${pattern} asset on the homepage`).toBeTruthy();
+      const cacheControl = (await request.get(href as string)).headers()["cache-control"];
+      expect(cacheControl, href).toContain("immutable");
+      expect(cacheControl, href).toContain("max-age=31536000");
+    }
+    // The HTML itself must keep revalidating, or a deploy would go unseen.
+    expect((await request.get("/")).headers()["cache-control"] ?? "").not.toContain("immutable");
+  });
+
   // The policy is only useful if the site still works under it. This proves
   // the first hop: every tag the HTML loads, and what the vendor snippets
   // request directly, is allowed. Third parties are stubbed, so requests a
