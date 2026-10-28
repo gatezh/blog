@@ -10,7 +10,7 @@ Uses `ghcr.io/gatezh/devcontainers/claude-code-sandbox:latest` which includes:
 - **Tools**: Bun, Hugo (via mise from `.mise.toml`), Git, GitHub CLI
 - **AI**: Claude Code CLI, rtk, ralphex (no agent-browser — default variant only)
 - **Testing**: system Chromium at `/usr/bin/chromium`
-- **Shell**: Fish with Starship prompt, Git Delta
+- **Shell**: zsh with Starship prompt, Git Delta
 - **Firewall**: iptables/ipset packages for network sandboxing
 
 ## Image Freshness
@@ -28,18 +28,16 @@ Uses `ghcr.io/gatezh/devcontainers/claude-code-sandbox:latest` which includes:
 
 ## Network Sandbox
 
-This container runs with a **default-deny firewall** (`init-firewall.sh`). Only whitelisted domains are accessible:
+This container runs with a **default-deny firewall**, baked into the image at
+`/usr/local/sbin/init-firewall` and run by `postStartCommand`. It allows GitHub,
+the npm registry, the Anthropic API, the VS Code marketplace and the MDN MCP
+server. [`allowed-domains.txt`](allowed-domains.txt) adds this project's extras,
+one domain per line; edits apply on the next container start.
 
-- npm registry
-- GitHub
-- Claude API
-- OpenAI API
-- VS Code Marketplace
-- DNS and SSH connections
-
-The firewall script is bind-mounted from the project and runs via `postStartCommand`. The container requires `NET_ADMIN` and `NET_RAW` capabilities.
-
-See `init-firewall.sh` for the full allowlist.
+The script is root-owned in the image, and `node` may run only it and
+`chown-volumes` with sudo, so an agent running with permission prompts skipped
+cannot turn the firewall off. The container requires `NET_ADMIN` and `NET_RAW`
+capabilities.
 
 Setup runs in `postCreateCommand`, **before** the firewall comes up in
 `postStartCommand` — so `mise install`, `bun install`, and plugin installation
@@ -72,21 +70,24 @@ bun run build        # Build all services
 
 ## Persistence
 
-Named Docker volumes (prefixed `gatezh-com-`) persist across container rebuilds
-and are shared with the default variant:
+Named Docker volumes persist across container rebuilds. The sandbox shares none
+with the default variant, so you sign in to each separately:
 
 - **node_modules** - isolated per workspace directory (root, services/www, services/api)
-- **Claude config** - auth tokens and settings preserved
-- **Fish data** - shell history and completions retained
+- **Claude config** (`~/.claude`)
+- **gh CLI** (`~/.config/gh`) and **cf CLI** (`~/.config/cloudflare`) logins.
+  `cf` needs `api.cloudflare.com` and `dash.cloudflare.com` uncommented in
+  `allowed-domains.txt`.
+- **zsh history** (`/commandhistory`)
 
 ## Important Notes
 
-- **Non-root user**: Runs as `node` (not root). Firewall setup uses passwordless sudo.
+- **Non-root user**: Runs as `node` (not root). sudo is limited to `init-firewall` and `chown-volumes`.
 - **Docker not available**: `docker` and `docker compose` are not accessible from inside this sandbox.
 
 ## Customization
 
 - Edit `.mise.toml` to update tool versions (bun, hugo)
 - Edit `devcontainer.json` to modify VS Code extensions or settings
-- Edit `init-firewall.sh` to modify the network allowlist
+- Edit `allowed-domains.txt` to modify the network allowlist
 - Edit `../init-plugins.sh` to change the marketplace/plugin list (shared with the default variant)

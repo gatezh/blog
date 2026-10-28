@@ -1,4 +1,4 @@
-# Project name — must match the default variant's project name with -sandbox suffix
+# Project name — the default variant's, with a -sandbox suffix
 name: gatezh-com-sandbox
 services:
   devcontainer:
