@@ -47,13 +47,14 @@ This is a Bun monorepo for gatezh.com:
 │
 ├── .claude/                    # Claude Code configuration
 │   ├── CLAUDE.md               # Critical rules
-│   ├── settings.json           # Permissions
+│   ├── settings.json           # Permissions, plugin marketplaces (dev@gatezh, TS 7 LSP)
+│   ├── skills/                 # Project skills (stacked PRs, upstream devcontainer sync)
 │   └── rules/                  # Modular topic rules
 ├── .devcontainer/              # Dev container configs (pre-built GHCR images)
 │   ├── devcontainer.json       # Default devcontainer ("Local Development")
 │   ├── docker-compose.yml      # Default compose (image only; pull via initializeCommand)
-│   ├── init-plugins.sh         # Claude Code marketplaces, plugins, rtk (postCreateCommand)
-│   └── claude-sandbox/         # Sandbox variant (network-restricted)
+│   ├── init-plugins.sh         # Claude Code marketplaces + plugins (run once after sign-in)
+│   └── claude-sandbox/         # Sandbox variant (image firewall + allowed-domains.txt)
 ├── docs/                       # Documentation and ADRs
 ├── .mise.toml                  # Tool versions (bun, hugo, actionlint)
 ├── oxlint.json                 # OXC linter configuration
