@@ -8,32 +8,47 @@
 
 set -euo pipefail
 
+# Claude Code's config dir: the devcontainers set CLAUDE_CONFIG_DIR to the
+# ~/.claude volume, which then also holds .claude.json.
+CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+mkdir -p "$CLAUDE_DIR"
+
+# Rewrite a JSON file through a jq filter. The temp file sits beside the target,
+# on the same volume, so the mv is an atomic rename; on failure the file is untouched.
+jq_in_place() {
+    local file=$1 filter=$2 tmp
+    tmp=$(mktemp "$file.XXXXXX") || return 1
+    if jq "$filter" "$file" > "$tmp" && mv "$tmp" "$file"; then
+        return 0
+    fi
+    rm -f "$tmp"
+    return 1
+}
+
 # Mark onboarding complete so claude CLI doesn't hang on interactive prompts
-if [ -f "$HOME/.claude/.claude.json" ]; then
-    jq '.hasCompletedOnboarding = true' "$HOME/.claude/.claude.json" > /tmp/.claude.json \
-        && mv /tmp/.claude.json "$HOME/.claude/.claude.json"
+CLAUDE_JSON="$CLAUDE_DIR/.claude.json"
+if [ -f "$CLAUDE_JSON" ]; then
+    jq_in_place "$CLAUDE_JSON" '.hasCompletedOnboarding = true' \
+        || echo "⚠ Failed to mark onboarding complete in $CLAUDE_JSON" >&2
 else
-    mkdir -p "$HOME/.claude"
-    echo '{"hasCompletedOnboarding":true}' > "$HOME/.claude/.claude.json"
+    echo '{"hasCompletedOnboarding":true}' > "$CLAUDE_JSON"
 fi
 
 # ── Claude Code session retention ───────────────────────────────────────────
 # Session transcripts live in ~/.claude/projects, which is a named volume — so a
 # fresh volume starts on the 30-day default and silently drops older history.
 # Seed a longer retention, but only when unset, so a deliberate local value wins.
-SETTINGS="$HOME/.claude/settings.json"
+SETTINGS="$CLAUDE_DIR/settings.json"
 if [ -f "$SETTINGS" ]; then
     current=$(jq -r '.cleanupPeriodDays // "unset"' "$SETTINGS" 2>/dev/null || echo unset)
     if [ "$current" = "unset" ]; then
-        if jq '.cleanupPeriodDays = 365' "$SETTINGS" > /tmp/.claude-settings.json \
-            && mv /tmp/.claude-settings.json "$SETTINGS"; then
+        if jq_in_place "$SETTINGS" '.cleanupPeriodDays = 365'; then
             echo "✔ Session retention seeded: cleanupPeriodDays=365"
         else
             echo "⚠ Failed to seed cleanupPeriodDays" >&2
         fi
     fi
 else
-    mkdir -p "$HOME/.claude"
     echo '{"cleanupPeriodDays":365}' > "$SETTINGS"
     echo "✔ Session retention seeded: cleanupPeriodDays=365"
 fi
@@ -122,7 +137,7 @@ ENABLED_PLUGINS=(
 
 for plugin in "${ENABLED_PLUGINS[@]}"; do
     if ! jq -e --arg id "$plugin" '.enabledPlugins | has($id)' \
-        "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json" &>/dev/null; then
+        "$SETTINGS" &>/dev/null; then
         if claude plugin enable "$plugin" 2>&1; then
             echo "✔ Enabled: $plugin"
         else
