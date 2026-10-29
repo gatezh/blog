@@ -7,7 +7,16 @@ description: >-
 runs:
   using: composite
   steps:
+    # mise itself is pinned too: without `version` the action fetches the
+    # newest mise, in jobs that hold the Cloudflare deploy token. `sha256` is
+    # checked against the extracted `mise` binary, not the archive, so it is
+    # the SHASUMS256.txt entry for `mise-v<version>-linux-x64` (the raw
+    # binary) in that release. Every job runs on ubuntu-24.04 x64; another
+    # runner OS or architecture needs its own checksum. Bump both together.
     - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      with:
+        version: 2026.10.17
+        sha256: fe6dd17e68e09682b31d2e7bb7bb755d22636ac1af5d94621e300f2ca9e9fe8a
 
     # Bun's download cache, not node_modules (actions/cache advises against
     # caching node_modules). The install therefore always runs and links from
