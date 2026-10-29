@@ -88,11 +88,7 @@
 		"mainEntityOfPage" .Permalink
 		"publisher" $authorPerson
 	-}}
-	{{- with .GetTerms "tags" }}
-		{{- $keywords := slice }}
-		{{- range . }}{{ $keywords = $keywords | append .LinkTitle }}{{ end }}
-		{{- $article = merge $article (dict "keywords" $keywords) }}
-	{{- end }}
+	{{- with .Keywords }}{{ $article = merge $article (dict "keywords" .) }}{{ end }}
 <script type="application/ld+json">
 {{- $article | jsonify (dict "indent" "  ") | safeJS -}}
 </script>

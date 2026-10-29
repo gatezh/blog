@@ -37,12 +37,13 @@
 	<meta name="description" content="{{ . }}">
 {{ end }}
 
-{{/* Keywords. Site-level is a comma-separated string; per-page is a list, because
-     hugo.yaml indexes `keywords` for related-post matching and an index treats a
-     string as ONE term. Printing a list directly would render Go's slice syntax
-     ("[a b c]") into the tag, so join it back into the comma-separated form the
-     meta tag expects. */}}
-{{ $keywords := .Params.keywords | default site.Params.keywords }}
+{{/* Keywords. Site-level is a comma-separated string; per-page is a list (read
+     through .Keywords, Hugo's typed accessor for `keywords` front matter),
+     because hugo.yaml indexes `keywords` for related-post matching and an index
+     treats a string as ONE term. Printing a list directly would render Go's
+     slice syntax ("[a b c]") into the tag, so join it back into the
+     comma-separated form the meta tag expects. */}}
+{{ $keywords := .Keywords | default site.Params.keywords }}
 {{ with $keywords }}<meta name="keywords" content="{{ if reflect.IsSlice . }}{{ delimit . ", " }}{{ else }}{{ . }}{{ end }}">{{ end }}
 
 {{/* Open Graph */}}
@@ -57,9 +58,9 @@
 	{{ with .Date }}<meta property="article:published_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
 	{{ with .Lastmod }}<meta property="article:modified_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
 	{{ with site.Params.author }}<meta property="article:author" content="{{ . }}">{{ end }}
-	{{ with .Section }}<meta property="article:section" content="{{ (site.GetPage .).LinkTitle }}">{{ end }}
-	{{- range first 6 (.GetTerms "tags") }}
-		<meta property="article:tag" content="{{ .LinkTitle }}">
+	{{ with .FirstSection }}<meta property="article:section" content="{{ .LinkTitle }}">{{ end }}
+	{{- range .Keywords }}
+		<meta property="article:tag" content="{{ . }}">
 	{{- end }}
 {{- end }}
 
