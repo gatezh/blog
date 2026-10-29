@@ -1,9 +1,10 @@
 {{- /* Hugo's embedded rss.xml with one change: the home feed lists only
-       params.mainSections (posts, ever-learning), so /about/, /contact/ and
-       /early-projects/ don't reach feed readers as articles. The author-email
-       branches are dropped; this site sets no author email.
+       site.MainSections (posts, ever-learning; set in hugo.yaml), so the
+       standalone pages /about/ and /early-projects/ don't reach feed readers
+       as articles. The author-email branches are dropped; this site sets no
+       author email.
        https://gohugo.io/templates/rss/ */ -}}
-{{- $pages := where site.RegularPages "Section" "in" site.Params.mainSections }}
+{{- $pages := where site.RegularPages "Section" "in" site.MainSections }}
 {{- $limit := site.Config.Services.RSS.Limit }}
 {{- if ge $limit 1 }}
 	{{- $pages = $pages | first $limit }}

@@ -25,5 +25,4 @@
 
 > {{ site.Params.description }}
 {{ with site.GetPage "/about" }}{{ template "page" . }}{{ end }}
-{{- range where $listable "Section" "posts" }}{{ template "page" . }}{{ end }}
-{{- range where $listable "Section" "ever-learning" }}{{ template "page" . }}{{ end }}
+{{- range site.MainSections }}{{ range where $listable "Section" . }}{{ template "page" . }}{{ end }}{{ end }}
