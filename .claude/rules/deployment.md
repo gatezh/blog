@@ -30,6 +30,11 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
 - `release.yml` — manual dispatch → `v*` tag → production. **The only
   production path**; `action: redeploy` rolls back to an earlier tag, and
   `wrangler rollback` / the dashboard rolls back instantly.
+- Both deploy in two phases: `wrangler versions upload` for www and api, then
+  `promote` switches both only when both uploads succeeded, and `rollback`
+  restores the previous versions if promote fails. A failed verify does not
+  roll back; it prints the command. Routes are not
+  applied by a version upload (docs/deployment.md, "Upload, then promote").
 - Both run the whole of `ci.yml` (`workflow_call`) before deploying.
 - Shared steps live in composite actions under `.github/actions/` (`setup`,
   `check-deploy-config`), referenced as `uses: $/...` — GitHub's
