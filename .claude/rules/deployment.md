@@ -10,21 +10,20 @@ description: Build commands, deployment workflow, and required GitHub secrets/va
 - `bun run dev:api` - Run the API Worker locally
 - `bun run build` - Build Hugo site
 - `bun run build:api` - Build the API Worker (dry-run)
-- `bun run deploy` - Deploy both web and worker
 
 ## Web App (services/www)
 - `bun run dev` - Development server with drafts
 - `bun run build` - Production build
-- `bun run deploy` - Deploy to Cloudflare Workers
 
 ## API Worker (services/api)
 - `bun run dev` - Run worker locally (reads the repo-root `.env.local`)
-- `bun run deploy` - Deploy to Cloudflare Workers
 
 # Deployment
 
-Deployment is handled via GitHub Actions. See `docs/deployment.md` for the full
-setup and the planned Worker rename.
+Deployment is handled via GitHub Actions only. There is deliberately no local
+`deploy` script: a local build reads `.env.local`, whose localhost `baseURL` and
+always-pass Turnstile test keys must never reach a deployed Worker. See
+`docs/deployment.md` for the full setup and the planned Worker rename.
 
 - `deploy-staging.yml` — push to `master` (or dispatch) → staging
   (`staging-www.gatezh.com`, `staging-api.gatezh.com`).
