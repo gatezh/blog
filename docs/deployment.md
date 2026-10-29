@@ -43,8 +43,13 @@ first-class action rather than a revert commit. **Immutable releases** are on
 (Settings → General → Releases), so a published release's tag cannot be moved
 or deleted, and a redeploy ships what was released.
 
-Both deploy workflows queue rather than cancel (`concurrency.queue: max`): a
-cancelled deploy can leave `www` and `api` on different commits.
+Neither deploy workflow cancels a running deploy (`cancel-in-progress: false`):
+a cancelled deploy can leave `www` and `api` on different commits. GitHub keeps
+one pending run per group and replaces it when a newer one arrives. Staging
+relies on that: a pending run has not started any job, and the newer push
+already contains its commit. Release sets `concurrency.queue: max` instead, so
+every dispatch runs in turn, because each one names a release or a tag on
+purpose.
 
 Only the Release workflow's tagging job holds a token that can write to the
 repository; every job that runs `bun install`, the build or a deploy action has
