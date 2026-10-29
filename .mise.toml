@@ -7,7 +7,7 @@ hugo-extended = "0.164.0"
 # Go is required only to install gotmplfmt below (Go-installed Hugo
 # template formatter — gohugoio/gotmplfmt has no linux-arm64 binary
 # release, so we build from source).
-go = "1.26"
+go = "1.26.10"
 "go:github.com/gohugoio/gotmplfmt" = "v0.4.1"
 # Lints .github/workflows (`bun run lint:actions`, part of `bun run check`).
 # The upstream tool by its aqua backend: mise's `actionlint` shorthand is
