@@ -1,6 +1,6 @@
 ---
 name: sandbox-fetch-docs
-description: Use when needing to verify implementation against official library docs, check API contracts, or look up how a dependency works — especially after bugs caused by wrong assumptions about a library's API. Triggers on "check the docs", "verify against docs", "official documentation", "how does X API work", "canonical implementation".
+description: Use only in the firewalled claude-code-sandbox devcontainer (WebFetch to vendor doc sites fails there), when needing to verify implementation against official library docs, check API contracts, or look up how a dependency works — especially after bugs caused by wrong assumptions about a library's API. Triggers on "check the docs", "verify against docs", "official documentation", "how does X API work", "canonical implementation".
 metadata:
   author: Serge Gatezh
   url: https://github.com/gatezh
@@ -12,6 +12,8 @@ metadata:
 ## Overview
 
 This sandbox only has network access to GitHub and npm registry. All other domains (vendor doc sites, CDNs, search engines) are firewalled. Use these approaches in priority order — do NOT attempt blocked approaches.
+
+Not in the sandbox? The default devcontainer has no firewall: if `curl -sI --max-time 5 <docs URL>` gets a response, use WebFetch on the vendor's docs instead of this skill.
 
 ## Approach Priority
 
