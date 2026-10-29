@@ -4,7 +4,8 @@
   Outputs schema.org structured data as JSON-LD:
   - Homepage: Person + WebSite schemas
   - About page: ProfilePage whose mainEntity is the same Person
-  - Article pages (posts): Article schema, authored by that Person
+  - Article pages (posts): Article schema, authored by that Person, whose
+    `image` is the same file as og:image (share-image.html)
   - Other pages: WebPage schema
   - Every page but the home page and 404: a BreadcrumbList (Home › Section › Page)
 
@@ -89,6 +90,9 @@
 		"publisher" $authorPerson
 	-}}
 	{{- with .Keywords }}{{ $article = merge $article (dict "keywords" .) }}{{ end }}
+	{{- with partial "share-image.html" . }}
+		{{- $article = merge $article (dict "image" (dict "@type" "ImageObject" "url" .url "width" .width "height" .height)) }}
+	{{- end }}
 <script type="application/ld+json">
 {{- $article | jsonify (dict "indent" "  ") | safeJS -}}
 </script>
