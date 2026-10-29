@@ -111,15 +111,44 @@ test.describe("sitemap", () => {
 
 test.describe("titles and descriptions", () => {
   // Search results truncate longer titles and descriptions mid-word.
+
+  // Titles: the structural pages only. A post's title is its headline: the
+  // <h1>, the Article's `headline` and the words people search for. Cutting it
+  // to fit a results page would trade the post's own wording for a snippet
+  // length, so posts are exempt.
   for (const path of INDEXABLE_PAGES) {
-    test(`${path} title and description fit a results page`, async ({ page }) => {
+    test(`${path} title fits a results page`, async ({ page }) => {
       await page.goto(path);
-      expect((await page.title()).length, "title over 60 characters").toBeLessThanOrEqual(60);
-      const description = await page.locator('meta[name="description"]').getAttribute("content");
-      expect(description, `${path} has no meta description`).toBeTruthy();
-      expect((description as string).length, "description over 160 characters").toBeLessThan(160);
+      expect(
+        (await page.title()).length,
+        `${path} title is over 60 characters`,
+      ).toBeLessThanOrEqual(60);
     });
   }
+
+  // Descriptions: every page the sitemap lists, under 160 characters
+  // (.claude/rules/seo.md). Posts are included: they write their own, so they
+  // are where the limit gets broken.
+  test("every listed page has a meta description under 160 characters", async ({
+    page,
+    request,
+  }) => {
+    const paths = sitemapPaths(await (await request.get("/sitemap.xml")).text());
+    expect(paths.length).toBeGreaterThan(0);
+
+    const offenders: string[] = [];
+    for (const path of paths) {
+      await page.goto(path);
+      const description = await page.locator('meta[name="description"]').getAttribute("content");
+      if (!description) {
+        offenders.push(`${path} has no meta description`);
+      } else if (description.length >= 160) {
+        offenders.push(`${path} description is ${description.length} characters`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
 
   test("the home page title names the role, not just the person", async ({ page }) => {
     await page.goto("/");
