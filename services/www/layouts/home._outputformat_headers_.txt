@@ -50,7 +50,9 @@
        Same one-line-printf idiom as _redirects and llms.txt: this format is
        isPlainText, so the template IS the output, and gotmplfmt indents the
        body of a block with a literal tab. A header line has to be indented and
-       a path line must not be. Limits: 100 rules, 2,000 characters per line. */ -}}
+       a path line must not be. Limits: 100 rules, 2,000 characters per line.
+       Wrangler skips a longer line with only a warning, which would silently
+       drop the CSP, so the build fails instead. */ -}}
 {{- $script := slice "'self'" -}}
 {{- $img := slice "'self'" "data:" -}}
 {{- $connect := slice "'self'" -}}
@@ -89,13 +91,15 @@
 {{- with $frame }}{{ $csp = $csp | append (printf "frame-src %s" (delimit . " ")) }}{{ end -}}
 {{- with $worker }}{{ $csp = $csp | append (printf "worker-src %s" (delimit . " ")) }}{{ end -}}
 {{- $csp = $csp | append (slice "object-src 'none'" "base-uri 'none'" "form-action 'self'" "frame-ancestors 'none'") -}}
+{{- $cspLine := printf "  Content-Security-Policy: %s" (delimit $csp "; ") -}}
+{{- if gt (len $cspLine) 2000 }}{{ errorf "_headers: the Content-Security-Policy line is %d characters; Workers static assets skips any line over 2,000, which would drop the policy" (len $cspLine) }}{{ end -}}
 {{- printf "/*\n" -}}
 {{- printf "  X-Content-Type-Options: nosniff\n" -}}
 {{- printf "  Referrer-Policy: strict-origin-when-cross-origin\n" -}}
 {{- printf "  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()\n" -}}
 {{- /* Superseded by frame-ancestors in current browsers; kept for older ones. */ -}}
 {{- printf "  X-Frame-Options: DENY\n" -}}
-{{- printf "  Content-Security-Policy: %s\n" (delimit $csp "; ") -}}
+{{- printf "%s\n" $cspLine -}}
 {{- if not hugo.IsProduction }}{{ printf "  X-Robots-Tag: noindex\n" }}{{ end -}}
 {{- /* Agent-facing text: the Markdown mirror of every page and the llms*.txt
        indexes. Crawlable, so an agent can fetch them, but never indexed —
