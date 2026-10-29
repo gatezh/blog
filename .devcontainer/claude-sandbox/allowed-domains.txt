@@ -10,9 +10,6 @@
 # pypi.org
 # files.pythonhosted.org
 
-# Carried over from this project's former init-firewall.sh: the domains it
-# allowed beyond the image defaults (Claude Code telemetry, OpenAI sign-in and API).
-statsig.anthropic.com
-auth.openai.com
-api.openai.com
-chatgpt.com
+# Playwright Turnstile test (services/www/tests/assets.spec.ts): loads the real
+# api.js and waits for a real token, so `bun run test` needs Cloudflare's challenge host
+challenges.cloudflare.com
