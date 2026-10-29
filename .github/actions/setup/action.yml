@@ -1,0 +1,36 @@
+name: Set up Bun and dependencies
+description: >-
+  Installs the tools pinned in .mise.toml (Bun, Hugo) and the workspace's
+  dependencies from bun.lock. The calling job checks the repository out first,
+  so this file exists.
+
+runs:
+  using: composite
+  steps:
+    # mise itself is pinned too: without `version` the action fetches the
+    # newest mise, in jobs that hold the Cloudflare deploy token. `sha256` is
+    # checked against the extracted `mise` binary, not the archive, so it is
+    # the SHASUMS256.txt entry for `mise-v<version>-linux-x64` (the raw
+    # binary) in that release. Every job runs on ubuntu-24.04 x64; another
+    # runner OS or architecture needs its own checksum. Bump both together.
+    - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      with:
+        version: 2026.10.17
+        sha256: fe6dd17e68e09682b31d2e7bb7bb755d22636ac1af5d94621e300f2ca9e9fe8a
+
+    # Bun's download cache, not node_modules (actions/cache advises against
+    # caching node_modules). The install therefore always runs and links from
+    # this cache, so what a job builds is always exactly what bun.lock says.
+    - name: Cache Bun's package cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ runner.os }}-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+        restore-keys: |
+          bun-${{ runner.os }}-
+
+    # `bun ci` is Bun's documented equivalent of `bun install
+    # --frozen-lockfile`: it fails if package.json and bun.lock disagree.
+    - name: Install dependencies
+      shell: bash
+      run: bun ci

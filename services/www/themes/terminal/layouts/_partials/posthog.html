@@ -1,0 +1,14 @@
+{{/* PostHog product analytics, alongside Google Analytics. The snippet itself
+     is js/posthog.ts; the project token reaches it as data-posthog-key.
+
+     Emitted only when HUGO_PARAMS_POSTHOGKEY is set at build time. That
+     variable exists on the production GitHub Environment only, so staging and
+     local builds ship no analytics. The key is a public project token — it is
+     in every page's HTML by design — which is why it is a variable, not a
+     secret. */}}
+{{- with site.Params.posthogKey }}
+	{{- $key := . }}
+	{{- with partial "js.html" "js/posthog.ts" }}
+		<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" async data-posthog-key="{{ $key }}"></script>
+	{{- end }}
+{{- end }}

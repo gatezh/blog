@@ -1,0 +1,60 @@
+name: Check deploy configuration
+description: >-
+  Stops an api deploy before anything changes when the GitHub Environment is
+  missing a required value, and reports which optional features it configures.
+  Shared by staging and production so both are held to the same rules.
+
+# The caller passes the environment's variables, and for each secret only
+# whether it is set (`HAS_*`, "true"/"false"), so no secret value reaches this
+# script.
+inputs:
+  environment:
+    description: The GitHub Environment being deployed, for messages
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check deploy configuration
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+      run: |
+        # Without ALLOWED_ORIGIN the Worker answers every request with a CORS
+        # failure; everything else degrades one feature at a time.
+        if [ -z "${ALLOWED_ORIGIN}" ]; then
+          echo "::error title=ALLOWED_ORIGIN not set::Set ALLOWED_ORIGIN on the ${ENVIRONMENT} environment."
+          exit 1
+        fi
+
+        # Secrets only ever accumulate on a Worker: a deploy uploads the ones
+        # GitHub holds and never deletes the rest. So "not in GitHub" means
+        # "whatever the Worker already holds, possibly nothing" — removing a
+        # credential takes `wrangler secret delete` (docs/deployment.md).
+        {
+          echo "## Feature configuration (${ENVIRONMENT})"
+          echo ""
+          echo "| Secret | In GitHub |"
+          echo "|---|---|"
+          for name in RESEND_API_KEY TO_EMAIL FROM_EMAIL TURNSTILE_SECRET_KEY; do
+            has="HAS_${name}"
+            if [ "${!has}" = "true" ]; then state="yes"; else state="**no** — the Worker keeps any earlier value"; fi
+            echo "| \`${name}\` | ${state} |"
+          done
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        if [ "${HAS_RESEND_API_KEY}" != "true" ] || [ "${HAS_TO_EMAIL}" != "true" ] || [ "${HAS_FROM_EMAIL}" != "true" ]; then
+          echo "::warning title=Contact form not fully configured::Set RESEND_API_KEY, TO_EMAIL and FROM_EMAIL (all secrets) on the ${ENVIRONMENT} environment. A Worker holding none of them answers POST / with 503."
+        fi
+
+        # Half-configured Turnstile is worse than none: the widget renders and
+        # then every submission is rejected, or accepted unverified.
+        if [ "${HAS_TURNSTILE_SECRET_KEY}" = "true" ] && [ -z "${HUGO_PARAMS_TURNSTILESITEKEY}" ]; then
+          echo "::warning title=Bot gate half-configured::TURNSTILE_SECRET_KEY is set but HUGO_PARAMS_TURNSTILESITEKEY is not. Set both or neither."
+        elif [ "${HAS_TURNSTILE_SECRET_KEY}" != "true" ] && [ -n "${HUGO_PARAMS_TURNSTILESITEKEY}" ]; then
+          echo "::warning title=Bot gate half-configured::HUGO_PARAMS_TURNSTILESITEKEY is set but TURNSTILE_SECRET_KEY is not in GitHub. Set both or neither."
+        fi
+
+        if [ -z "${HUGO_PARAMS_APIURL}" ]; then
+          echo "::warning title=HUGO_PARAMS_APIURL not set::The contact form has no Worker URL to POST to. Set HUGO_PARAMS_APIURL on the ${ENVIRONMENT} environment."
+        fi

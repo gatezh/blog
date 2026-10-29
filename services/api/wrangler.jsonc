@@ -6,7 +6,9 @@
   // happens as the planned rename in docs/deployment.md — not here.
   "name": "gatezh-com-email-worker",
   "main": "src/index.ts",
-  "compatibility_date": "2025-01-03",
+  // Kept equal to services/www's, and bumped together with it and the wrangler
+  // catalog pin — see the note there.
+  "compatibility_date": "2026-07-29",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": false,
@@ -21,7 +23,8 @@
   // CLI state on every deploy. Local dev reads the repo-root `.env.local`
   // (see services/api/package.json).
   //
-  // Secrets (passed via wrangler-action `secrets:`, only when set):
+  // Secrets (uploaded with the code via `wrangler deploy --secrets-file`, only
+  // those set; a deploy never deletes one):
   // - RESEND_API_KEY, TURNSTILE_SECRET_KEY
   // - TO_EMAIL, FROM_EMAIL — secrets rather than vars because Actions logs of
   //   this public repo are world-readable, and a var's value is printed there.

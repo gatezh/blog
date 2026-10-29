@@ -66,6 +66,37 @@ index coverage looks wrong.
 
 ---
 
+### AI crawlers: allowed
+
+The site is built to be read by AI crawlers and agents — `robots.txt` allows
+everyone, and `llms.txt`, `llms-full.txt` and a Markdown mirror of every page
+exist for them — so the zone must not block them. Decided 2026-10-28.
+
+| Bot setting (Security → Bots)                           | Value                                 |
+| ------------------------------------------------------- | ------------------------------------- |
+| Block AI bots (`ai_bots_protection`)                    | `disabled`                            |
+| AI Labyrinth (`crawler_protection`)                     | `disabled`                            |
+| Cloudflare-managed robots.txt (`is_robots_txt_managed`) | off — Hugo's robots.txt is the policy |
+
+`robots.txt` (Hugo's `layouts/robots.txt`) says so explicitly with
+[Content Signals](https://contentsignals.org/):
+`Content-Signal: search=yes, ai-input=yes, ai-train=yes`. Training is allowed
+on purpose: it is how a model comes to know who Serge is and what he does
+without being asked, which is the point of a personal-brand site. Search and
+AI-assistant access only help once someone is already asking.
+
+Until that date `ai_bots_protection` was `block`, and ClaudeBot, GPTBot and the
+rest got `403` while `robots.txt` invited them. Check or change it with `cf`:
+
+```bash
+cf bot-management get --zone gatezh.com
+cf bot-management update --zone gatezh.com --ai-bots-protection disabled
+```
+
+The release verify job requests the home page as several AI crawlers and fails
+on anything but `200`, so a zone change that blocks them again shows up on the
+next release.
+
 ## 2. Google Search Console
 
 Only a human with property access can do these.
@@ -97,7 +128,7 @@ Recorded so a future reader does not "discover" and undo any of it.
 | Every sitemap URL is reachable and indexable              | —                                                                            | `tests/seo.spec.ts`    |
 | No `/page/1/` pagination alias stubs are emitted          | `hugo.yaml` → `pagination.disableAliases`                                    | `tests/seo.spec.ts`    |
 | Internal page links all carry a trailing slash            | —                                                                            | `tests/seo.spec.ts`    |
-| Legacy URLs 301 in one hop, with no meta-refresh stub     | `hugo.yaml` → `disableAliases` + `layouts/home._outputformat_redirects_.txt` | `tests/worker.spec.ts` |
+| Legacy URLs 301 in one hop, with no meta-refresh stub     | `hugo.yaml` → `disableAliases` + `layouts/home._outputformat_redirects_.txt` | `tests/assets.spec.ts` |
 | Every post links out to related posts                     | `hugo.yaml` → `related`                                                      | `tests/seo.spec.ts`    |
 | `<lastmod>` tracks the last commit, not the authored date | `hugo.yaml` → `enableGitInfo`                                                | needs `fetch-depth: 0` |
 | The deployed artifact is the build CI expects             | `<meta name="build-commit">`                                                 | `verify` job           |
@@ -115,7 +146,7 @@ Five things that look redundant but are not:
   rather than on the config under test. This is not hypothetical: the `/page/1/`
   stubs appeared to survive `disableAliases` purely because six of them were
   leftovers from earlier builds.
-- **Self-hosted fonts.** Keep JetBrains Mono under `/fonts/`. The Worker's CSP
+- **Self-hosted fonts.** Keep JetBrains Mono under `/fonts/`. The site's CSP
   ([CSP.md](./CSP.md)) allows neither `fonts.googleapis.com` in `style-src` nor
   `fonts.gstatic.com` for font fetches, so a Google-hosted webfont is blocked
   on staging and production alike. Self-hosting also removes a render-blocking
@@ -124,7 +155,7 @@ Five things that look redundant but are not:
   answers the slash-less spelling of a path with its own 307 _before_ any
   redirect rule is consulted, so emitting only the canonical slash form turns
   every legacy URL into a 307 → 301 chain. Verified against
-  `wrangler dev --local`; `tests/worker.spec.ts` asserts both spellings.
+  `wrangler dev --local`; `tests/assets.spec.ts` asserts both spellings.
 - **`disableAliases` and `pagination.disableAliases` are different settings.**
   Both are set and both are load-bearing. The top-level one stops Hugo writing a
   meta-refresh stub per `aliases:` entry — without it the stub is served `200` at
@@ -219,3 +250,31 @@ deliberately not repeated here.
       field still pointing at dead `http://gatezh.com/<project>` URLs. Those
       are real project demos rather than duplicates, so they are cleanup, not
       an indexing problem.
+
+## 6. Roadmap
+
+Open items, highest value first. Each is a gap against the other sites on this
+stack, or a decision only the owner can make.
+
+- [ ] **Favicon.** `/favicon.ico` is a 404 and `<head>` has no `rel=icon`.
+      Google shows the favicon beside every result. An SVG, a 32 px PNG and a
+      180 px `apple-touch-icon`, fingerprinted from `assets/`.
+- [ ] **`og:image`.** `params.ogImage` is unset, so shared links have no
+      preview and Article JSON-LD has no `image`. A 1200 × 630 PNG rendered
+      from an HTML template with Playwright and committed, emitted with
+      `og:image:width`, `og:image:height` and `og:image:alt`; the same image as
+      the Article `image`.
+- [ ] **Post-deploy redirect check.** Assert in the verify job that one known
+      legacy URL (e.g. a `.html` path) answers `301`. Today only
+      `tests/assets.spec.ts` covers `_redirects`, locally.
+- [ ] **Sitemap `lastmod` tripwire.** A test that every `<loc>` has a
+      parseable `<lastmod>` and that more than one distinct value exists — a
+      shallow CI checkout collapses them all to one date.
+
+Checked and dropped:
+
+- **FAQ structured data:** Google no longer shows the FAQ rich result.
+- **`llms.txt` for ranking:** Google says it does not affect Search; it stays
+  for agents, not for rank.
+- **IndexNow, verification meta tags, hreflang, a web manifest:** no gain for
+  a single-language personal site already verified in Search Console.

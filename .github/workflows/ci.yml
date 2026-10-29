@@ -6,101 +6,59 @@ on:
   # except the base one.
   pull_request:
     types: [opened, synchronize, reopened]
+  # deploy-staging.yml and release.yml run this whole workflow on the commit
+  # they are about to ship, so nothing deploys without the checks and tests a
+  # pull request runs.
+  workflow_call:
 
 permissions:
   contents: read
 
+# A new push to a pull request cancels its older run. head_ref is empty when
+# another workflow calls this one; run_id (the caller's run) then gives each
+# deploy's CI a group of its own, so one deploy never cancels another's.
 concurrency:
-  group: ci-${{ github.head_ref }}
+  group: ci-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            node_modules
-            services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+          persist-credentials: false
 
-      - name: Cache Bun global cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.bun/install/cache
-          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - uses: $/.github/actions/setup
 
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      # `check` is lint + format + hugo-format + typecheck + build. The
-      # production build runs here, which is why there is no separate build
-      # job — adding one back would build the site twice per PR.
+      # `check` is lint + actionlint + format + hugo-format + typecheck +
+      # build. The production build runs here, which is why there is no
+      # separate build job — adding one back would build the site twice per
+      # PR. actionlint also runs shellcheck (preinstalled on the runner) on
+      # every `run:` block.
       - name: Check
         run: bun run check
 
   test-browser:
     name: Test (Browser)
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            node_modules
-            services/*/node_modules
-          key: node-modules-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+          persist-credentials: false
 
-      - name: Cache Bun global cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.bun/install/cache
-          key: bun-cache-${{ hashFiles('.mise.toml', 'bun.lock', 'bunfig.toml') }}
+      - uses: $/.github/actions/setup
 
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Extract Playwright version
-        id: playwright-version
-        run: |
-          PLAYWRIGHT_VERSION=$(node -e "const pkg = require('./package.json'); console.log(pkg.devDependencies['@playwright/test'])")
-          if [ -z "$PLAYWRIGHT_VERSION" ] || [ "$PLAYWRIGHT_VERSION" = "undefined" ]; then
-            echo "::error::Failed to extract Playwright version from package.json"
-            exit 1
-          fi
-          echo "version=$PLAYWRIGHT_VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        id: cache-playwright
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ steps.playwright-version.outputs.version }}
-
+      # Not cached: Playwright's CI docs advise against caching browsers, the
+      # system dependencies have to be installed on every run anyway, and a
+      # per-PR cache entry of a few hundred MB fills the repository's quota.
+      # Every project in playwright.config.ts runs headless Chromium, which is
+      # the headless shell, so the full Chromium build is not downloaded.
       - name: Install Playwright browsers
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
-        working-directory: services/www
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright system dependencies
-        if: steps.cache-playwright.outputs.cache-hit == 'true'
-        working-directory: services/www
-        run: npx playwright install-deps chromium
+        run: bunx playwright install --with-deps --only-shell chromium
 
       - name: Run browser tests
         run: bun run test

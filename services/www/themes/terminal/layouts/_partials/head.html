@@ -6,6 +6,10 @@
   - Self-hosted JetBrains Mono preload (see themes/terminal/assets/css/main.css)
   - Tailwind CSS via css.html partial
   - Theme detection script (runs before body to prevent flash)
+
+  Scripts are files built by the js.html partial, never inline: the CSP in
+  layouts/home._outputformat_headers_.txt allows scripts from 'self' and named
+  third parties only.
 */}}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +22,11 @@
 {{- end }}
 
 {{/* Page title */}}
-<title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
+{{- /* The home page carries the role (params.homeTitle); every other page is
+       "Page | Serge Gatezh". og:site_name stays the bare name. */}}
+{{- $title := .Title }}
+{{- if .IsHome }}{{ $title = site.Params.homeTitle | default site.Title }}{{ end }}
+<title>{{ if .IsHome }}{{ $title }}{{ else }}{{ $title }} | {{ site.Title }}{{ end }}</title>
 
 {{/* Author */}}
 {{ with site.Params.author }}<meta name="author" content="{{ . }}">{{ end }}
@@ -29,16 +37,17 @@
 	<meta name="description" content="{{ . }}">
 {{ end }}
 
-{{/* Keywords. Site-level is a comma-separated string; per-page is a list, because
-     hugo.yaml indexes `keywords` for related-post matching and an index treats a
-     string as ONE term. Printing a list directly would render Go's slice syntax
-     ("[a b c]") into the tag, so join it back into the comma-separated form the
-     meta tag expects. */}}
-{{ $keywords := .Params.keywords | default site.Params.keywords }}
+{{/* Keywords. Site-level is a comma-separated string; per-page is a list (read
+     through .Keywords, Hugo's typed accessor for `keywords` front matter),
+     because hugo.yaml indexes `keywords` for related-post matching and an index
+     treats a string as ONE term. Printing a list directly would render Go's
+     slice syntax ("[a b c]") into the tag, so join it back into the
+     comma-separated form the meta tag expects. */}}
+{{ $keywords := .Keywords | default site.Params.keywords }}
 {{ with $keywords }}<meta name="keywords" content="{{ if reflect.IsSlice . }}{{ delimit . ", " }}{{ else }}{{ . }}{{ end }}">{{ end }}
 
 {{/* Open Graph */}}
-<meta property="og:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
+<meta property="og:title" content="{{ $title }}">
 <meta property="og:type" content="{{ if and .IsPage (eq .Section "posts") }}article{{ else }}website{{ end }}">
 <meta property="og:url" content="{{ .Permalink }}">
 <meta property="og:locale" content="en_US">
@@ -49,11 +58,15 @@
 	{{ with .Date }}<meta property="article:published_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
 	{{ with .Lastmod }}<meta property="article:modified_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
 	{{ with site.Params.author }}<meta property="article:author" content="{{ . }}">{{ end }}
+	{{ with .FirstSection }}<meta property="article:section" content="{{ .LinkTitle }}">{{ end }}
+	{{- range .Keywords }}
+		<meta property="article:tag" content="{{ . }}">
+	{{- end }}
 {{- end }}
 
 {{/* Twitter Card */}}
 <meta name="twitter:card" content="{{ if site.Params.ogImage }}summary_large_image{{ else }}summary{{ end }}">
-<meta name="twitter:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
+<meta name="twitter:title" content="{{ $title }}">
 {{ with $description }}<meta name="twitter:description" content="{{ . }}">{{ end }}
 {{ with site.Params.ogImage }}<meta name="twitter:image" content="{{ . | absURL }}">{{ end }}
 
@@ -83,6 +96,13 @@
 	<link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ site.Title }}">
 {{- end }}
 
+{{/* Markdown mirror (index.md) for agents, on every page that has one (the
+     kinds listed under `outputs` in hugo.yaml). Agents find it here or fetch
+     the .md URL directly; there is no Accept-header negotiation. */}}
+{{ with .OutputFormats.Get "markdown" -}}
+	<link rel="alternate" type="{{ .MediaType.Type }}" href="{{ .Permalink }}">
+{{- end }}
+
 {{/* Self-hosted JetBrains Mono. Preload the upright face only — the italic
      is used sparingly and preloading both would contend for bandwidth with
      the stylesheet. @font-face rules live in the theme's main.css. */}}
@@ -91,52 +111,25 @@
 {{/* Tailwind CSS */}}
 {{- partial "css.html" . -}}
 
-{{/* Google Analytics */}}
+{{/* Google Analytics: gtag.js from Google, configured by js/analytics.ts */}}
 {{ if hugo.IsProduction }}
 	{{ with site.Config.Services.GoogleAnalytics.ID }}
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ . }}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', '{{ . }}');
-</script>
+		<script async src="https://www.googletagmanager.com/gtag/js?id={{ . }}"></script>
+		{{ $id := . }}
+		{{ with partial "js.html" "js/analytics.ts" }}
+			<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" async data-ga-id="{{ $id }}"></script>
+		{{ end }}
 	{{ end }}
 {{ end }}
 
+{{/* PostHog — alongside Google Analytics, production-only (see the partial) */}}
+{{- partial "posthog.html" . -}}
+
 {{/*
-  Theme initialization script - runs immediately to prevent flash of wrong theme
-
-  Three theme modes:
-  - light: Always light theme
-  - dark: Always dark theme
-  - system: Follow system preference (default)
-
-  The script:
-  1. Reads theme preference from localStorage
-  2. Falls back to 'system' if not set
-  3. If 'system', detects OS preference
-  4. Applies 'dark' class to <html> if needed
+  Theme initialization script - runs immediately to prevent flash of wrong theme.
+  Render-blocking on purpose (no defer or async): it must set the `dark` class
+  before the body paints. See js/theme-init.ts.
 */}}
-<script>
-(function() {
-  var stored;
-  try {
-    stored = localStorage.getItem('theme');
-  } catch (e) {
-    stored = null;
-  }
-  var theme = stored || 'system';
-  var isDark;
-
-  if (theme === 'system') {
-    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  } else {
-    isDark = theme === 'dark';
-  }
-
-  if (isDark) {
-    document.documentElement.classList.add('dark');
-  }
-})();
-</script>
+{{ with partial "js.html" "js/theme-init.ts" }}
+	<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
+{{ end }}

@@ -1,10 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
-/** Specs that exercise the Cloudflare Worker rather than the Hugo output. */
-const WORKER_SPEC = /worker\.spec\.ts/;
+/** Specs that exercise Cloudflare's asset server rather than the Hugo output. */
+const ASSETS_SPEC = /assets\.spec\.ts/;
 
-/** Port `wrangler dev` binds for the worker project. */
-const WORKER_PORT = 8788;
+/** Port `wrangler dev` binds for the assets project. */
+const ASSETS_PORT = 8788;
 
 /**
  * Playwright configuration for Hugo site testing.
@@ -23,8 +23,12 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Use fewer workers on CI for stability */
-  workers: process.env.CI ? 1 : undefined,
+  /* Two workers on CI, which is also Playwright's default (half the logical
+     cores) on a 4-core public runner; pinned so a larger runner doesn't change
+     it silently. This deliberately departs from Playwright's advice of one CI
+     worker (https://playwright.dev/docs/ci): the suite is green on two and
+     finishes in about half the time. Locally Playwright picks half the cores. */
+  workers: process.env.CI ? 2 : undefined,
 
   /* Reporter configuration */
   reporter: [["html", { open: "never" }], ["list"]],
@@ -53,12 +57,12 @@ export default defineConfig({
   },
 
   /* Configure projects for different viewports and color schemes.
-     Worker tests are excluded here: they need `wrangler dev`, not `hugo
-     server`, and they run in the dedicated `worker` project below. */
+     Asset-server tests are excluded here: they need `wrangler dev`, not `hugo
+     server`, and they run in the dedicated `assets` project below. */
   projects: [
     {
       name: "desktop-light",
-      testIgnore: WORKER_SPEC,
+      testIgnore: ASSETS_SPEC,
       use: {
         ...devices["Desktop Chrome"],
         colorScheme: "light",
@@ -66,7 +70,7 @@ export default defineConfig({
     },
     {
       name: "desktop-dark",
-      testIgnore: WORKER_SPEC,
+      testIgnore: ASSETS_SPEC,
       use: {
         ...devices["Desktop Chrome"],
         colorScheme: "dark",
@@ -74,7 +78,7 @@ export default defineConfig({
     },
     {
       name: "mobile-light",
-      testIgnore: WORKER_SPEC,
+      testIgnore: ASSETS_SPEC,
       use: {
         ...devices["Pixel 7"],
         colorScheme: "light",
@@ -82,20 +86,20 @@ export default defineConfig({
     },
     {
       name: "mobile-dark",
-      testIgnore: WORKER_SPEC,
+      testIgnore: ASSETS_SPEC,
       use: {
         ...devices["Pixel 7"],
         colorScheme: "dark",
       },
     },
     {
-      /* Content negotiation, the real 404 status and X-Robots-Tag headers are
-         Worker behaviour and cannot be exercised against `hugo server`. Before
-         this project existed, the only check on them was the post-deploy
-         verify job — i.e. after the code was already live. */
-      name: "worker",
-      testMatch: WORKER_SPEC,
-      use: { baseURL: `http://127.0.0.1:${WORKER_PORT}` },
+      /* The generated _headers and _redirects, and the 404 status, are applied
+         by Cloudflare's asset server and cannot be exercised against `hugo
+         server`. Without this project the only check on them would be the
+         post-deploy verify job — i.e. after the build was already live. */
+      name: "assets",
+      testMatch: ASSETS_SPEC,
+      use: { baseURL: `http://127.0.0.1:${ASSETS_PORT}` },
     },
   ],
 
@@ -114,8 +118,18 @@ export default defineConfig({
     {
       /* wrangler serves ./public, so the site has to be on disk first — this
          is the one place a real build is required rather than --renderToMemory. */
-      command: `bun run build && bunx wrangler dev --local --port ${WORKER_PORT} --ip 127.0.0.1 --var API_URL:http://localhost:8787`,
-      url: `http://127.0.0.1:${WORKER_PORT}/`,
+      command: `bun run build && bunx wrangler dev --local --port ${ASSETS_PORT} --ip 127.0.0.1`,
+      // Public test values, never real keys. 1x00000000000000000000AA is
+      // Cloudflare's documented always-pass Turnstile site key, for automated
+      // tests; the PostHog token is a placeholder whose network calls the tests
+      // stub out. Both put the real vendor snippets into the build, so the
+      // assets project can show they run unmodified under the enforced CSP.
+      // Merged over process.env by Playwright, not a replacement for it.
+      env: {
+        HUGO_PARAMS_TURNSTILESITEKEY: "1x00000000000000000000AA",
+        HUGO_PARAMS_POSTHOGKEY: "phc_playwright_placeholder",
+      },
+      url: `http://127.0.0.1:${ASSETS_PORT}/`,
       reuseExistingServer: !process.env.CI,
       timeout: 180000,
     },

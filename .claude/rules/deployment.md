@@ -10,26 +10,33 @@ description: Build commands, deployment workflow, and required GitHub secrets/va
 - `bun run dev:api` - Run the API Worker locally
 - `bun run build` - Build Hugo site
 - `bun run build:api` - Build the API Worker (dry-run)
-- `bun run deploy` - Deploy both web and worker
 
 ## Web App (services/www)
 - `bun run dev` - Development server with drafts
 - `bun run build` - Production build
-- `bun run deploy` - Deploy to Cloudflare Workers
 
 ## API Worker (services/api)
 - `bun run dev` - Run worker locally (reads the repo-root `.env.local`)
-- `bun run deploy` - Deploy to Cloudflare Workers
 
 # Deployment
 
-Deployment is handled via GitHub Actions. See `docs/deployment.md` for the full
-setup and the planned Worker rename.
+Deployment is handled via GitHub Actions only. There is deliberately no local
+`deploy` script: a local build reads `.env.local`, whose localhost `baseURL` and
+always-pass Turnstile test keys must never reach a deployed Worker. See
+`docs/deployment.md` for the full setup and the planned Worker rename.
 
 - `deploy-staging.yml` — push to `master` (or dispatch) → staging
   (`staging-www.gatezh.com`, `staging-api.gatezh.com`).
 - `release.yml` — manual dispatch → `v*` tag → production. **The only
-  production path**; `action: redeploy` rolls back to an earlier tag.
+  production path**; `action: redeploy` rolls back to an earlier tag, and
+  `wrangler rollback` / the dashboard rolls back instantly.
+- Both run the whole of `ci.yml` (`workflow_call`) before deploying.
+- Shared steps live in composite actions under `.github/actions/` (`setup`,
+  `check-deploy-config`), referenced as `uses: $/...` — GitHub's
+  self-repository syntax, which loads them from the workflow's own commit even
+  when a job has checked out an older tag.
+- Only the Release workflow's tagging job gets `contents: write`; every
+  checkout sets `persist-credentials: false`.
 
 Deployed Worker names are `gatezh-com` and `gatezh-com-email-worker` and do not
 match the directory names. Renaming them (to `gatezh-www-*` / `gatezh-api-*`,
@@ -41,8 +48,10 @@ a cutover, not an edit. Only `staging` has an `env` block in
 
 Every runtime value comes from the `staging` / `production` GitHub
 Environment the deploy job runs in — tables in `docs/deployment.md`. Nothing
-deployed reads `hugo.yaml`'s `baseURL`/`apiUrl` or `vars` in `wrangler.jsonc`;
-those are local-dev defaults.
+deployed reads `hugo.yaml`'s `baseURL`/`apiUrl`; those are local-dev defaults.
+The www Worker has no script and no `vars`: staging differs from production
+only by being built with `HUGO_ENVIRONMENT=staging` (adds noindex to
+`_headers`).
 
 **This repo is public and so are its Actions logs.** Variable values are printed
 there; secret values are masked. Anything not meant to be public — email

@@ -1,4 +1,14 @@
+# Every crawler is welcome, AI ones included: search engines, AI search, AI
+# assistants fetching a page for someone, and AI training. This site exists to
+# be found and understood — see docs/seo.md, "AI crawlers: allowed".
+#
+# Content signals (https://contentsignals.org/) state what the content may be
+# used for:
+#   search    building a search index and showing links and excerpts
+#   ai-input  feeding pages into AI models for live answers (RAG, grounding)
+#   ai-train  training or fine-tuning AI models
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
 
 Sitemap: {{ "sitemap.xml" | absURL }}
