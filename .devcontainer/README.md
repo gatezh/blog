@@ -8,7 +8,7 @@ Uses `ghcr.io/gatezh/devcontainers/claude-code:latest` which includes:
 
 - **OS**: Debian with Node.js 24
 - **Tools**: Bun, Hugo (via mise from `.mise.toml`), Git, GitHub CLI
-- **AI**: Claude Code CLI, agent-browser, rtk, ralphex
+- **AI**: Claude Code CLI, agent-browser, ralphex
 - **Testing**: system Chromium at `/usr/bin/chromium` (see [Playwright](#playwright))
 - **Shell**: zsh with Starship prompt, Git Delta
 
@@ -41,10 +41,11 @@ in the lifecycle commands. `services/www/playwright.config.ts` reads
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` and falls back to Playwright's own managed
 browser on the host and in CI, where that variable is unset.
 
-The Playwright **MCP** plugin needs the same redirect. The image handles it:
-`/usr/local/bin/patch-playwright-mcp` rewrites every cached `.mcp.json` to launch
-`/usr/bin/chromium`, from a Claude Code `SessionStart` hook in the image's
-managed settings, so nothing in this project calls it.
+The Playwright **MCP** plugin needs the same redirect. The image handles it by
+setting `PLAYWRIGHT_MCP_BROWSER`, `PLAYWRIGHT_MCP_EXECUTABLE_PATH=/usr/bin/chromium`
+and `PLAYWRIGHT_MCP_HEADLESS`, which `@playwright/mcp` reads in place of its
+command-line flags, so the plugin's `.mcp.json` stays as shipped and nothing in
+this project touches it.
 
 ## Version Management
 
@@ -98,7 +99,9 @@ The sandbox variant has its own set; it shares none of these
 - **gh CLI** (`~/.config/gh`) - `gh auth login` survives a rebuild. Git uses it
   for github.com too (`GIT_CONFIG_*` in `containerEnv`), so HTTPS pushes need no
   other credential helper.
-- **cf CLI** (`~/.config/cloudflare`) - `cf auth login` survives a rebuild
+- **cf CLI** (`~/.config/cloudflare`) - `cf auth login` survives a rebuild.
+  Wrangler's own login (`~/.config/.wrangler`) is not on a volume, so
+  `wrangler login` is lost on rebuild; deploys run in CI, so this rarely matters
 - **zsh history** (`/commandhistory`)
 - **Bun package cache** (`bun-global-store`) - shared by every project on this
   image, declared in `docker-compose.yml`

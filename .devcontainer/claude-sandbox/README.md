@@ -8,7 +8,7 @@ Uses `ghcr.io/gatezh/devcontainers/claude-code-sandbox:latest` which includes:
 
 - **OS**: Debian with Node.js 24
 - **Tools**: Bun, Hugo (via mise from `.mise.toml`), Git, GitHub CLI
-- **AI**: Claude Code CLI, rtk, ralphex (no agent-browser — default variant only)
+- **AI**: Claude Code CLI, agent-browser, ralphex
 - **Testing**: system Chromium at `/usr/bin/chromium`
 - **Shell**: zsh with Starship prompt, Git Delta
 - **Firewall**: iptables/ipset packages for network sandboxing
@@ -54,6 +54,21 @@ The sandbox firewall blocks OAuth login. Generate a token on the host and inject
 
 The sandbox `devcontainer.json` injects this via `${localEnv:CLAUDE_CODE_OAUTH_TOKEN}`.
 
+### GitHub
+
+Git authenticates github.com only through the container's `gh` login
+(`GIT_CONFIG_*` in `containerEnv` replaces the credential helper VS Code
+forwards from the host), so HTTPS fetches of private repos and every push fail
+until you sign in.
+
+Don't use a plain `gh auth login` here. Its token has the `repo`, `read:org`
+and `gist` scopes and is stored in plaintext on the gh volume, where an agent
+running with permission prompts skipped can read it, and GitHub is on the
+allowlist. Create a [fine-grained token](https://github.com/settings/personal-access-tokens)
+limited to this repository instead, then run `gh auth login --with-token`,
+paste it and press Ctrl-D (or export it as `GH_TOKEN` for one shell). Don't
+save the token to a file under `/workspace`, which is your host repo.
+
 ## Version Management
 
 Tool versions are centrally managed in [/.mise.toml](../../../.mise.toml). The pre-built image includes mise, which reads `.mise.toml` at runtime to activate the correct versions of bun, hugo, and other tools.
@@ -77,7 +92,8 @@ with the default variant, so you sign in to each separately:
 - **Claude config** (`~/.claude`)
 - **gh CLI** (`~/.config/gh`) and **cf CLI** (`~/.config/cloudflare`) logins.
   `cf` needs `api.cloudflare.com` and `dash.cloudflare.com` uncommented in
-  `allowed-domains.txt`.
+  `allowed-domains.txt`. Wrangler's own login (`~/.config/.wrangler`) is not
+  persisted; deploys run in CI.
 - **zsh history** (`/commandhistory`)
 
 ## Important Notes
