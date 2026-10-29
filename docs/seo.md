@@ -135,6 +135,7 @@ Recorded so a future reader does not "discover" and undo any of it.
 | Stale build output is never deployed                      | `--cleanDestinationDir`                                                      | —                      |
 | Every page has a 1200 × 630 share image with alt text     | `_partials/share-image.html` (theme) + `params.ogImage`                      | `tests/seo.spec.ts`    |
 | SVG, PNG and touch favicons, and a root `/favicon.ico`    | `head.html` + `assets/brand/`, `static/favicon.ico`                          | both specs             |
+| Standalone pages (About, Talks) are in both llms indexes  | `layouts/llms*._outputformat_llmtext_.txt`                                   | `tests/agents.spec.ts` |
 
 Five things that look redundant but are not:
 
