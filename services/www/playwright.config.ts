@@ -23,8 +23,11 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Two workers on CI; fullyParallel spreads tests across both. Locally
-     Playwright picks half the logical cores. */
+  /* Two workers on CI, which is also Playwright's default (half the logical
+     cores) on a 4-core public runner; pinned so a larger runner doesn't change
+     it silently. This deliberately departs from Playwright's advice of one CI
+     worker (https://playwright.dev/docs/ci): the suite is green on two and
+     finishes in about half the time. Locally Playwright picks half the cores. */
   workers: process.env.CI ? 2 : undefined,
 
   /* Reporter configuration */
