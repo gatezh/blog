@@ -231,7 +231,11 @@ jobs:
     if: ${{ !cancelled() && needs.deploy-www.result == 'success' && needs.deploy-api.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    environment: production
+    # The environment only for its variables and secrets. deployment: false
+    # keeps this read-only check out of the environment's Deployments list.
+    environment:
+      name: production
+      deployment: false
     steps:
       - name: Verify production
         env:
@@ -245,12 +249,14 @@ jobs:
           # A failed fetch fails the step (`-eo pipefail`), so no assertion
           # below can pass on an empty response. Assertions read with `<<<`,
           # not a pipe: under pipefail, `printf | grep -q` can fail on SIGPIPE
-          # when grep matches early.
+          # when grep matches early. Both helpers retry a dropped connection
+          # or a 5xx a few times, so one network blip after a good deploy
+          # does not fail the run; status() never retries a 4xx it reports.
           fetch() {
-            curl -sf --max-time 20 "$@" || { echo "::error::fetch failed: $*"; return 1; }
+            curl -sf --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 "$@" || { echo "::error::fetch failed: $*"; return 1; }
           }
           status() {
-            curl -s -o /dev/null --max-time 20 -w '%{http_code}' "$1" || true
+            curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' "$1" || true
           }
 
           fail=0

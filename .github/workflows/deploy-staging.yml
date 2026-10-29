@@ -149,7 +149,11 @@ jobs:
     needs: [deploy-www, deploy-api]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    environment: staging
+    # The environment only for its variables and secrets. deployment: false
+    # keeps this read-only check out of the environment's Deployments list.
+    environment:
+      name: staging
+      deployment: false
     steps:
       - name: Verify staging
         env:
@@ -171,12 +175,14 @@ jobs:
           # A failed fetch fails the step (`-eo pipefail`), so no assertion
           # below can pass on an empty response. Assertions read with `<<<`,
           # not a pipe: under pipefail, `printf | grep -q` can fail on SIGPIPE
-          # when grep matches early.
+          # when grep matches early. Both helpers retry a dropped connection
+          # or a 5xx a few times, so one network blip after a good deploy
+          # does not fail the run; status() never retries a 4xx it reports.
           fetch() {
-            curl -sf --max-time 20 "${AUTH_ARGS[@]}" "$@" || { echo "::error::fetch failed: $*"; return 1; }
+            curl -sf --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 "${AUTH_ARGS[@]}" "$@" || { echo "::error::fetch failed: $*"; return 1; }
           }
           status() {
-            curl -s -o /dev/null --max-time 20 -w '%{http_code}' "${AUTH_ARGS[@]}" "$1" || true
+            curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' "${AUTH_ARGS[@]}" "$1" || true
           }
 
           fail=0
