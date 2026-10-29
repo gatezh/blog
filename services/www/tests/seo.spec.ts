@@ -211,6 +211,8 @@ test.describe("identity structured data", () => {
     expect(profile["@type"]).toBe("ProfilePage");
     expect(profile.mainEntity.name).toBe("Serge Gatezh");
     expect(profile.mainEntity["@id"]).toMatch(PERSON_ID);
+    // Recommended by Google for ProfilePage; ISO 8601 with an offset.
+    expect(profile.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
   });
 
   test("footer profile links declare rel=me", async ({ page }) => {
