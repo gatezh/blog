@@ -136,7 +136,7 @@ Recorded so a future reader does not "discover" and undo any of it.
 
 Five things that look redundant but are not:
 
-- **`fetch-depth: 0` on the deploy-www checkout.** `enableGitInfo` reads git
+- **`fetch-depth: 0` on the upload-www checkout.** `enableGitInfo` reads git
   history for each page's `<lastmod>`. On a shallow clone Hugo does not warn or
   error — it silently falls back to the `date` front matter, reproducing exactly
   the stale-date problem `enableGitInfo` was added to fix.

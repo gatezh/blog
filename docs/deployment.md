@@ -20,12 +20,49 @@ staging or production without the checks and tests a pull request runs.
 `action: create` and a bump level. It runs CI, then tags `master` and
 generates release notes, deploys both Workers and verifies production. A CI
 failure leaves no tag behind. Each Worker version is labelled with the release
-tag (`wrangler deploy --tag`), so the dashboard's **Deployments** list says
-which release every version is. **Re-run all jobs** on a release that already
-tagged its commit deploys that same release again instead of bumping a second
-tag onto the commit.
+tag (`wrangler versions upload --tag`), so the dashboard's **Deployments** list
+says which release every version is. **Re-run all jobs** on a release that
+already tagged its commit deploys that same release again instead of bumping a
+second tag onto the commit.
+
+### Upload, then promote
+
+Both deploy workflows change their environment in two phases, with Cloudflare's
+[Worker versions](https://developers.cloudflare.com/workers/configuration/versions-and-deployments/):
+
+1. `upload-www` and `upload-api` build each service and upload it with
+   `wrangler versions upload`: a new version that serves no traffic. Each also
+   records what the Worker serves now (`wrangler deployments status --json`).
+2. `promote` runs only when **both** uploads succeeded, and switches both
+   Workers to their new version (`wrangler versions deploy <id>@100%`), api
+   first.
+3. `rollback` runs only if `promote` failed part-way, and puts both Workers
+   back on exactly the versions they served before.
+4. `verify` checks the live environment. A failed check does **not** roll
+   back: most checks are zone settings (Transform Rules, bot blocking, managed
+   robots.txt) that a rollback cannot change, and the build-commit poll can miss
+   on a slow edge rollout. Instead the run summary prints the exact
+   `wrangler versions deploy` command that restores both previous versions.
+
+So a failed upload, for example a Cloudflare API error during the asset upload,
+leaves the environment untouched: re-run the failed jobs. And `www` and `api`
+never stay on different releases.
+
+Two consequences:
+
+- **Routes and custom domains are not applied by a version upload.** They exist
+  already and do not change per release. A change to `routes` in either
+  `wrangler.jsonc` needs a one-off `wrangler deploy` (or the experimental
+  `wrangler triggers deploy`) for that environment.
+- Wrangler runs directly (`bunx wrangler`), not through
+  `cloudflare/wrangler-action`, unlike the other projects on this stack: the
+  action adds `--var` only to `deploy` commands, and the version id comes from
+  Wrangler's machine-readable output (`WRANGLER_OUTPUT_FILE_PATH`).
 
 ### Rolling back
+
+A run whose promotion fails rolls itself back, and a failed verify prints the
+rollback command (see above). To roll back by hand:
 
 - **Instantly:** Workers & Pages → the Worker → **Deployments** → the version
   tagged with the previous release → **Rollback**, or
@@ -127,7 +164,7 @@ missing (`.github/actions/check-deploy-config`) instead of failing:
   rejects every one.
 
 Secrets go up with the code, in the same Worker version
-(`wrangler deploy --secrets-file`). A deploy only ever **adds or replaces**
+(`wrangler versions upload --secrets-file`). A deploy only ever **adds or replaces**
 secrets: one GitHub does not hold is left alone on the Worker. So deleting a
 GitHub secret does not remove it from the Worker — do that as well:
 
