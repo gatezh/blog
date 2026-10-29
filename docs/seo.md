@@ -66,6 +66,30 @@ index coverage looks wrong.
 
 ---
 
+### AI crawlers: allowed
+
+The site is built to be read by AI crawlers and agents — `robots.txt` allows
+everyone, and `llms.txt`, `llms-full.txt` and a Markdown mirror of every page
+exist for them — so the zone must not block them. Decided 2026-10-28.
+
+| Bot setting (Security → Bots)                           | Value                                 |
+| ------------------------------------------------------- | ------------------------------------- |
+| Block AI bots (`ai_bots_protection`)                    | `disabled`                            |
+| AI Labyrinth (`crawler_protection`)                     | `disabled`                            |
+| Cloudflare-managed robots.txt (`is_robots_txt_managed`) | off — Hugo's robots.txt is the policy |
+
+Until that date `ai_bots_protection` was `block`, and ClaudeBot, GPTBot and the
+rest got `403` while `robots.txt` invited them. Check or change it with `cf`:
+
+```bash
+cf bot-management get --zone gatezh.com
+cf bot-management update --zone gatezh.com --ai-bots-protection disabled
+```
+
+The release verify job requests the home page as several AI crawlers and fails
+on anything but `200`, so a zone change that blocks them again shows up on the
+next release.
+
 ## 2. Google Search Console
 
 Only a human with property access can do these.
@@ -225,14 +249,6 @@ deliberately not repeated here.
 Open items, highest value first. Each is a gap against the other sites on this
 stack, or a decision only the owner can make.
 
-- [ ] **Decide the AI crawler policy.** The zone blocks AI crawlers: ClaudeBot
-      and GPTBot get `403` from `https://gatezh.com/` (checked 2026-10-28),
-      while `robots.txt` says `Allow: /` and the site publishes `llms.txt` and
-      Markdown mirrors for exactly those agents. Either allow them (Security →
-      Bots: AI bots off, and Cloudflare's managed robots.txt off) or stop
-      advertising `llms.txt`. Record the decision here. Confirm the zone state
-      with `cf` rather than a spoofed user agent, then add a
-      `curl -A ClaudeBot` check to the verify job so it cannot drift.
 - [ ] **Favicon.** `/favicon.ico` is a 404 and `<head>` has no `rel=icon`.
       Google shows the favicon beside every result. An SVG, a 32 px PNG and a
       180 px `apple-touch-icon`, fingerprinted from `assets/`.
