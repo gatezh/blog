@@ -15,6 +15,9 @@ This is a Bun monorepo containing:
 # Install dependencies
 bun install
 
+# Set up the local environment (Turnstile test keys that always pass)
+cp .env.example .env.local
+
 # Start development server
 bun run dev
 
@@ -40,7 +43,20 @@ the single source of truth and the only place versions should be edited.
 | `bun run dev:api` | Start the API Worker locally   |
 | `bun run build`   | Build Hugo site for production |
 | `bun run lint`    | Run oxlint linter              |
-| `bun run deploy`  | Deploy both www and worker     |
+
+### Local Environment
+
+Both services read a single gitignored `.env.local` at the repository root:
+
+```bash
+cp .env.example .env.local
+```
+
+The committed defaults work as-is for contact-form development: the form posts
+to the local API Worker (`bun run dev:api`), and the Turnstile widget uses
+Cloudflare's public test keys, which always pass. The production keys are
+hostname-bound and do not render on `localhost`. Add `RESEND_API_KEY`,
+`TO_EMAIL` and `FROM_EMAIL` only when a submission should actually send email.
 
 ### Adding Content
 

@@ -60,7 +60,8 @@ All ADRs should follow the standard template provided in [`adr-template.md`](./a
 | [001](./adr-001-remark42-theme-synchronization.md)          | Remark42 Theme Synchronization with PaperMod       | Superseded | 2025-11-08 |
 | [002](./adr-002-csp-configuration.md)                       | Content Security Policy Configuration              | Superseded | 2025-11-07 |
 | [003](./adr-003-terminal-theme-remark42-synchronization.md) | Remark42 Theme Synchronization with Terminal Theme | Accepted   | 2026-02-02 |
-| [004](./adr-004-csp-in-worker.md)                           | Content Security Policy in the www Worker          | Accepted   | 2026-10-02 |
+| [004](./adr-004-csp-in-worker.md)                           | Content Security Policy in the www Worker          | Superseded | 2026-10-02 |
+| [005](./adr-005-static-headers-no-worker-code.md)           | Static `_headers` and no Worker code for www       | Accepted   | 2026-10-10 |
 
 ## Resources
 

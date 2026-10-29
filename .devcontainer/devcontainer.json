@@ -7,9 +7,8 @@
   // Pull the prebuilt image on the HOST before the build, so "Rebuild Without
   // Cache" always layers on the freshest base. Replaces `pull_policy: always` in
   // docker-compose.yml, which breaks on Linux/WSL2 when `updateRemoteUserUID`
-  // builds a local-only image (gatezh/devcontainers#109). `|| exit 0` keeps
-  // offline opens working (valid in POSIX sh and Windows cmd.exe).
-  // Keep in sync with the image in docker-compose.yml.
+  // builds a local-only image (gatezh/devcontainers#109). `|| exit 0` keeps offline/outage opens
+  // working (valid in POSIX sh and Windows cmd.exe). Keep in sync with the compose image.
   "initializeCommand": "docker pull ghcr.io/gatezh/devcontainers/claude-code:latest || exit 0",
   "init": true,
   "updateRemoteUserUID": true,
@@ -41,6 +40,8 @@
         "redhat.vscode-yaml",
         // Markdown Preview Github Styles - renders Markdown preview with GitHub's CSS
         "bierner.markdown-preview-github-styles",
+        // Markdown Preview Mermaid Support - renders Mermaid diagrams in Markdown preview
+        "bierner.markdown-mermaid",
         // Docker - Dockerfile and Compose syntax, linting, and image management
         "ms-azuretools.vscode-docker",
 
@@ -71,12 +72,11 @@
         "kaellarkin.hugo-shortcode-syntax"
       ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "fish",
+        "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.profiles.linux": {
-          "fish": { "path": "fish" },
+          "zsh": { "path": "zsh" },
           "bash": { "path": "bash", "icon": "terminal-bash" }
         },
-        // Suppress extension recommendation prompts
         "extensions.ignoreRecommendations": true,
         // ── Formatter settings (customize per project) ──────────────────
         // Change "editor.defaultFormatter" to match your tooling:
@@ -88,45 +88,59 @@
           "source.fixAll": "explicit",
           "source.organizeImports": "explicit"
         },
+        // Oxc starts oxfmt/oxlint with the PATH from `$SHELL -ilc env`, which can lack node (gatezh/devcontainers#228)
+        "oxc.path.node": "/usr/local/bin/node",
         // Hugo HTML templates use Go template syntax ({{ }}) - disable OXC formatting
         "[html]": {
           "editor.defaultFormatter": null,
           "editor.formatOnSave": false
         },
-        // Show workspace folder name in window title
         "window.title": "${localWorkspaceFolderBasename}"
       }
     }
   },
-  // Named volumes keep node_modules OFF the host machine and persist across rebuilds.
-  // Uses ${localWorkspaceFolderBasename} so default and sandbox variants share volumes.
+  // Named volumes keep node_modules and config OFF the host machine and persist across rebuilds.
+  // Compose prefixes them with its project name, so each variant gets its own. The sandbox
+  // must not share them (gatezh/devcontainers README "Why the variants don't share volumes").
   "mounts": [
     // ── node_modules isolation (one per workspace) ─────────────────────
+    // Each workspace with a package.json needs its own volume mount.
+    // Without one, node_modules lands in the bind mount and shows up on the host.
     "source=gatezh-com-node-modules-root-${localWorkspaceFolderBasename},target=/workspace/node_modules,type=volume",
     "source=gatezh-com-node-modules-www-${localWorkspaceFolderBasename},target=/workspace/services/www/node_modules,type=volume",
     "source=gatezh-com-node-modules-api-${localWorkspaceFolderBasename},target=/workspace/services/api/node_modules,type=volume",
     // ── Persistent config ──────────────────────────────────────────────
     "source=gatezh-com-claude-config-${localWorkspaceFolderBasename},target=/home/node/.claude,type=volume",
-    "source=gatezh-com-fish-data-${localWorkspaceFolderBasename},target=/home/node/.local/share/fish,type=volume"
+    "source=gatezh-com-zsh-history-${localWorkspaceFolderBasename},target=/commandhistory,type=volume",
+    // gh CLI auth/state (~/.config/gh/hosts.yml) — keeps `gh auth login` across rebuilds
+    "source=gatezh-com-gh-config-${localWorkspaceFolderBasename},target=/home/node/.config/gh,type=volume",
+    // cf CLI login (~/.config/cloudflare) — keeps `cf auth login` across rebuilds
+    "source=gatezh-com-cloudflare-config-${localWorkspaceFolderBasename},target=/home/node/.config/cloudflare,type=volume"
   ],
   "containerEnv": {
     "TZ": "${localEnv:TZ:America/Edmonton}",
     "DEVCONTAINER": "true",
     "NODE_OPTIONS": "--max-old-space-size=4096",
-    "CLAUDE_CONFIG_DIR": "/home/node/.claude"
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    // Git config for every process, outranking the ~/.gitconfig the extension copies in:
+    // send git@github.com: remotes over HTTPS, and authenticate github.com only through gh
+    // (the empty helper drops VS Code's, as `gh auth setup-git` does). The image trusts
+    // /workspace in /etc/gitconfig, which tools that filter env (Hugo) can't strip (gatezh/devcontainers#211).
+    "GIT_CONFIG_COUNT": "3",
+    "GIT_CONFIG_KEY_0": "url.https://github.com/.insteadOf",
+    "GIT_CONFIG_VALUE_0": "git@github.com:",
+    "GIT_CONFIG_KEY_1": "credential.https://github.com.helper",
+    "GIT_CONFIG_VALUE_1": "",
+    "GIT_CONFIG_KEY_2": "credential.https://github.com.helper",
+    "GIT_CONFIG_VALUE_2": "!gh auth git-credential"
   },
-  // sudo chown fixes volume ownership — safety net in case Docker volume population didn't apply.
-  // The find command chowns all node_modules volume mount points in one pass.
+  // chown-volumes (image-baked, shared with the sandbox) gives node the node_modules and
+  // config volume mount points, a safety net in case Docker volume population didn't apply.
   // mise install reads .mise.toml and installs project-specific tool versions.
-  // Chromium is baked into the image via apt — no `playwright install` step needed.
-  // services/www/playwright.config.ts reads PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.
-  "updateContentCommand": "sudo find /workspace -maxdepth 4 -name node_modules -type d -exec chown node {} + && sudo chown -R node /home/node/.claude && mise install && bun install",
-  // One-time setup: register Claude Code marketplaces, install plugins, seed rtk.
-  "postCreateCommand": "bash .devcontainer/init-plugins.sh",
-  // Re-patch the Playwright MCP plugin's .mcp.json on every start. Defense in
-  // depth alongside the SessionStart hook in /etc/claude-code/managed-settings.json,
-  // which handles the case where the plugin auto-updates mid-container-run.
-  // See gatezh/devcontainers#85, #87, #98.
-  "postStartCommand": "/usr/local/bin/patch-playwright-mcp",
-  "waitFor": "postCreateCommand"
+  // bun install is skipped until the project has a package.json.
+  // Chromium is baked into the image via apt — no playwright install step needed.
+  // Projects' playwright.config.ts should use process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.
+  "updateContentCommand": "sudo /usr/local/sbin/chown-volumes && mise install && if [ -f package.json ]; then bun install; fi"
+  // No postCreateCommand: claude CLI calls there race the extension's OAuth sign-in
+  // (gatezh/devcontainers#58). Run `bash .devcontainer/init-plugins.sh` once after signing in.
 }

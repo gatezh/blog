@@ -2,13 +2,13 @@
 title: "About"
 layout: about
 comments: false
-description: "About Serge Gatezh, a Full Stack Developer in Calgary who turns complex problems into clear, intuitive software."
-tagline: "I turn complex problems into clear, intuitive software."
-role: "Full Stack Developer · Calgary, Canada"
+description: "About Serge Gatezh, a product engineer in Calgary who turns messy business processes into simple, secure software."
+tagline: "I turn messy business processes into simple, secure software."
+role: "Product Engineer · Calgary, Canada"
 portrait: "images/serge-gatezh-sticker.png"
 ---
 
-I'm a full-stack developer based in Calgary, Alberta. Since 2018, I've built web applications that solve complex product and engineering problems without passing that complexity on to users.
+I'm a product engineer based in Calgary, Alberta. Since 2018, I've built web applications that solve complex product and engineering problems without passing that complexity on to users.
 
 My front-end roots still shape how I work across the stack. I pay attention to the small decisions that determine whether a product feels obvious or exhausting: information hierarchy, useful feedback, sensible defaults, accessibility, and the awkward edge cases users find before anyone else. React and TypeScript are familiar tools, but the goal is never a particular framework. The goal is to help someone finish what they came to do without making them carry the complexity that made it possible.
 
@@ -37,5 +37,7 @@ Outside work, I still explore personal-finance products with equal parts curiosi
 ## What I share here
 
 This site is my working notebook: a place for solutions worth remembering, experiments worth explaining, and the occasional lesson learned the hard way. You can also find my open-source work on [GitHub](https://github.com/gatezh) or connect with me on [LinkedIn](https://linkedin.com/in/gatezh).
+
+I also curate [UX Cringe](https://uxcringe.com/), a collection of real interfaces that failed the people using them, written up step by step. And I build websites for small businesses at [Just Right Systems](https://justright.systems/).
 
 If you'd like to compare notes or work together, [send me a message](/contact/).

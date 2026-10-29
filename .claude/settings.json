@@ -16,5 +16,18 @@
   "attribution": {
     "commit": "",
     "pr": ""
+  },
+  "extraKnownMarketplaces": {
+    "typescript-native-lsp": {
+      "source": {
+        "source": "github",
+        "repo": "rubberduck-studio/typescript-native-lsp"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "typescript-native-lsp@typescript-native-lsp": true,
+    "typescript-lsp@claude-plugins-official": false
   }
 }

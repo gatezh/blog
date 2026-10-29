@@ -12,17 +12,53 @@ How gatezh.com is configured and deployed.
 Same model as the other projects on this stack: merging to `master` deploys
 staging; production only ever runs a tagged release.
 
-**Releasing:** Actions → **Release** → Run workflow → `action: create` and a
-bump level. It tags `master`, generates release notes, deploys both Workers and
-verifies production. **Rolling back:** the same workflow with
-`action: redeploy` and an earlier version.
+Both deploy workflows run the whole of CI (`ci.yml`: `bun run check` and
+`bun run test`) on the commit they ship before deploying it, so nothing reaches
+staging or production without the checks and tests a pull request runs.
+
+**Releasing:** Actions → **Release** → Run workflow (from `master`) →
+`action: create` and a bump level. It runs CI, then tags `master` and
+generates release notes, deploys both Workers and verifies production. A CI
+failure leaves no tag behind. Each Worker version is labelled with the release
+tag (`wrangler deploy --tag`), so the dashboard's **Deployments** list says
+which release every version is. **Re-run all jobs** on a release that already
+tagged its commit deploys that same release again instead of bumping a second
+tag onto the commit.
+
+### Rolling back
+
+- **Instantly:** Workers & Pages → the Worker → **Deployments** → the version
+  tagged with the previous release → **Rollback**, or
+  `bunx wrangler rollback <version-id>` from `services/www` or `services/api`.
+  No rebuild; Cloudflare keeps the last 100 versions. Roll back both Workers.
+  The next release replaces the rollback.
+- **Through a release:** the same workflow with `action: redeploy` and an
+  earlier version (e.g. `1.4.2`). It rebuilds and redeploys that tag and
+  verifies it, without re-running CI — a rollback must not wait on, or be
+  blocked by, today's checks against an old tree. It accepts any `vX.Y.Z` tag
+  whose commit is on `master`, including one pushed by hand with no GitHub
+  release behind it.
 
 ### Why release-anchored production
 
 A release is a tag you can point at, and redeploying an existing tag is a
-first-class action (`action: redeploy`) rather than a revert commit. The
-`concurrency` group does not cancel in progress: a cancelled production deploy
-can leave `www` and `api` on different commits.
+first-class action rather than a revert commit. **Immutable releases** are on
+(Settings → General → Releases), so a published release's tag cannot be moved
+or deleted, and a redeploy ships what was released. That holds only for
+releases published after the setting was turned on: `v0.0.1` predates it and
+is not immutable, so the guarantee starts with the next release.
+
+Neither deploy workflow cancels a running deploy (`cancel-in-progress: false`):
+a cancelled deploy can leave `www` and `api` on different commits. GitHub keeps
+one pending run per group and replaces it when a newer one arrives. Staging
+relies on that: a pending run has not started any job, and the newer push
+already contains its commit. Release sets `concurrency.queue: max` instead, so
+every dispatch runs in turn, because each one names a release or a tag on
+purpose.
+
+Only the Release workflow's tagging job holds a token that can write to the
+repository; every job that runs `bun install`, the build or a deploy action has
+read-only access, and no checkout keeps credentials on disk.
 
 ### Worker names
 
@@ -47,8 +83,8 @@ deploy — there is no DNS to add by hand.
 
 **The GitHub Environment is the single source of truth.** Every deploy job runs
 in the `staging` or `production` environment and reads its values from there.
-Nothing deployed reads `hugo.yaml`'s `apiUrl`/`baseURL` or any `vars` in
-`wrangler.jsonc` — those are local-development defaults. Local development reads
+Nothing deployed reads `hugo.yaml`'s `apiUrl`/`baseURL` — those are
+local-development defaults. Local development reads
 the repo-root `.env.local` (copy `.env.example`).
 
 > **This repository is public, and so are its Actions logs.** GitHub prints
@@ -57,14 +93,15 @@ the repo-root `.env.local` (copy `.env.example`).
 
 ### Variables
 
-| Name                           | Used by                                   | staging                           | production                                           |
-| ------------------------------ | ----------------------------------------- | --------------------------------- | ---------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`        | every deploy (repository-level)           | inherited                         | inherited                                            |
-| `HUGO_BASEURL`                 | Hugo build — canonical, sitemap, JSON-LD  | `https://staging-www.gatezh.com/` | `https://gatezh.com/`                                |
-| `HUGO_PARAMS_APIURL`           | contact form POST target, CSP connect-src | `https://staging-api.gatezh.com`  | `https://gatezh-com-email-worker.gatezh.workers.dev` |
-| `HUGO_PARAMS_TURNSTILESITEKEY` | contact form widget                       | the staging widget's site key     | the production widget's site key                     |
-| `ALLOWED_ORIGIN`               | api Worker CORS — **required**            | `https://staging-www.gatezh.com`  | `https://gatezh.com`                                 |
-| `CLOUDFLARE_ZERO_CLIENT_ID`    | staging verify, only behind Access        | optional                          | —                                                    |
+| Name                           | Used by                                           | staging                           | production                                           |
+| ------------------------------ | ------------------------------------------------- | --------------------------------- | ---------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`        | every deploy (repository-level)                   | inherited                         | inherited                                            |
+| `HUGO_BASEURL`                 | Hugo build — canonical, sitemap, JSON-LD          | `https://staging-www.gatezh.com/` | `https://gatezh.com/`                                |
+| `HUGO_PARAMS_APIURL`           | contact form POST target, CSP connect-src         | `https://staging-api.gatezh.com`  | `https://gatezh-com-email-worker.gatezh.workers.dev` |
+| `HUGO_PARAMS_TURNSTILESITEKEY` | contact form widget                               | the staging widget's site key     | the production widget's site key                     |
+| `HUGO_PARAMS_POSTHOGKEY`       | PostHog analytics — optional, see docs/posthog.md | — (never plumbed into staging)    | the PostHog project token                            |
+| `ALLOWED_ORIGIN`               | api Worker CORS — **required**                    | `https://staging-www.gatezh.com`  | `https://gatezh.com`                                 |
+| `CLOUDFLARE_ZERO_CLIENT_ID`    | staging verify, only behind Access                | optional                          | —                                                    |
 
 A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 `ALLOWED_ORIGIN` (every request would fail CORS). Everything else is optional.
@@ -80,8 +117,8 @@ A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 | `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment                        |
 | `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access                 | optional                                               |
 
-The Worker degrades one feature at a time, and the staging deploy reports what
-is missing instead of failing:
+The Worker degrades one feature at a time, and each api deploy reports what is
+missing (`.github/actions/check-deploy-config`) instead of failing:
 
 - Contact form needs `RESEND_API_KEY` + `TO_EMAIL` + `FROM_EMAIL`. Without all
   three, `POST /` returns 503.
@@ -89,17 +126,22 @@ is missing instead of failing:
   both or neither** — half a bot gate either accepts submissions unverified or
   rejects every one.
 
-Production differs in one way: a secret GitHub does not hold is **left alone**
-on the live Worker, because wrangler only replaces a secret it is given. That is
-what lets production keep its existing Cloudflare secrets until they are moved
-into GitHub.
+Secrets go up with the code, in the same Worker version
+(`wrangler deploy --secrets-file`). A deploy only ever **adds or replaces**
+secrets: one GitHub does not hold is left alone on the Worker. So deleting a
+GitHub secret does not remove it from the Worker — do that as well:
+
+```bash
+cd services/api && bunx wrangler secret delete TURNSTILE_SECRET_KEY            # production
+cd services/api && bunx wrangler secret delete TURNSTILE_SECRET_KEY --env staging
+```
 
 ## Cutover history
 
 Production moved from push-to-deploy to tagged releases on 2026-10-03:
 environments and variables configured, a staging Turnstile widget created, the
 first staging deploy verified, the triggers flipped, and the zone's legacy
-**CSP** Transform Rule removed so production serves the Worker's policy (see
+**CSP** Transform Rule removed so production serves the site's own policy (see
 [CSP.md](CSP.md)). Production's Worker credentials were moved into the
 `production` environment at the same time. After the first release
 (`v0.0.1`), the untagged push-to-production workflow (`deploy.yml`) was
@@ -207,9 +249,9 @@ form at `http://localhost:${API_PORT}`, and the api allows
 
 ### Contact form not working
 
-1. Browser console — a `Refused to connect` CSP error means `HUGO_PARAMS_APIURL`
-   and the Worker's `API_URL` disagree, which only happens if one deploy ran
-   without the other.
+1. Browser console — a `Refused to connect` CSP error means the page and its
+   `_headers` came from different builds, or a zone Transform Rule is overriding
+   the CSP (see [CSP.md](CSP.md)). Both are built from `HUGO_PARAMS_APIURL`.
 2. The deploy run's step summary — the feature table says which credential is
    missing.
 3. Worker logs in the Cloudflare dashboard.

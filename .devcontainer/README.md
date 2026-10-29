@@ -8,9 +8,9 @@ Uses `ghcr.io/gatezh/devcontainers/claude-code:latest` which includes:
 
 - **OS**: Debian with Node.js 24
 - **Tools**: Bun, Hugo (via mise from `.mise.toml`), Git, GitHub CLI
-- **AI**: Claude Code CLI, agent-browser, rtk, ralphex
+- **AI**: Claude Code CLI, agent-browser, ralphex
 - **Testing**: system Chromium at `/usr/bin/chromium` (see [Playwright](#playwright))
-- **Shell**: Fish with Starship prompt, Git Delta
+- **Shell**: zsh with Starship prompt, Git Delta
 
 The image is rebuilt upstream whenever one of its pinned tools ships a release
 (Renovate opens the bump, CI builds amd64 + arm64 natively).
@@ -41,11 +41,11 @@ in the lifecycle commands. `services/www/playwright.config.ts` reads
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` and falls back to Playwright's own managed
 browser on the host and in CI, where that variable is unset.
 
-The Playwright **MCP** plugin needs the same redirect. `/usr/local/bin/patch-playwright-mcp`
-(baked into the image) rewrites every cached `.mcp.json` to launch
-`/usr/bin/chromium`. It runs from `init-plugins.sh`, from `postStartCommand`, and
-from a Claude Code `SessionStart` hook — the last one catches plugin auto-updates
-that land mid-session.
+The Playwright **MCP** plugin needs the same redirect. The image handles it by
+setting `PLAYWRIGHT_MCP_BROWSER`, `PLAYWRIGHT_MCP_EXECUTABLE_PATH=/usr/bin/chromium`
+and `PLAYWRIGHT_MCP_HEADLESS`, which `@playwright/mcp` reads in place of its
+command-line flags, so the plugin's `.mcp.json` stays as shipped and nothing in
+this project touches it.
 
 ## Version Management
 
@@ -53,12 +53,28 @@ Tool versions are centrally managed in [/.mise.toml](../../.mise.toml). The pre-
 
 ## Lifecycle Commands
 
-| Hook                   | What it does                                                      |
-| ---------------------- | ----------------------------------------------------------------- |
-| `initializeCommand`    | Pulls the latest image on the **host**                            |
-| `updateContentCommand` | Fixes volume ownership, `mise install`, `bun install`             |
-| `postCreateCommand`    | `init-plugins.sh` — marketplaces, plugins, rtk, session retention |
-| `postStartCommand`     | Re-patches Playwright MCP configs                                 |
+| Hook                   | What it does                                                 |
+| ---------------------- | ------------------------------------------------------------ |
+| `initializeCommand`    | Pulls the latest image on the **host**                       |
+| `updateContentCommand` | `chown-volumes` (image-baked), `mise install`, `bun install` |
+
+There is deliberately no `postCreateCommand`: `claude` CLI calls there race the
+extension's OAuth sign-in ([gatezh/devcontainers#58](https://github.com/gatezh/devcontainers/issues/58)).
+After signing in to Claude Code for the first time, run:
+
+```bash
+bash .devcontainer/init-plugins.sh
+```
+
+It registers the marketplaces, installs the plugins, seeds session retention,
+and updates everything to the latest version. Run it again whenever you want to
+update the plugins.
+
+Two plugins aren't in it. The image's managed settings declare the `gatezh`
+marketplace and force-enable `dev@gatezh`. `.claude/settings.json` declares
+`typescript-native-lsp` (with auto-update on) and disables `typescript-lsp`,
+which fails on TypeScript 7. Claude Code loads typescript-native-lsp once you
+trust the folder.
 
 ## Usage
 
@@ -74,12 +90,21 @@ bun run build        # Build all services
 
 ## Persistence
 
-Named Docker volumes (prefixed `gatezh-com-`) persist across container rebuilds
-and are shared with the sandbox variant:
+Named Docker volumes (prefixed `gatezh-com-`) persist across container rebuilds.
+The sandbox variant has its own set; it shares none of these
+([why](https://github.com/gatezh/devcontainers#why-the-variants-dont-share-volumes)).
 
 - **node_modules** - isolated per workspace directory (root, services/www, services/api)
-- **Claude config** - auth tokens and settings preserved
-- **Fish data** - shell history and completions retained
+- **Claude config** (`~/.claude`) - auth tokens, settings, session history
+- **gh CLI** (`~/.config/gh`) - `gh auth login` survives a rebuild. Git uses it
+  for github.com too (`GIT_CONFIG_*` in `containerEnv`), so HTTPS pushes need no
+  other credential helper.
+- **cf CLI** (`~/.config/cloudflare`) - `cf auth login` survives a rebuild.
+  Wrangler's own login (`~/.config/.wrangler`) is not on a volume, so
+  `wrangler login` is lost on rebuild; deploys run in CI, so this rarely matters
+- **zsh history** (`/commandhistory`)
+- **Bun package cache** (`bun-global-store`) - shared by every project on this
+  image, declared in `docker-compose.yml`
 
 ## Customization
 
