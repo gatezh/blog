@@ -1,6 +1,6 @@
 // Three-position theme toggle: theme switching, localStorage persistence and
-// system preference detection. Dispatches a `themechange` event that Remark42
-// (comments.ts) and Turnstile listen for.
+// system preference detection. Dispatches a `themechange` event that the
+// Remark42 embed (comments.ts) listens for.
 
 type Theme = "light" | "dark" | "system";
 
