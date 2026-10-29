@@ -36,9 +36,10 @@ permissions:
   contents: read
 
 concurrency:
-  # Production deploys queue rather than cancel each other: a cancelled deploy
-  # can leave www and api on different commits. `queue: max` because by default
-  # GitHub keeps only one pending run and cancels it when the next arrives.
+  # A running production deploy is never cancelled: that can leave www and api
+  # on different commits. `queue: max` because by default GitHub keeps only one
+  # pending run and replaces it when the next arrives, and every dispatch here
+  # is deliberate (a release or a redeploy of a chosen tag).
   group: deploy-production
   cancel-in-progress: false
   queue: max

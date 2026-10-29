@@ -17,13 +17,13 @@ on:
 permissions:
   contents: read
 
-# Queue, never cancel: a cancelled run can leave www and api on different
-# commits. `queue: max` because by default GitHub keeps only one pending run and
-# cancels it when the next arrives.
+# Never cancel a running deploy: that can leave www and api on different
+# commits. GitHub keeps one pending run and replaces it when a newer push
+# arrives. That is what staging wants: the pending run never started a job, and
+# the newer commit already contains it.
 concurrency:
   group: deploy-staging
   cancel-in-progress: false
-  queue: max
 
 # An explicit `bash` runs `bash -eo pipefail`; the implicit default is
 # `bash -e` alone, which lets a failed curl hide behind a later pipe stage.
