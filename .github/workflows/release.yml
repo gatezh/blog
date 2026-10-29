@@ -353,6 +353,16 @@ jobs:
             [ "${code}" = "200" ] || { echo "::error::${SITE}/ returned ${code} to ${bot} — the zone is blocking AI crawlers (docs/seo.md)"; fail=1; }
           done
 
+          # robots.txt is Hugo's, granting every content signal. Cloudflare's
+          # managed robots.txt would prepend Disallow rules for AI bots.
+          robots=$(fetch "${SITE}/robots.txt")
+          grep -q '^Content-Signal: search=yes, ai-input=yes, ai-train=yes$' <<< "${robots}" \
+            || { echo "::error::robots.txt does not grant every content signal (docs/seo.md)"; fail=1; }
+          if grep -qi '^Disallow:' <<< "${robots}"; then
+            echo "::error::robots.txt disallows something — is Cloudflare's managed robots.txt on? (docs/seo.md)"
+            fail=1
+          fi
+
           # Zone settings that no deploy can enforce. Report, never fail.
           code=$(status http://gatezh.com/)
           [ "${code}" = "301" ] || echo "::warning::http://gatezh.com/ returned ${code}, expected 301 — turn on Always Use HTTPS"
