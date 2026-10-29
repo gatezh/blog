@@ -258,6 +258,20 @@ test.describe("identity structured data", () => {
     expect(new URL(items[2].item).pathname).toBe(path);
   });
 
+  test("a post's keywords reach its Article and its article:tag metas", async ({ page }) => {
+    // Both read `keywords` front matter through .Keywords. They used to read the
+    // `tags` taxonomy, which no post uses, so both rendered nothing and the
+    // build stayed green.
+    const article = (await jsonLd(page, "/posts/docker-desktop-disk-full-macos/")).find(
+      (b) => b["@type"] === "Article",
+    );
+    expect(article.keywords).toEqual(expect.arrayContaining(["docker"]));
+    await expect(page.locator('meta[property="article:tag"]').first()).toHaveAttribute(
+      "content",
+      "docker",
+    );
+  });
+
   test("/about/ is a ProfilePage about that same Person", async ({ page }) => {
     const [profile] = await jsonLd(page, "/about/");
     expect(profile["@type"]).toBe("ProfilePage");
