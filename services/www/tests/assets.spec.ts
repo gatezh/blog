@@ -120,6 +120,17 @@ test.describe("security headers", () => {
     expect(directive(csp, "worker-src")).toBe("worker-src 'self' blob: data:");
   });
 
+  test("CSP violations are reported to PostHog", async ({ request }) => {
+    // https://posthog.com/docs/csp-tracking — the same US host as api_host in
+    // js/posthog.ts, and the placeholder token from playwright.config.ts.
+    const endpoint = "https://us.i.posthog.com/report/?token=phc_playwright_placeholder";
+    const res = await request.get("/");
+    const csp = res.headers()["content-security-policy"] ?? "";
+    expect(directive(csp, "report-uri")).toBe(`report-uri ${endpoint}`);
+    expect(directive(csp, "report-to")).toBe("report-to posthog");
+    expect(res.headers()["reporting-endpoints"]).toBe(`posthog="${endpoint}"`);
+  });
+
   test("connect-src allows the API the contact form posts to", async ({ request }) => {
     // Both come from params.apiUrl, so they cannot disagree — this pins that.
     const html = await (await request.get("/contact/")).text();

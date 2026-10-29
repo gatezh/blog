@@ -4,12 +4,12 @@ Product analytics for `gatezh.com`, alongside Google Analytics. Production only.
 
 ## How it is wired
 
-| Piece    | Where                                                                                                                                               |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Snippet  | `services/www/themes/terminal/assets/js/posthog.ts`, loaded by `_partials/posthog.html` from `_partials/head.html`                                  |
-| Key      | `HUGO_PARAMS_POSTHOGKEY`, a variable on the **production** GitHub Environment                                                                       |
-| Plumbing | `release.yml` passes it to the Hugo build. `deploy-staging.yml` has no equivalent line.                                                             |
-| CSP      | `services/www/layouts/home._outputformat_headers_.txt` — `https://*.posthog.com` in `script-src` and `connect-src`, `worker-src 'self' blob: data:` |
+| Piece    | Where                                                                                                                                                                                  |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Snippet  | `services/www/themes/terminal/assets/js/posthog.ts`, loaded by `_partials/posthog.html` from `_partials/head.html`                                                                     |
+| Key      | `HUGO_PARAMS_POSTHOGKEY`, a variable on the **production** GitHub Environment                                                                                                          |
+| Plumbing | `release.yml` passes it to the Hugo build. `deploy-staging.yml` has no equivalent line.                                                                                                |
+| CSP      | `services/www/layouts/home._outputformat_headers_.txt` — `https://*.posthog.com` in `script-src` and `connect-src`, `worker-src 'self' blob: data:`, and the violation report endpoint |
 
 The snippet is PostHog's [Option 1, "Recommended"](https://posthog.com/docs/libraries/js):
 the loader copied verbatim from the docs, with
@@ -37,6 +37,11 @@ include the snippet:
   recorder, which the loader injects from PostHog's assets host.
 - **`connect-src https://*.posthog.com`** for event capture.
 - **`worker-src 'self' blob: data:`** for session replay's compression Worker.
+- **`report-uri` and `report-to posthog`**, with a `Reporting-Endpoints`
+  header, send the site's own CSP violations to this project
+  ([CSP tracking](https://posthog.com/docs/csp-tracking)). The URL is
+  `https://us.i.posthog.com/report/?token=<key>`; if `api_host` ever moves to
+  the EU cloud, change both. See `docs/CSP.md`, "Violation reports".
 - **The wildcard stays.** PostHog warns that "the exact subdomains may change
   over time" and that narrowing the list is not recommended.
 

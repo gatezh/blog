@@ -26,6 +26,7 @@ needs neither `'unsafe-inline'` nor a nonce.
 | `object-src 'none'`, `base-uri 'none'` | No plugins; no `<base>` hijacking.                                                                                                                                                                |
 | `form-action 'self'`                   | Native form posts only to this site. `fetch()` is governed by `connect-src`.                                                                                                                      |
 | `frame-ancestors 'none'`               | Nothing may frame the site (clickjacking). `X-Frame-Options: DENY` for older browsers.                                                                                                            |
+| `report-uri`, `report-to posthog`      | Violations are reported to PostHog, with a matching `Reporting-Endpoints` header. Only when its key is set. See [Violation reports](#violation-reports).                                          |
 
 Google Analytics follows
 [Google's policy](https://developers.google.com/tag-platform/security/guides/csp)
@@ -53,6 +54,18 @@ The same `/*` rule sets `X-Content-Type-Options: nosniff`,
 a `Permissions-Policy` that disables camera, geolocation, microphone, payment
 and USB — on every response, HTML or not. Staging builds add
 `X-Robots-Tag: noindex` to it.
+
+### Violation reports
+
+With a host allowlist, the usual way the policy breaks is a vendor starting to
+reach a host it does not list. Production builds (the ones with a PostHog key)
+report every violation to the same PostHog project, as
+[PostHog documents](https://posthog.com/docs/csp-tracking):
+`report-uri https://us.i.posthog.com/report/?token=<key>` for browsers without
+the Reporting API, and `report-to posthog` with a
+`Reporting-Endpoints: posthog="…"` header for those with it. The host matches
+`api_host` in `js/posthog.ts`; the token is public by design. Reports are not
+sampled — the site's traffic is small and a violation should be rare.
 
 ### Cloudflare features that inject scripts
 
@@ -110,4 +123,5 @@ $ curl -sI https://gatezh.com/ | grep -i content-security-policy
 
 The policy should match `public/_headers` from that release's build. Every
 deploy workflow's verify job fails if the site does not serve it, or if its
-`connect-src` does not allow the contact API.
+`connect-src` does not allow the contact API. Violations in production show up
+in PostHog (its "CSP Violation Reports" dashboard template is a starting point).
