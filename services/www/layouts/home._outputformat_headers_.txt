@@ -39,9 +39,13 @@
        needs, and omits a service the build does not include. connect-src takes
        the contact API's origin from params.apiUrl, the URL the form posts to.
 
-       style-src keeps 'unsafe-inline' for the style attributes the theme and
-       Turnstile set. There is no upgrade-insecure-requests: every URL the site
-       emits is relative or https, the zone redirects http to https, and under
+       style-src keeps 'unsafe-inline' for posts: Chroma writes code
+       highlighting as inline style attributes (markup.highlight.noClasses
+       defaults to true), and the cfimage shortcode emits a <style> block and
+       style attributes. The theme and Turnstile need none of it.
+
+       There is no upgrade-insecure-requests: every URL the site emits is
+       relative or https, the zone redirects http to https, and under
        `wrangler dev` it would rewrite same-origin requests to an https port
        nothing listens on.
 
