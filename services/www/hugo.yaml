@@ -13,6 +13,16 @@ enableRobotsTXT: true
 # full history in CI — the deploy workflow checks out with fetch-depth: 0.
 enableGitInfo: true
 
+# The sections that hold the site's dated entries, read as site.MainSections.
+# The home RSS feed (layouts/home.rss.xml) lists only their pages, so the
+# standalone pages /about/ and /early-projects/ don't reach feed readers as
+# posts (/contact/ is a section, not a page, so it was never in the feed).
+# llms-full.txt appends their pages after /about/. Being listed here does not
+# make a page an Article: Article JSON-LD and og:type article are for posts
+# alone (seo.html, head.html), and ever-learning entries, notes on someone
+# else's article, stay WebPage.
+mainSections: ["posts", "ever-learning"]
+
 # Hugo emits a /page/1/ alias for every paginated list — a meta-refresh stub
 # whose only content is a canonical back to the list page. Nothing links them,
 # so they exist purely to be crawled and filed as "Alternate page with proper
@@ -174,10 +184,6 @@ params:
   author: "Serge Gatezh"
   # Searchable nouns first (role, stack), as the per-surface headlines do.
   keywords: "Serge Gatezh, product engineer, Calgary, TypeScript, React, Cloudflare Workers, edge infrastructure, application security, security-first AI workflows, UX"
-
-  # Sections whose pages are articles. The home RSS feed lists only these, so
-  # /about/, /contact/ and /early-projects/ don't reach feed readers as posts.
-  mainSections: ["posts", "ever-learning"]
 
   comments: true
 
