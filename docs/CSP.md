@@ -69,7 +69,12 @@ them off for this zone, or check the console for violations after enabling one.
    `layouts/home._outputformat_headers_.txt`, under the same condition the
    template uses to load it.
 3. Run `bun run test`. The `assets` project serves a real build with
-   `wrangler dev` and fails on any `securitypolicyviolation` event.
+   `wrangler dev` and fails on any `securitypolicyviolation` event. It proves
+   the first hop only: the tags in the HTML and what the vendor snippets
+   request directly, with third parties stubbed. Requests a real vendor script
+   makes later — beacons, fallbacks, lazy-loaded modules — are not exercised,
+   except Google Analytics' fallback beacon, which has its own test. If the new
+   service has such a path, add a test that drives it.
 4. Deploy to staging and check the browser console before releasing.
 
 ## Cloudflare Transform Rules

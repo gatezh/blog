@@ -17,8 +17,9 @@ const POST = "/posts/docker-desktop-disk-full-macos/";
 /** Records every violation of the page's own policy, from the first byte. */
 async function trackCspViolations(page: Page): Promise<() => Promise<string[]>> {
   // addInitScript runs through the DevTools protocol, outside the page's CSP,
-  // and before any of the page's own scripts. A violation is reported before
-  // any network fetch, so this holds offline too.
+  // and before any of the page's own scripts. A request the policy blocks is
+  // reported here and never issued, so page.route never sees it: a stub cannot
+  // hide a violation, and a request that reaches a stub was allowed.
   await page.addInitScript(() => {
     const seen: string[] = [];
     Object.defineProperty(window, "__cspViolations", { value: seen });
@@ -38,6 +39,14 @@ async function stub(page: Page, pattern: string): Promise<string[]> {
     return route.fulfill({ contentType: "application/javascript", body: "" });
   });
   return hits;
+}
+
+/** The build is a production one with the real GA ID: keep gtag.js and every
+ *  collection hit off the network, so no test sends page views to the
+ *  production property. */
+async function stubGoogleAnalytics(page: Page): Promise<void> {
+  await stub(page, "https://*.googletagmanager.com/**");
+  await page.route("**/g/collect**", (route) => route.fulfill({ status: 204 }));
 }
 
 test.describe("error pages", () => {
@@ -148,13 +157,17 @@ test.describe("security headers", () => {
     }
   });
 
-  // The policy is only useful if the site still works under it. A violation is
-  // reported before any network fetch, so this holds offline too.
+  // The policy is only useful if the site still works under it. This proves
+  // the first hop: every tag the HTML loads, and what the vendor snippets
+  // request directly, is allowed. Third parties are stubbed, so requests a
+  // real vendor script would make later (GA's beacons, PostHog's recorder)
+  // are not exercised here; GA's fallback beacon has its own test below.
   for (const path of ["/", "/contact/", POST]) {
     test(`${path} raises no CSP violations`, async ({ page }) => {
       const violations = await trackCspViolations(page);
       // The build carries a placeholder PostHog token; never send it out.
       await stub(page, "https://*.posthog.com/**");
+      await stubGoogleAnalytics(page);
       await page.goto(path);
       await page.waitForLoadState("load");
 
@@ -173,7 +186,7 @@ test.describe("security headers", () => {
 test.describe("vendor snippets run unmodified under the enforced CSP", () => {
   test("PostHog's snippet loads its SDK with nothing blocked", async ({ page }) => {
     const violations = await trackCspViolations(page);
-    await stub(page, "https://*.googletagmanager.com/**");
+    await stubGoogleAnalytics(page);
     const posthog = await stub(page, "https://*.posthog.com/**");
 
     await page.goto("/");
@@ -188,7 +201,7 @@ test.describe("vendor snippets run unmodified under the enforced CSP", () => {
     const violations = await trackCspViolations(page);
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
-    await stub(page, "https://*.googletagmanager.com/**");
+    await stubGoogleAnalytics(page);
     await stub(page, "https://*.posthog.com/**");
     // Fail the submission deterministically, which drives the handler into
     // turnstile.reset("#contact-turnstile").
