@@ -102,17 +102,13 @@ test.describe("security headers", () => {
     }
 
     // Every script is a file, so script-src must never need these back.
-    const scriptSrc = directive(csp, "script-src");
-    expect(scriptSrc).toContain("'self'");
-    for (const banned of [
-      "'unsafe-inline'",
-      "'unsafe-eval'",
-      "'nonce-",
-      "'strict-dynamic'",
-      " https: ",
-    ]) {
-      expect(scriptSrc).not.toContain(banned);
+    // Compared as whole source tokens, so a trailing `https:` is caught too.
+    const sources = directive(csp, "script-src").split(/\s+/).slice(1);
+    expect(sources).toContain("'self'");
+    for (const banned of ["'unsafe-inline'", "'unsafe-eval'", "'strict-dynamic'", "https:"]) {
+      expect(sources).not.toContain(banned);
     }
+    expect(sources.filter((s) => s.startsWith("'nonce-"))).toEqual([]);
   });
 
   test("the CSP grants PostHog the directives PostHog documents", async ({ request }) => {
@@ -138,7 +134,8 @@ test.describe("security headers", () => {
     for (const path of ["/", "/contact/", POST]) {
       const tags = (await (await request.get(path)).text()).match(/<script\b[^>]*>/g) ?? [];
       // JSON-LD is data, not script, and is not governed by script-src.
-      const inline = tags.filter((t) => !/\bsrc=/.test(t) && !/application\/ld\+json/.test(t));
+      // `\ssrc=` so a data-src attribute does not count as a source.
+      const inline = tags.filter((t) => !/\ssrc=/.test(t) && !/application\/ld\+json/.test(t));
       expect(inline, `${path} has inline scripts`).toEqual([]);
     }
   });
