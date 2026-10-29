@@ -15,6 +15,8 @@
   - Pre-built devcontainer images (via mise)
   - every CI and deploy job, via `jdx/mise-action` in `.github/actions/setup`
 - When updating tool versions, only edit `.mise.toml`
+- The one exception is mise itself on CI: its `version` and `sha256` are pinned
+  in `.github/actions/setup/action.yml` (see the comment there)
 
 ## Pre-Completion Checks
 Before finishing any feature or change, **ALWAYS run verification**:
