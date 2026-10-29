@@ -42,7 +42,7 @@ This is a Bun monorepo for gatezh.com:
 │   │   ├── setup/              # mise tools + bun install (composite)
 │   │   └── check-deploy-config/ # api deploy config gate (composite)
 │   ├── dependabot.yml          # keeps action SHA pins current (7-day cooldown)
-│   ├── actionlint.yaml         # ignores for GitHub features actionlint lacks
+│   ├── actionlint.yaml         # actionlint config (runs in `bun run check`)
 │   └── release.yml             # release-notes categories
 │
 ├── .claude/                    # Claude Code configuration
@@ -55,7 +55,7 @@ This is a Bun monorepo for gatezh.com:
 │   ├── init-plugins.sh         # Claude Code marketplaces, plugins, rtk (postCreateCommand)
 │   └── claude-sandbox/         # Sandbox variant (network-restricted)
 ├── docs/                       # Documentation and ADRs
-├── .mise.toml                  # Tool versions (bun, hugo)
+├── .mise.toml                  # Tool versions (bun, hugo, actionlint)
 ├── oxlint.json                 # OXC linter configuration
 ├── tsconfig.json               # Root TypeScript configuration
 └── package.json                # Root workspace config
