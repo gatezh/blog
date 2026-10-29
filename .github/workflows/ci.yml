@@ -33,9 +33,11 @@ jobs:
 
       - uses: $/.github/actions/setup
 
-      # `check` is lint + format + hugo-format + typecheck + build. The
-      # production build runs here, which is why there is no separate build
-      # job — adding one back would build the site twice per PR.
+      # `check` is lint + actionlint + format + hugo-format + typecheck +
+      # build. The production build runs here, which is why there is no
+      # separate build job — adding one back would build the site twice per
+      # PR. actionlint also runs shellcheck (preinstalled on the runner) on
+      # every `run:` block.
       - name: Check
         run: bun run check
 

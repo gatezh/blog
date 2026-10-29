@@ -18,7 +18,7 @@
 
 ## Pre-Completion Checks
 Before finishing any feature or change, **ALWAYS run verification**:
-- `bun run check` from root — lint, format, Hugo template format, typecheck
-  and production build. This is the exact gate CI runs; running the individual
+- `bun run check` from root — lint, workflow lint (actionlint), format, Hugo
+  template format, typecheck and production build. This is the exact gate CI runs; running the individual
   commands instead misses the format checks and ships a red build.
 - `bun run test` from root — API unit tests plus the Playwright suite.

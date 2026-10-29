@@ -9,3 +9,8 @@ hugo-extended = "0.164.0"
 # release, so we build from source).
 go = "1.26"
 "go:github.com/gohugoio/gotmplfmt" = "v0.4.1"
+# Lints .github/workflows (`bun run lint:actions`, part of `bun run check`).
+# The upstream tool by its aqua backend: mise's `actionlint` shorthand is
+# deprecated in favour of a fork. .github/actionlint.yaml lists what this
+# version does not know yet.
+"aqua:rhysd/actionlint" = "1.7.12"
