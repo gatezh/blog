@@ -19,13 +19,26 @@ needs neither `'unsafe-inline'` nor a nonce.
 | `default-src 'self'`                   | Everything not listed below is first-party only — including the self-hosted fonts.                                                                                                                |
 | `script-src 'self' …`                  | Plus Remark42, Turnstile (when a site key is set), `https://*.googletagmanager.com` (production builds, where Google Analytics loads) and PostHog (`https://*.posthog.com`, when its key is set). |
 | `style-src 'self' 'unsafe-inline'`     | Inline style attributes from the theme and Turnstile.                                                                                                                                             |
-| `img-src 'self' data: …`               | Plus Google Analytics' pixel hosts, in production builds.                                                                                                                                         |
-| `connect-src 'self' <API> …`           | The contact-form API (per environment, from `HUGO_PARAMS_APIURL`), Remark42, Google Analytics, PostHog.                                                                                           |
+| `img-src 'self' data: …`               | Plus Google Analytics' pixel hosts (`https://*.google-analytics.com https://*.googletagmanager.com`), in production builds.                                                                       |
+| `connect-src 'self' <API> …`           | The contact-form API (per environment, from `HUGO_PARAMS_APIURL`), Remark42, PostHog and Google Analytics (`https://*.google-analytics.com https://*.google.com https://*.googletagmanager.com`). |
 | `frame-src`                            | Turnstile's challenge and the Remark42 comment thread.                                                                                                                                            |
 | `worker-src 'self' blob: data:`        | PostHog session replay compresses in a Worker created from a blob — PostHog's documented directive. Only when its key is set.                                                                     |
 | `object-src 'none'`, `base-uri 'none'` | No plugins; no `<base>` hijacking.                                                                                                                                                                |
 | `form-action 'self'`                   | Native form posts only to this site. `fetch()` is governed by `connect-src`.                                                                                                                      |
 | `frame-ancestors 'none'`               | Nothing may frame the site (clickjacking). `X-Frame-Options: DENY` for older browsers.                                                                                                            |
+
+Google Analytics follows
+[Google's policy](https://developers.google.com/tag-platform/security/guides/csp)
+for "Google Analytics without any Ads features":
+
+- `script-src-elem https://www.googletagmanager.com`
+- `img-src https://www.googletagmanager.com https://*.google-analytics.com`
+- `connect-src https://www.googletagmanager.com https://*.google-analytics.com https://*.google.com`
+
+The site puts the script host in `script-src` (which `script-src-elem` falls
+back to) and uses `https://*.googletagmanager.com`, a superset of the `www`
+host. `*.google.com` is not optional: when the hit to `*.google-analytics.com`
+fails, gtag retries at `https://www.google.com/g/collect`.
 
 Each third-party origin comes from the same param or condition the templates
 use to load it (`params.apiUrl`, `params.remark42Host`,

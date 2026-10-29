@@ -9,8 +9,13 @@
        neither 'unsafe-inline' nor a per-response nonce:
 
        - Google Analytics (production builds only, like the tag in head.html):
-         Google's documented GA4 policy. The wildcards are required, because
-         collection goes to regional hosts such as region1.google-analytics.com.
+         Google's policy for "Google Analytics without any Ads features" —
+         script www.googletagmanager.com; img www.googletagmanager.com and
+         *.google-analytics.com; connect those plus *.google.com — with
+         *.googletagmanager.com in place of www. (a superset). The wildcards
+         are required: collection goes to regional hosts such as
+         region1.google-analytics.com, and when that hit fails gtag retries at
+         www.google.com/g/collect.
          https://developers.google.com/tag-platform/security/guides/csp
        - Remark42 (params.remark42Host): its embed script renders the comment
          thread in an iframe from that host.
@@ -78,7 +83,7 @@
 {{- if and hugo.IsProduction site.Config.Services.GoogleAnalytics.ID -}}
 	{{- $script = $script | append "https://*.googletagmanager.com" -}}
 	{{- $img = $img | append (slice "https://*.google-analytics.com" "https://*.googletagmanager.com") -}}
-	{{- $connect = $connect | append (slice "https://*.google-analytics.com" "https://*.analytics.google.com" "https://*.googletagmanager.com") -}}
+	{{- $connect = $connect | append (slice "https://*.google-analytics.com" "https://*.google.com" "https://*.googletagmanager.com") -}}
 {{- end -}}
 {{- $csp := slice "default-src 'self'" (printf "script-src %s" (delimit $script " ")) "style-src 'self' 'unsafe-inline'" (printf "img-src %s" (delimit $img " ")) (printf "connect-src %s" (delimit $connect " ")) -}}
 {{- with $frame }}{{ $csp = $csp | append (printf "frame-src %s" (delimit . " ")) }}{{ end -}}

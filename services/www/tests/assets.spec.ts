@@ -212,6 +212,39 @@ test.describe("vendor snippets run unmodified under the enforced CSP", () => {
     expect(pageErrors).toEqual([]);
     expect(await violations()).toEqual([]);
   });
+
+  test("gtag's fallback beacon is allowed when its primary hit fails", async ({ page }) => {
+    // The one test that runs the real gtag.js, because the path it covers only
+    // exists inside it: when the hit to *.google-analytics.com fails (a filter
+    // list, a flaky network), gtag retries at www.google.com/g/collect. Every
+    // hit is still kept off the network: the primary is aborted and the
+    // fallback answered here, so nothing reaches the production property.
+    const violations = await trackCspViolations(page);
+    await stub(page, "https://*.posthog.com/**");
+    await page.route("https://*.googletagmanager.com/**", (route) =>
+      new URL(route.request().url()).pathname === "/gtag/js"
+        ? route.continue()
+        : route.fulfill({ status: 204 }),
+    );
+    await page.route("https://*.google-analytics.com/**", (route) => route.abort());
+    const fallback: string[] = [];
+    await page.route("https://*.google.com/**", (route) => {
+      fallback.push(route.request().url());
+      return route.fulfill({ status: 204 });
+    });
+
+    await page.goto("/");
+
+    // A policy without *.google.com blocks the retry before it reaches the
+    // network: it never arrives here, and a connect-src violation fires
+    // instead. Wait for whichever comes first, then require the allowed one.
+    const retried = () => fallback.some((url) => new URL(url).pathname === "/g/collect");
+    await expect
+      .poll(async () => retried() || (await violations()).length > 0, { timeout: 20_000 })
+      .toBe(true);
+    expect(await violations()).toEqual([]);
+    expect(retried(), "gtag never retried at www.google.com/g/collect").toBe(true);
+  });
 });
 
 test.describe("request path handling", () => {
