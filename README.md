@@ -43,7 +43,6 @@ the single source of truth and the only place versions should be edited.
 | `bun run dev:api` | Start the API Worker locally   |
 | `bun run build`   | Build Hugo site for production |
 | `bun run lint`    | Run oxlint linter              |
-| `bun run deploy`  | Deploy both www and worker     |
 
 ### Local Environment
 
