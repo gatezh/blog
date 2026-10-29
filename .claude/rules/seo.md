@@ -46,3 +46,9 @@ globs: services/www/**
 - Indexability rules are pinned by `services/www/tests/seo.spec.ts`,
   `services/www/tests/assets.spec.ts` and the post-deploy `verify` job. See
   `docs/seo.md` before changing any of them.
+- Share image and favicons are **generated**: edit `services/www/brand/share-image.html`
+  or `services/www/assets/brand/favicon.svg`, then run `bun run brand` from
+  `services/www` and commit the PNGs and `static/favicon.ico`. Never edit those by
+  hand. `params.ogImage` sets the default; a page overrides it with `image:` and
+  `imageAlt:` front matter. One partial (`share-image.html`) feeds both the meta
+  tags and the Article JSON-LD `image`.

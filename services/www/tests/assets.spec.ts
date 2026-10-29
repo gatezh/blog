@@ -167,7 +167,11 @@ test.describe("security headers", () => {
 
   test("fingerprinted assets are cached as immutable", async ({ request }) => {
     const html = await (await request.get("/")).text();
-    for (const pattern of [/\/css\/[A-Za-z0-9._-]+\.css/, /\/js\/[A-Za-z0-9._-]+\.js/]) {
+    for (const pattern of [
+      /\/css\/[A-Za-z0-9._-]+\.css/,
+      /\/js\/[A-Za-z0-9._-]+\.js/,
+      /\/brand\/favicon\.[a-f0-9]+\.svg/,
+    ]) {
       const href = pattern.exec(html)?.[0];
       expect(href, `no ${pattern} asset on the homepage`).toBeTruthy();
       const cacheControl = (await request.get(href as string)).headers()["cache-control"];
@@ -176,6 +180,15 @@ test.describe("security headers", () => {
     }
     // The HTML itself must keep revalidating, or a deploy would go unseen.
     expect((await request.get("/")).headers()["cache-control"] ?? "").not.toContain("immutable");
+  });
+
+  test("/favicon.ico is served from the root", async ({ request }) => {
+    // Browsers and crawlers request this exact path without reading any markup.
+    const res = await request.get("/favicon.ico");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toMatch(/icon/);
+    // Not fingerprinted, so it must keep revalidating like the HTML.
+    expect(res.headers()["cache-control"] ?? "").not.toContain("immutable");
   });
 
   // The policy is only useful if the site still works under it. This proves
