@@ -47,11 +47,8 @@ MARKETPLACES=(
     "GoogleChrome/modern-web-guidance"
     "AgriciDaniel/claude-seo"
     "cloudflare/skills"
-    "rubberduck-studio/typescript-native-lsp"
-    # Serge's own skills (review, canonicalize, pr-description). The HTTPS git
-    # URL clones without a GitHub SSH key; the owner/repo shorthand tries SSH
-    # first, and background updates don't fall back to HTTPS.
-    "https://github.com/gatezh/claude-skills.git"
+    # Not listed: typescript-native-lsp (declared in .claude/settings.json) and
+    # gatezh / dev@gatezh (the image's managed settings declare and enable them).
 )
 
 for marketplace in "${MARKETPLACES[@]}"; do
@@ -88,12 +85,6 @@ PLUGINS=(
     # SEO toolkit — technical SEO, schema, E-E-A-T, GEO/AEO. Relevant: this repo
     # ships JSON-LD, llms.txt, and per-post SEO front matter.
     "claude-seo@agricidaniel-claude-seo"
-    # Replaces typescript-lsp@claude-plugins-official, which wraps tsserver and fails
-    # every request on TypeScript 7 (no tsserver.js). Runs `tsc --lsp` on TS 7+ and
-    # falls back to typescript-language-server on TS 6 and older (#194).
-    "typescript-native-lsp@typescript-native-lsp"
-    # /dev:review, /dev:canonicalize, /dev:pr-description
-    "dev@gatezh"
 )
 
 for plugin in "${PLUGINS[@]}"; do
@@ -105,8 +96,8 @@ for plugin in "${PLUGINS[@]}"; do
 done
 
 # ── Conflicting plugins ─────────────────────────────────────────────────────
-# Plugins that claim the same file extensions as one in PLUGINS: Claude Code
-# starts only whichever registers first. Not installed above, but a persistent
+# Plugins that claim the same file extensions as one this project enables: Claude
+# Code starts only whichever registers first. Not installed above, but a persistent
 # ~/.claude volume may still hold them from an older run — disable if enabled.
 DISABLED_PLUGINS=(
     "typescript-lsp@claude-plugins-official"   # superseded by typescript-native-lsp

@@ -18,22 +18,15 @@
     "pr": ""
   },
   "extraKnownMarketplaces": {
-    "gatezh": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/gatezh/claude-skills.git"
-      },
-      "autoUpdate": true
-    },
     "typescript-native-lsp": {
       "source": {
         "source": "github",
         "repo": "rubberduck-studio/typescript-native-lsp"
-      }
+      },
+      "autoUpdate": true
     }
   },
   "enabledPlugins": {
-    "dev@gatezh": true,
     "typescript-native-lsp@typescript-native-lsp": true,
     "typescript-lsp@claude-plugins-official": false
   }

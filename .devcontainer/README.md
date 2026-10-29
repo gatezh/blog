@@ -65,10 +65,15 @@ After signing in to Claude Code for the first time, run:
 bash .devcontainer/init-plugins.sh
 ```
 
-It registers the marketplaces, installs the plugins (including this repo's
-`dev@gatezh` skills and `typescript-native-lsp`), seeds session retention, and
-updates everything to the latest version. Run it again whenever you want to
+It registers the marketplaces, installs the plugins, seeds session retention,
+and updates everything to the latest version. Run it again whenever you want to
 update the plugins.
+
+Two plugins aren't in it. The image's managed settings declare the `gatezh`
+marketplace and force-enable `dev@gatezh`. `.claude/settings.json` declares
+`typescript-native-lsp` (with auto-update on) and disables `typescript-lsp`,
+which fails on TypeScript 7. Claude Code loads typescript-native-lsp once you
+trust the folder.
 
 ## Usage
 
