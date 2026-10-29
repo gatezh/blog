@@ -1,0 +1,35 @@
+{{/*
+  Share-image partial - Resolves the page's link-preview image
+
+  Returns a dict (url, width, height, alt) or false. Used by head.html for the
+  og:image and twitter:image tags and by seo.html for the JSON-LD `image`, so
+  the meta tags and the structured data always name the same file.
+
+  Source, first match wins:
+  - `image:` front matter: a page resource (e.g. images/cover.png in the page
+    bundle) or a path under assets/. `imageAlt:` describes it; without one the
+    page title stands in.
+  - site.Params.ogImage, a path under assets/, described by site.Params.ogImageAlt.
+
+  Images are fingerprinted, so a changed image is a new URL and platforms that
+  cache previews by URL pick it up. The URL is absolute (.Permalink), which the
+  Open Graph protocol requires. A path that resolves to nothing fails the build
+  rather than shipping a preview that 404s.
+*/}}
+{{- $src := site.Params.ogImage -}}
+{{- $alt := site.Params.ogImageAlt -}}
+{{- with .Params.image -}}
+	{{- $src = . -}}
+	{{- $alt = $.Params.imageAlt | default $.Title -}}
+{{- end -}}
+{{- $result := false -}}
+{{- with $src -}}
+	{{- with $.Resources.Get . | default (resources.Get .) -}}
+		{{- with . | fingerprint -}}
+			{{- $result = dict "url" .Permalink "width" .Width "height" .Height "alt" $alt -}}
+		{{- end -}}
+	{{- else -}}
+		{{- errorf "share image %q not found for %q: expected a page resource or a file under assets/" $src $.RelPermalink -}}
+	{{- end -}}
+{{- end -}}
+{{- return $result -}}

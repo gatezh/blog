@@ -158,6 +158,90 @@ test.describe("titles and descriptions", () => {
   });
 });
 
+/** Width and height from a PNG's IHDR chunk, which always starts at byte 16. */
+function pngSize(png: Buffer): { width: number; height: number } {
+  expect(png.subarray(1, 4).toString("latin1"), "not a PNG").toBe("PNG");
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+}
+
+test.describe("link previews", () => {
+  // Every platform that unfurls links (LinkedIn, Slack, X, iMessage) reads these.
+  for (const path of INDEXABLE_PAGES) {
+    test(`${path} has a large share image with dimensions and alt text`, async ({
+      page,
+      request,
+    }) => {
+      await page.goto(path);
+      const og = (property: string) =>
+        page.locator(`meta[property="og:${property}"]`).getAttribute("content");
+
+      const image = await og("image");
+      // Open Graph requires an absolute URL; a relative one shows no preview.
+      expect(image).toMatch(/^https?:\/\/[^/]+\/brand\/share\.[a-f0-9]+\.png$/);
+      expect(await og("image:width")).toBe("1200");
+      expect(await og("image:height")).toBe("630");
+      expect(await og("image:alt")).toMatch(/^Serge Gatezh, Product Engineer/);
+
+      await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+        "content",
+        "summary_large_image",
+      );
+      await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
+        "content",
+        image as string,
+      );
+
+      // The declared size is the file's real size.
+      const res = await request.get(new URL(image as string).pathname);
+      expect(res.status()).toBe(200);
+      expect(res.headers()["content-type"]).toBe("image/png");
+      expect(pngSize(await res.body())).toEqual({ width: 1200, height: 630 });
+    });
+  }
+
+  test("a post's Article image is the share image", async ({ page }) => {
+    await page.goto("/posts/docker-desktop-disk-full-macos/");
+    const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+    const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
+    const article = blocks.map((b) => JSON.parse(b)).find((b) => b["@type"] === "Article");
+    expect(article.image).toEqual({ "@type": "ImageObject", url: og, width: 1200, height: 630 });
+  });
+});
+
+test.describe("favicons", () => {
+  test("the head links an SVG, a 32 px PNG and a 180 px touch icon", async ({ page, request }) => {
+    await page.goto("/");
+    const href = (selector: string) => page.locator(selector).getAttribute("href");
+
+    const svg = await href('link[rel="icon"][type="image/svg+xml"]');
+    expect(svg).toMatch(/^\/brand\/favicon\.[a-f0-9]+\.svg$/);
+    const svgRes = await request.get(svg as string);
+    expect(svgRes.status()).toBe(200);
+    expect(svgRes.headers()["content-type"]).toContain("image/svg+xml");
+
+    for (const [selector, size] of [
+      ['link[rel="icon"][type="image/png"][sizes="32x32"]', 32],
+      ['link[rel="apple-touch-icon"][sizes="180x180"]', 180],
+    ] as const) {
+      const png = await href(selector);
+      expect(png, selector).toMatch(/^\/brand\/[a-z0-9-]+\.[a-f0-9]+\.png$/);
+      const res = await request.get(png as string);
+      expect(res.status(), selector).toBe(200);
+      expect(pngSize(await res.body())).toEqual({ width: size, height: size });
+    }
+  });
+
+  test("/favicon.ico exists and is a real ICO", async ({ request }) => {
+    const res = await request.get("/favicon.ico");
+    expect(res.status()).toBe(200);
+    // ICONDIR header: reserved 0, type 1 (icon), then the image count.
+    const body = await res.body();
+    expect(body.readUInt16LE(0)).toBe(0);
+    expect(body.readUInt16LE(2)).toBe(1);
+    expect(body.readUInt16LE(4)).toBeGreaterThan(0);
+  });
+});
+
 test.describe("crawlable URL hygiene", () => {
   // Hugo emits /page/1/ meta-refresh stubs for paginated lists unless
   // pagination.disableAliases is set. Nothing links them; they exist only to be
