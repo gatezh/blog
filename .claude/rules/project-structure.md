@@ -48,7 +48,8 @@ This is a Bun monorepo for gatezh.com:
 ├── .claude/                    # Claude Code configuration
 │   ├── CLAUDE.md               # Critical rules
 │   ├── settings.json           # Permissions, TS 7 LSP plugin (typescript-native-lsp)
-│   ├── skills/                 # Project skills (stacked PRs, upstream devcontainer sync)
+│   ├── skills/                 # Project skills (stacked PRs, upstream devcontainer sync,
+│   │                           #   sandbox-fetch-docs)
 │   └── rules/                  # Modular topic rules
 ├── .devcontainer/              # Dev container configs (pre-built GHCR images)
 │   ├── devcontainer.json       # Default devcontainer ("Local Development")
