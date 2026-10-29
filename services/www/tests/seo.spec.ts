@@ -275,6 +275,20 @@ test.describe("identity structured data", () => {
   });
 });
 
+test.describe("robots.txt", () => {
+  test("welcomes every crawler and grants every content signal", async ({ request }) => {
+    const res = await request.get("/robots.txt");
+    expect(res.status()).toBe(200);
+    const body = await res.text();
+    expect(body).toMatch(/^User-agent: \*$/m);
+    expect(body).toMatch(/^Allow: \/$/m);
+    // A Disallow anywhere would take something back from some crawler.
+    expect(body).not.toMatch(/^Disallow:/im);
+    expect(body).toMatch(/^Content-Signal: search=yes, ai-input=yes, ai-train=yes$/m);
+    expect(body).toMatch(/^Sitemap: https?:\/\/\S+\/sitemap\.xml$/m);
+  });
+});
+
 test.describe("RSS", () => {
   test("the home feed lists articles, not site pages", async ({ request }) => {
     const xml = await (await request.get("/index.xml")).text();

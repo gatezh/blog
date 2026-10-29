@@ -78,6 +78,13 @@ exist for them — so the zone must not block them. Decided 2026-10-28.
 | AI Labyrinth (`crawler_protection`)                     | `disabled`                            |
 | Cloudflare-managed robots.txt (`is_robots_txt_managed`) | off — Hugo's robots.txt is the policy |
 
+`robots.txt` (Hugo's `layouts/robots.txt`) says so explicitly with
+[Content Signals](https://contentsignals.org/):
+`Content-Signal: search=yes, ai-input=yes, ai-train=yes`. Training is allowed
+on purpose: it is how a model comes to know who Serge is and what he does
+without being asked, which is the point of a personal-brand site. Search and
+AI-assistant access only help once someone is already asking.
+
 Until that date `ai_bots_protection` was `block`, and ClaudeBot, GPTBot and the
 rest got `403` while `robots.txt` invited them. Check or change it with `cf`:
 
