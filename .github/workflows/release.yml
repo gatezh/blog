@@ -349,7 +349,7 @@ jobs:
           # mirrors for them. A 403 here is the zone's "Block AI bots" rule
           # (docs/seo.md, "AI crawlers: allowed").
           for bot in ClaudeBot/1.0 GPTBot/1.2 PerplexityBot/1.0 Google-Extended; do
-            code=$(curl -s -o /dev/null --max-time 20 -w '%{http_code}' -A "Mozilla/5.0 (compatible; ${bot})" "${SITE}/" || true)
+            code=$(curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' -A "Mozilla/5.0 (compatible; ${bot})" "${SITE}/" || true)
             [ "${code}" = "200" ] || { echo "::error::${SITE}/ returned ${code} to ${bot} — the zone is blocking AI crawlers (docs/seo.md)"; fail=1; }
           done
 
