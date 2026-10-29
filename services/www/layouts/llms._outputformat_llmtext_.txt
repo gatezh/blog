@@ -9,6 +9,10 @@
        whole link list into a code listing. Keeping the emitted text on one line
        with the action leaves gotmplfmt nothing to indent.
 
+       Standalone pages (About, Talks) are listed by path: they belong to no
+       section, so nothing below picks them up on its own. A new page of that
+       kind needs adding here and in llms-full.txt.
+
        Excluded: pages carrying `robots: noindex`. That front matter is the
        site's only "publish but do not index" lever, and listing such a page in
        an index whose whole purpose is discovery defeats it. */ -}}
@@ -21,7 +25,7 @@
 > {{ site.Params.description }}
 
 ## About
-{{ with site.GetPage "/about" }}{{ template "entry" . }}{{ end }}
+{{ range slice "/about" "/talks" }}{{ with site.GetPage . }}{{ template "entry" . }}{{ end }}{{ end }}
 
 ## Blog Posts
 {{ range where $listable "Section" "posts" }}{{ template "entry" . }}{{ end }}

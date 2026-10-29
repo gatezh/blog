@@ -24,5 +24,5 @@
 # {{ site.Title }}
 
 > {{ site.Params.description }}
-{{ with site.GetPage "/about" }}{{ template "page" . }}{{ end }}
+{{ range slice "/about" "/talks" }}{{ with site.GetPage . }}{{ template "page" . }}{{ end }}{{ end }}
 {{- range site.MainSections }}{{ range where $listable "Section" . }}{{ template "page" . }}{{ end }}{{ end }}

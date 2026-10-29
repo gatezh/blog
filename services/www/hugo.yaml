@@ -159,6 +159,10 @@ menu:
       name: Ever Learning
       url: /ever-learning/
       weight: 20
+    - identifier: talks
+      name: Talks
+      url: /talks/
+      weight: 28
     - identifier: about
       name: About
       url: /about/
