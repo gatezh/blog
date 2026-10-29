@@ -21,7 +21,9 @@ staging or production without the checks and tests a pull request runs.
 generates release notes, deploys both Workers and verifies production. A CI
 failure leaves no tag behind. Each Worker version is labelled with the release
 tag (`wrangler deploy --tag`), so the dashboard's **Deployments** list says
-which release every version is.
+which release every version is. **Re-run all jobs** on a release that already
+tagged its commit deploys that same release again instead of bumping a second
+tag onto the commit.
 
 ### Rolling back
 
@@ -33,15 +35,18 @@ which release every version is.
 - **Through a release:** the same workflow with `action: redeploy` and an
   earlier version (e.g. `1.4.2`). It rebuilds and redeploys that tag and
   verifies it, without re-running CI — a rollback must not wait on, or be
-  blocked by, today's checks against an old tree. Only tags on `master` are
-  accepted.
+  blocked by, today's checks against an old tree. It accepts any `vX.Y.Z` tag
+  whose commit is on `master`, including one pushed by hand with no GitHub
+  release behind it.
 
 ### Why release-anchored production
 
 A release is a tag you can point at, and redeploying an existing tag is a
 first-class action rather than a revert commit. **Immutable releases** are on
 (Settings → General → Releases), so a published release's tag cannot be moved
-or deleted, and a redeploy ships what was released.
+or deleted, and a redeploy ships what was released. That holds only for
+releases published after the setting was turned on: `v0.0.1` predates it and
+is not immutable, so the guarantee starts with the next release.
 
 Neither deploy workflow cancels a running deploy (`cancel-in-progress: false`):
 a cancelled deploy can leave `www` and `api` on different commits. GitHub keeps

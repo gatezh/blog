@@ -102,7 +102,20 @@ jobs:
             exit 0
           fi
 
-          # Release tags only; anything else starting with "v" is ignored.
+          # "Re-run all jobs" runs this again on the same commit. If the first
+          # attempt already tagged it, deploy that release rather than bumping
+          # and tagging the commit a second time. Release tags only; anything
+          # else starting with "v" is ignored.
+          if [ "${GITHUB_RUN_ATTEMPT}" -gt 1 ]; then
+            existing=$(git tag --points-at "${GITHUB_SHA}" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
+            if [ -n "${existing}" ]; then
+              echo "Re-run: ${existing} already points at ${GITHUB_SHA}; deploying it again"
+              echo "version=${existing#v}" >> "$GITHUB_OUTPUT"
+              echo "commit_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
           latest=$(git tag -l --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
           latest=${latest:-v0.0.0}
           IFS=. read -r major minor patch <<< "${latest#v}"
