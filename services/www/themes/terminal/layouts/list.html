@@ -4,6 +4,7 @@
   Displays section content as a terminal file listing:
   - Section header styled as directory listing command
   - Optional section description from _index.md
+  - Credential badges beside it when the section sets `showCredentials: true`
   - Posts displayed with file listing aesthetic
 */}}
 {{ define "main" }}
@@ -22,12 +23,17 @@
 					<span class="terminal-prompt"></span>
 					<span class="terminal-command">ls -la ./{{ .Section | default .Title | lower }}/</span>
 				</div>
-				<h1 class="text-2xl font-bold mb-2 mt-0">{{ .Title }}</h1>
-				{{ with .Content }}
-					<div class="text-terminal-muted text-sm prose">
-						{{ . }}
+				<div class="list-page-intro">
+					<div>
+						<h1 class="text-2xl font-bold mb-2 mt-0">{{ .Title }}</h1>
+						{{ with .Content }}
+							<div class="text-terminal-muted text-sm prose">
+								{{ . }}
+							</div>
+						{{ end }}
 					</div>
-				{{ end }}
+					{{- if .Params.showCredentials }}{{ partial "credentials.html" . }}{{ end }}
+				</div>
 			</div>
 		</div>
 	</header>

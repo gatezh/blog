@@ -10,7 +10,7 @@
        with the action leaves gotmplfmt nothing to indent.
 
        Pages: site.Home.RegularPages, the regular pages directly under the
-       content root (About, Talks, Early Projects...), which belong to no
+       content root (About, Projects, Talks...), which belong to no
        section. A new one is listed automatically. The llms stubs themselves
        are kept out by their `build: list: never`.
 

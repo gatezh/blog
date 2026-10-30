@@ -65,7 +65,7 @@ test.describe("top-level pages", () => {
     const pages = sitemapPaths(await text(request, "/sitemap.xml")).filter(
       (p) => /^\/[^/]+\/$/.test(p) && !TOP_LEVEL_SECTIONS.includes(p),
     );
-    expect(pages).toEqual(expect.arrayContaining(["/about/", "/talks/"]));
+    expect(pages).toEqual(expect.arrayContaining(["/about/", "/projects/", "/talks/"]));
 
     const index = await text(request, "/llms.txt");
     const full = await text(request, "/llms-full.txt");
@@ -77,6 +77,17 @@ test.describe("top-level pages", () => {
         new RegExp(`^Source: https?://[^/]+${path}$`, "m"),
       );
     }
+  });
+
+  test("the projects mirror carries every layer, as before and after", async ({ request }) => {
+    const md = await (await request.get("/projects/index.md")).text();
+    for (const layer of ["Products", "Platforms", "Workbench"]) {
+      expect(md).toContain(`## ${layer}`);
+    }
+    expect(md).toContain("### [devcontainers](https://github.com/gatezh/devcontainers)");
+    expect(md).toMatch(/^- Before: .+$/m);
+    expect(md).toMatch(/^- After: .+$/m);
+    expect(md).toContain("- Runs on SurgeGate");
   });
 
   test("the talks mirror carries every talk with its slides", async ({ request }) => {
@@ -143,7 +154,7 @@ test.describe("llms-full.txt structure", () => {
 });
 
 test.describe("markdown mirrors", () => {
-  for (const path of ["/", "/posts/", "/ever-learning/", "/about/", "/talks/"]) {
+  for (const path of ["/", "/posts/", "/ever-learning/", "/about/", "/projects/", "/talks/"]) {
     test(`${path} has a Markdown mirror`, async ({ request }) => {
       const res = await request.get(`${path}index.md`);
       expect(res.status(), `${path}index.md should exist`).toBe(200);

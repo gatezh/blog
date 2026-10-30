@@ -24,7 +24,7 @@ globs: services/www/**
   and `llms-full.md` (front matter only; `url:` sets the output path), rendered
   by `services/www/layouts/llms*._outputformat_llmtext_.txt`. Adding a post
   updates both automatically, and so does adding a page directly under
-  `content/` (About, Talks): both templates list `site.Home.RegularPages`.
+  `content/` (About, Projects, Talks): both templates list `site.Home.RegularPages`.
   `tests/agents.spec.ts` checks every top-level sitemap page is in both.
 - Home, section listings and regular pages each emit an `index.md` Markdown
   mirror (`outputs` in `hugo.yaml` lists all three kinds — a kind that is not
