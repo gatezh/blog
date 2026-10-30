@@ -43,12 +43,15 @@ Both deploy workflows change their environment in two phases, with Cloudflare's
    prints the exact `wrangler versions deploy` commands that restore both
    previous versions. Nothing rolls back on its own: a part-way promote leaves
    at most the api newer than the site, which the api-first order already
-   requires to work, and re-running the `promote` job finishes it. Most of
+   requires to work, and re-running the `promote` job finishes it. A re-run
+   deploys this run's versions over whatever is live, so only re-run (or run the
+   printed commands) while no later run has deployed since. Most of
    verify's checks are zone settings (Transform Rules, bot blocking, managed
    robots.txt) that a rollback cannot change.
 
 So a failed upload, for example a Cloudflare API error during the asset upload,
-leaves the environment untouched: re-run the failed jobs. A failed promote never
+leaves the environment untouched: re-run the failed jobs, unless a later run
+has deployed since. A failed promote never
 leaves the site newer than the api.
 
 Two consequences:
@@ -72,7 +75,8 @@ uploads records the new versions as "previous". To roll back by hand:
 - **Instantly:** Workers & Pages → the Worker → **Deployments** → the version
   tagged with the previous release → **Rollback**, or
   `bunx wrangler rollback <version-id>` from `services/www` or `services/api`.
-  No rebuild; Cloudflare keeps the last 100 versions. Roll back both Workers.
+  No rebuild; Cloudflare keeps the last 100 versions. Roll back both Workers,
+  www first, so a new site never meets an old api.
   The next release replaces the rollback.
 - **Through a release:** the same workflow with `action: redeploy` and an
   earlier version (e.g. `1.4.2`). It rebuilds and redeploys that tag and

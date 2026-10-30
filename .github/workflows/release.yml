@@ -472,9 +472,9 @@ jobs:
             echo "## ${FAILED} ${OUTCOME} — nothing was rolled back"
             echo ""
             if [ "${FAILED}" = "promote" ]; then
-              echo "Re-running the \`promote\` job finishes the promotion. Or put both Workers back on what they served before this release:"
+              echo "Re-running the \`promote\` job finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this release:"
             else
-              echo "If the new versions are the cause, put both Workers back on what they served before this release:"
+              echo "If the new versions are the cause, and no later run has deployed since, put both Workers back on what they served before this release:"
             fi
             echo ""
             echo '```sh'
