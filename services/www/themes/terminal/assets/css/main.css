@@ -98,6 +98,10 @@
     color: var(--color-terminal-fg);
     font-size: 0.9375rem; /* 15px */
     transition: background-color 200ms ease, color 200ms ease;
+
+    @variant max-sm {
+      font-size: 0.875rem;
+    }
   }
 
   /* Headings */
@@ -112,14 +116,26 @@
   h1 {
     font-size: 1.75rem;
     margin-top: 0;
+
+    @variant max-sm {
+      font-size: 1.5rem;
+    }
   }
 
   h2 {
     font-size: 1.375rem;
+
+    @variant max-sm {
+      font-size: 1.25rem;
+    }
   }
 
   h3 {
     font-size: 1.125rem;
+
+    @variant max-sm {
+      font-size: 1.125rem;
+    }
   }
 
   h4, h5, h6 {
@@ -221,12 +237,22 @@
     border-collapse: collapse;
     margin: 1.5em 0;
     font-size: 0.875rem;
+
+    @variant max-sm {
+      display: block;
+      overflow-x: auto;
+    }
   }
 
   th, td {
     padding: 0.75rem;
     text-align: left;
     border-bottom: 1px solid var(--color-terminal-border);
+
+    @variant max-sm {
+      padding: 0.5rem;
+      white-space: nowrap;
+    }
   }
 
   th {
@@ -321,6 +347,12 @@
     cursor: pointer;
     border: none;
     background: transparent;
+
+    @variant max-sm {
+      padding: 0.5rem;
+      min-width: 40px;
+      min-height: 40px;
+    }
   }
 
   .theme-toggle-btn:hover {
@@ -381,6 +413,10 @@
   .terminal-command {
     color: var(--color-terminal-fg);
     font-weight: 500;
+
+    @variant max-sm {
+      word-break: break-word;
+    }
   }
 
   /* Terminal window chrome */
@@ -390,6 +426,10 @@
     overflow: hidden;
     background-color: var(--color-terminal-code-bg);
     transition: border-color 200ms ease, box-shadow 200ms ease;
+
+    @variant max-sm {
+      border-radius: 0.375rem;
+    }
   }
 
   .terminal-window:hover {
@@ -404,6 +444,10 @@
     padding: 0.5rem 1rem;
     background-color: var(--color-terminal-bg-secondary);
     border-bottom: 1px solid var(--color-terminal-border);
+
+    @variant max-sm {
+      padding: 0.375rem 0.75rem;
+    }
   }
 
   .terminal-window-dot {
@@ -433,6 +477,10 @@
     padding: 1rem;
     font-size: 0.875rem;
     line-height: 1.5;
+
+    @variant max-sm {
+      padding: 0.75rem;
+    }
   }
 
   /* Keep the portrait scale consistent wherever the profile hero appears. */
@@ -443,10 +491,8 @@
     height: auto;
     margin: 0 auto;
     border-radius: 0;
-  }
 
-  @media (min-width: 640px) {
-    .profile-portrait {
+    @variant sm {
       margin-right: 0;
     }
   }
@@ -514,6 +560,12 @@
     font-size: 0.875rem;
     color: var(--color-terminal-muted);
     margin-bottom: 1.5rem;
+
+    @variant max-sm {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
   }
 
   .article-date::before {
@@ -620,6 +672,11 @@
     text-decoration: none;
     position: relative;
     overflow: hidden;
+
+    @variant max-sm {
+      padding: 0.75rem 1.25rem;
+      min-height: 44px;
+    }
   }
 
   .btn:active {
@@ -676,6 +733,11 @@
     border: 1px solid var(--color-terminal-border);
     border-radius: 0.375rem;
     transition: border-color 150ms ease, box-shadow 150ms ease;
+
+    @variant max-sm {
+      min-height: 48px;
+      font-size: 1rem;
+    }
   }
 
   .form-input:focus {
@@ -743,25 +805,27 @@
   /* -------------------------------------------------------------------------
      Article Content - Enhanced Code Blocks
 
-     Code blocks within article content get terminal window chrome styling
+     Code blocks within article content get terminal window chrome styling.
+     The <pre> scrolls: Hugo gives it tabindex="0" so the keyboard can scroll
+     it. The <code> sizes to its longest line and owns the padding, so the
+     padding survives at full scroll.
      ------------------------------------------------------------------------- */
   .article-content pre {
-    position: relative;
     margin: 1.5em 0;
-    padding-top: 2.5rem;
+    padding: 0;
     border: 1px solid var(--color-terminal-border);
     border-radius: 0.5rem;
     background-color: var(--color-terminal-code-bg);
-    overflow: hidden;
+    overflow-x: auto;
   }
 
-  /* Terminal window header for code blocks */
+  /* Terminal window header for code blocks: sticky, so it stays put while
+     the code scrolls under it */
   .article-content pre::before {
     content: '';
-    position: absolute;
-    top: 0;
+    display: block;
+    position: sticky;
     left: 0;
-    right: 0;
     height: 2rem;
     background-color: var(--color-terminal-bg-secondary);
     border-bottom: 1px solid var(--color-terminal-border);
@@ -775,16 +839,16 @@
 
   .article-content pre code {
     display: block;
+    width: max-content;
+    min-width: 100%;
     padding: 1rem;
-    overflow-x: auto;
     background: none;
     font-size: 0.8125rem;
     line-height: 1.6;
-  }
 
-  /* Line numbers effect (optional visual enhancement) */
-  .article-content pre code {
-    counter-reset: line;
+    @variant max-sm {
+      padding: 0.75rem;
+    }
   }
 
   /* Syntax highlighting compatible styles */
@@ -830,101 +894,6 @@
   .toc nav a::before {
     content: '# ';
     color: var(--color-terminal-border);
-  }
-}
-
-/* =============================================================================
-   Responsive Design
-   ============================================================================= */
-@media (max-width: 640px) {
-  /* Smaller text on mobile */
-  body {
-    font-size: 0.875rem;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  h2 {
-    font-size: 1.25rem;
-  }
-
-  h3 {
-    font-size: 1.125rem;
-  }
-
-  /* Full-width code blocks on mobile with tighter spacing */
-  pre {
-    padding: 0.75rem;
-    font-size: 0.8125rem;
-    margin-left: -1rem;
-    margin-right: -1rem;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
-
-  /* Adjust table for mobile */
-  table {
-    display: block;
-    overflow-x: auto;
-  }
-
-  th, td {
-    padding: 0.5rem;
-    white-space: nowrap;
-  }
-
-  /* Terminal window adjustments for mobile */
-  .terminal-window {
-    border-radius: 0.375rem;
-  }
-
-  .terminal-window-content {
-    padding: 0.75rem;
-  }
-
-  .terminal-window-header {
-    padding: 0.375rem 0.75rem;
-  }
-
-  /* Terminal commands: allow wrapping on mobile */
-  .terminal-command {
-    word-break: break-word;
-  }
-
-  /* Post list: stack date below title on mobile */
-  .post-list-item .flex {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-  }
-
-  /* Larger touch targets for buttons */
-  .btn {
-    padding: 0.75rem 1.25rem;
-    min-height: 44px;
-  }
-
-  /* Theme toggle larger touch area */
-  .theme-toggle-btn {
-    padding: 0.5rem;
-    min-width: 40px;
-    min-height: 40px;
-  }
-
-  /* Article meta wrapping */
-  .article-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-  }
-
-  /* Form inputs larger for touch */
-  .form-input {
-    min-height: 48px;
-    font-size: 1rem;
   }
 }
 

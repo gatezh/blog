@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { sitemapPaths } from "./sitemap";
+
 /**
  * Search-engine indexability tests.
  *
@@ -21,10 +23,6 @@ const INDEXABLE_PAGES = ["/", "/posts/", "/ever-learning/", "/about/", "/contact
 // Taxonomy listings: near-duplicates of /posts/ while the post count is small.
 // Term pages exist only as long as a post carries the term.
 const NOINDEX_PAGES = ["/tags/", "/categories/"];
-
-function sitemapPaths(xml: string): string[] {
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
-}
 
 test.describe("robots meta", () => {
   for (const path of INDEXABLE_PAGES) {
@@ -306,8 +304,12 @@ test.describe("identity structured data", () => {
     expect(profile["@type"]).toBe("ProfilePage");
     expect(profile.mainEntity.name).toBe("Serge Gatezh");
     expect(profile.mainEntity["@id"]).toMatch(PERSON_ID);
-    // Recommended by Google for ProfilePage; ISO 8601 with an offset.
-    expect(profile.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
+    // Recommended by Google for ProfilePage; ISO 8601 with an offset. A UTC
+    // date prints as `Z` (Go's Z07:00), as in CI, where the shallow checkout
+    // makes every page's Lastmod GitHub's test-merge commit, often in UTC.
+    expect(profile.dateModified).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/,
+    );
   });
 
   test("footer profile links declare rel=me", async ({ page }) => {
