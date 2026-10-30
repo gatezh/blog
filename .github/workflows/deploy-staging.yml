@@ -36,9 +36,8 @@ jobs:
     uses: $/.github/workflows/ci.yml
 
   # Same two phases as release.yml: upload both services as versions that serve
-  # no traffic, promote both only when both uploads succeeded, and put both
-  # back on what they served before if promotion fails. See the comment above
-  # upload-www there.
+  # no traffic, then promote both only when both uploads succeeded. See the
+  # comment above upload-www there.
   upload-www:
     needs: ci
     runs-on: ubuntu-24.04
@@ -126,10 +125,10 @@ jobs:
 
       # The secrets go up in the same Worker version as the code (`versions
       # upload --secrets-file`), not as a separate `wrangler secret bulk`
-      # deployment of the old code first. Every credential is a secret, so its value is masked in this
-      # public repo's logs. Unset ones are left out rather than shipped as an
-      # empty string that reads as "configured". The file lives in RUNNER_TEMP
-      # and is deleted after the deploy.
+      # deployment of the old code first. Every credential is a secret, so its
+      # value is masked in this public repo's logs. Unset ones are left out
+      # rather than shipped as an empty string that reads as "configured". The
+      # file lives in RUNNER_TEMP and is deleted after the upload.
       - name: Write the secrets file
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
@@ -178,6 +177,7 @@ jobs:
       - uses: $/.github/actions/setup
 
       # api first: the new site may post to an api change, never the reverse.
+      # `triggers deploy`: see release.yml.
       - name: Promote both versions to 100% of traffic
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -186,10 +186,12 @@ jobs:
           WWW_VERSION_ID: ${{ needs.upload-www.outputs.version_id }}
         run: |
           bunx wrangler versions deploy --cwd services/api --env staging "${API_VERSION_ID}@100%" --message "${GITHUB_SHA}" --yes
+          bunx wrangler triggers deploy --cwd services/api --env staging
           bunx wrangler versions deploy --cwd services/www --env staging "${WWW_VERSION_ID}@100%" --message "${GITHUB_SHA}" --yes
+          bunx wrangler triggers deploy --cwd services/www --env staging
 
   verify:
-    needs: [upload-www, upload-api, promote]
+    needs: promote
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     # The environment only for its variables and secrets. deployment: false
@@ -200,9 +202,6 @@ jobs:
     steps:
       - name: Verify staging
         env:
-          # For the rollback hint if a check fails; see the rollback job.
-          WWW_PREVIOUS: ${{ needs.upload-www.outputs.previous }}
-          API_PREVIOUS: ${{ needs.upload-api.outputs.previous }}
           # Optional: only needed once staging-www sits behind Cloudflare Access.
           CLOUDFLARE_ZERO_CLIENT_ID: ${{ vars.CLOUDFLARE_ZERO_CLIENT_ID }}
           CLOUDFLARE_ZERO_CLIENT_SECRET: ${{ secrets.CLOUDFLARE_ZERO_CLIENT_SECRET }}
@@ -291,52 +290,33 @@ jobs:
           grep -qi '^x-robots-tag: noindex' <<< "${api_headers}" \
             || { echo "::error::GET ${API_URL}/ is missing X-Robots-Tag: noindex"; fail=1; }
 
-          # A failed check does not roll back on its own: most of these checks are
-          # zone settings a rollback cannot change. It says how, for a person to
-          # decide.
-          if [ "${fail}" != "0" ]; then
-            {
-              echo "## Verification failed"
-              echo ""
-              echo "To put both Workers back on what they served before this run:"
-              echo ""
-              echo '```sh'
-              echo "bunx wrangler versions deploy --cwd services/www --env staging ${WWW_PREVIOUS} --yes"
-              echo "bunx wrangler versions deploy --cwd services/api --env staging ${API_PREVIOUS} --yes"
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "::error::Verification failed; nothing was rolled back. The run summary has the rollback command."
-            exit 1
-          fi
+          [ "${fail}" = "0" ] || exit 1
           echo "Staging verified."
 
-  # Puts both Workers back on what they served before this run when promotion
-  # fails. Not when an upload fails (nothing was promoted) or when verify fails
-  # (see the same job in release.yml).
-  rollback:
-    needs: [upload-www, upload-api, promote]
-    if: ${{ always() && needs.promote.result == 'failure' }}
+  # Prints the rollback command; nothing rolls back on its own (see release.yml).
+  rollback-command:
+    needs: [upload-www, upload-api, promote, verify]
+    if: ${{ always() && (needs.promote.result == 'failure' || needs.verify.result == 'failure') }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    environment:
-      name: staging
-      deployment: false
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: $/.github/actions/setup
-
-      - name: Restore the versions that were live before this run
+      - name: Print the command that restores the previous versions
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          FAILED: ${{ needs.promote.result == 'failure' && 'promote' || 'verify' }}
           WWW_PREVIOUS: ${{ needs.upload-www.outputs.previous }}
           API_PREVIOUS: ${{ needs.upload-api.outputs.previous }}
         run: |
-          # Word splitting is the point: each is a list of id@percentage specs.
-          # shellcheck disable=SC2086
-          bunx wrangler versions deploy --cwd services/www --env staging ${WWW_PREVIOUS} --message "Rollback: staging run ${GITHUB_RUN_ID} failed" --yes
-          # shellcheck disable=SC2086
-          bunx wrangler versions deploy --cwd services/api --env staging ${API_PREVIOUS} --message "Rollback: staging run ${GITHUB_RUN_ID} failed" --yes
-          echo "::error::Promotion failed; www and api are back on the versions they served before"
+          {
+            echo "## ${FAILED} failed — nothing was rolled back"
+            echo ""
+            if [ "${FAILED}" = "promote" ]; then
+              echo "**Re-run failed jobs** finishes the promotion. Or put both Workers back on what they served before this run:"
+            else
+              echo "If the new versions are the cause, put both Workers back on what they served before this run:"
+            fi
+            echo ""
+            echo '```sh'
+            echo "bunx wrangler versions deploy --cwd services/www --env staging ${WWW_PREVIOUS} --yes"
+            echo "bunx wrangler versions deploy --cwd services/api --env staging ${API_PREVIOUS} --yes"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
