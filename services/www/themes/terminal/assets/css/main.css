@@ -443,10 +443,8 @@
     height: auto;
     margin: 0 auto;
     border-radius: 0;
-  }
 
-  @media (min-width: 640px) {
-    .profile-portrait {
+    @variant sm {
       margin-right: 0;
     }
   }
@@ -856,7 +854,9 @@
     font-size: 1.125rem;
   }
 
-  /* No code-block rules here: unlayered, they beat @layer components. */
+  /* This block is unlayered, so it beats every @layer rule, Tailwind
+     utilities included. Don't add to it; new mobile rules go next to their
+     component as `@variant max-sm`. */
 
   /* Adjust table for mobile */
   table {
