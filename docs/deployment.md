@@ -37,7 +37,10 @@ Both deploy workflows change their environment in two phases, with Cloudflare's
    Workers to their new version (`wrangler versions deploy <id>@100%`), api
    first. A version upload does not apply routes, custom domains or
    workers.dev, so `promote` also runs `wrangler triggers deploy` (still
-   labelled experimental) for each Worker, as `wrangler deploy` did.
+   labelled experimental) for each Worker, as `wrangler deploy` did. That
+   command refuses to run unless www's `assets.directory` exists, so
+   `upload-www` hands its built `public/` to `promote` as the `www-public`
+   artifact.
 3. `verify` checks the live environment.
 4. If `promote` fails or is cancelled, or `verify` fails, `rollback-command`
    prints the exact `wrangler versions deploy` commands that restore both
