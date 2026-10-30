@@ -20,17 +20,63 @@ staging or production without the checks and tests a pull request runs.
 `action: create` and a bump level. It runs CI, then tags `master` and
 generates release notes, deploys both Workers and verifies production. A CI
 failure leaves no tag behind. Each Worker version is labelled with the release
-tag (`wrangler deploy --tag`), so the dashboard's **Deployments** list says
-which release every version is. **Re-run all jobs** on a release that already
-tagged its commit deploys that same release again instead of bumping a second
-tag onto the commit.
+tag (`wrangler versions upload --tag`), so the dashboard's **Deployments** list
+says which release every version is. **Re-run all jobs** on a release that
+already tagged its commit deploys that same release again instead of bumping a
+second tag onto the commit.
+
+### Upload, then promote
+
+Both deploy workflows change their environment in two phases, with Cloudflare's
+[Worker versions](https://developers.cloudflare.com/workers/configuration/versions-and-deployments/):
+
+1. `upload-www` and `upload-api` build each service and upload it with
+   `wrangler versions upload`: a new version that serves no traffic. Each also
+   records what the Worker serves now (`wrangler deployments status --json`).
+2. `promote` runs only when **both** uploads succeeded, and switches both
+   Workers to their new version (`wrangler versions deploy <id>@100%`), api
+   first. A version upload does not apply routes, custom domains or
+   workers.dev, so `promote` also runs `wrangler triggers deploy` (still
+   labelled experimental) for each Worker, as `wrangler deploy` did.
+3. `verify` checks the live environment.
+4. If `promote` fails or is cancelled, or `verify` fails, `rollback-command`
+   prints the exact `wrangler versions deploy` commands that restore both
+   previous versions. Nothing rolls back on its own: a part-way promote leaves
+   at most the api newer than the site, which the api-first order already
+   requires to work, and re-running the `promote` job finishes it. A re-run
+   deploys this run's versions over whatever is live, so only re-run (or run the
+   printed commands) while no later run has deployed since. Most of
+   verify's checks are zone settings (Transform Rules, bot blocking, managed
+   robots.txt) that a rollback cannot change.
+
+So a failed upload, for example a Cloudflare API error during the asset upload,
+leaves the environment untouched: re-run the failed jobs, unless a later run
+has deployed since. A failed promote never
+leaves the site newer than the api.
+
+Two consequences:
+
+- **A Worker must exist before CI can upload to it.** Cloudflare rejects
+  `versions upload` as a Worker's first upload
+  ([Limits → First upload](https://developers.cloudflare.com/workers/versions-and-deployments/deployment-management/#first-upload)).
+  Create a new Worker in the dashboard first (see the rename below).
+- Wrangler runs directly (`bunx wrangler`), not through
+  `cloudflare/wrangler-action`, unlike the other projects on this stack: the
+  action adds `--var` only to `deploy` commands, and the version id comes from
+  Wrangler's machine-readable output (`WRANGLER_OUTPUT_FILE_PATH`).
 
 ### Rolling back
+
+A failed promote or verify prints the rollback command in the run summary (see
+above). It restores what was live when the upload jobs ran, so after a failed
+verify use **Re-run failed jobs**, not **Re-run all jobs**: re-running the
+uploads records the new versions as "previous". To roll back by hand:
 
 - **Instantly:** Workers & Pages → the Worker → **Deployments** → the version
   tagged with the previous release → **Rollback**, or
   `bunx wrangler rollback <version-id>` from `services/www` or `services/api`.
-  No rebuild; Cloudflare keeps the last 100 versions. Roll back both Workers.
+  No rebuild; Cloudflare keeps the last 100 versions. Roll back both Workers,
+  www first, so a new site never meets an old api.
   The next release replaces the rollback.
 - **Through a release:** the same workflow with `action: redeploy` and an
   earlier version (e.g. `1.4.2`). It rebuilds and redeploys that tag and
@@ -49,7 +95,8 @@ releases published after the setting was turned on: `v0.0.1` predates it and
 is not immutable, so the guarantee starts with the next release.
 
 Neither deploy workflow cancels a running deploy (`cancel-in-progress: false`):
-a cancelled deploy can leave `www` and `api` on different commits. GitHub keeps
+a deploy cancelled during `promote` can leave `www` and `api` on different
+commits (a cancel during the uploads changes nothing). GitHub keeps
 one pending run per group and replaces it when a newer one arrives. Staging
 relies on that: a pending run has not started any job, and the newer push
 already contains its commit. Release sets `concurrency.queue: max` instead, so
@@ -127,7 +174,7 @@ missing (`.github/actions/check-deploy-config`) instead of failing:
   rejects every one.
 
 Secrets go up with the code, in the same Worker version
-(`wrangler deploy --secrets-file`). A deploy only ever **adds or replaces**
+(`wrangler versions upload --secrets-file`). A deploy only ever **adds or replaces**
 secrets: one GitHub does not hold is left alone on the Worker. So deleting a
 GitHub secret does not remove it from the Worker — do that as well:
 
@@ -154,9 +201,14 @@ layout the other projects on this stack use. This Cloudflare account is
 shared with other projects, so the names carry a `gatezh-` prefix rather than
 the bare `www`/`api` a dedicated account can use.
 
+CI cannot create a Worker (see "Upload, then promote"). Before each step, create
+the new Worker in the dashboard under its exact name (**Workers & Pages →
+Create**, any starter). The release then uploads into it, and `promote`'s
+`triggers deploy` attaches the custom domain from `wrangler.jsonc`.
+
 - **API first — no downtime.** Add a `production` env block to
   `services/api/wrangler.jsonc` with `"name": "gatezh-api-production"` and a
-  custom domain `api.gatezh.com`, and deploy with `environment: production`.
+  custom domain `api.gatezh.com`, and deploy it with a release.
   The new Worker serves alongside the old one. Point production's
   `HUGO_PARAMS_APIURL` at `https://api.gatezh.com` and release; once the
   contact form submits through it, delete `gatezh-com-email-worker`.
@@ -200,9 +252,9 @@ permissions.
 2. Name: `gatezh-github-actions`. This account hosts other projects, so the
    name says which one it serves.
 3. **Policy 1** — scope **Entire Account**: **Workers → Admin**. Admin rather
-   than Editor because a deploy that creates a Worker (the first staging deploy,
-   and the planned Worker rename) needs it; per-Worker roles cannot apply to
-   a Worker that does not exist yet.
+   than Editor because per-Worker roles cannot apply to a Worker that does not
+   exist yet, and the planned rename adds new Workers (created in the
+   dashboard; CI then uploads to them).
 4. **Policy 2** — scope **Specified Domains → `gatezh.com`**: **Workers Routes →
    Edit**, which attaches custom domains. No DNS permission is needed — the
    custom domain creates its own record.
