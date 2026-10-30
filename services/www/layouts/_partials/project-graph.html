@@ -1,0 +1,51 @@
+{{- /* The Projects page as a graph, built once from its `layers:` front
+       matter and shared by the stack diagram, the entries' relation lines,
+       the Markdown mirror and the JSON-LD, so none of them can disagree.
+
+       Returns a dict:
+       - nodes:  id -> entry
+       - edges:  slice of dict (from, to, verb) from `runsOn` ("runs on") and
+                 `builtIn` ("built in")
+       - groups: one dict (platform, products) per entry of the second layer,
+                 with the first-layer entries that run on it, for the diagram
+       - talks:  talk id -> dict (short, url), for every `talks` id used
+
+       An edge or talk id that does not exist fails the build. */ -}}
+{{- $layers := .Params.layers -}}
+{{- $nodes := dict -}}
+{{- $talkIds := slice -}}
+{{- range $layers -}}
+	{{- range .projects -}}
+		{{- $nodes = merge $nodes (dict .id .) -}}
+		{{- $talkIds = $talkIds | append (.talks | default slice) -}}
+	{{- end -}}
+{{- end -}}
+{{- /* In page order, not map order, so relation lines list entries the way
+       the diagram shows them. */ -}}
+{{- $edges := slice -}}
+{{- range $layers -}}
+	{{- range .projects -}}
+		{{- $id := .id -}}
+		{{- with .runsOn }}{{ $edges = $edges | append (dict "from" $id "to" . "verb" "runs on") }}{{ end -}}
+		{{- with .builtIn }}{{ $edges = $edges | append (dict "from" $id "to" . "verb" "built in") }}{{ end -}}
+	{{- end -}}
+{{- end -}}
+{{- range $edges -}}
+	{{- if not (index $nodes .to) }}{{ errorf "projects: %q %s %q, which is not on the page" .from .verb .to }}{{ end -}}
+{{- end -}}
+{{- $groups := slice -}}
+{{- range (index $layers 1).projects -}}
+	{{- $groups = $groups | append (dict "platform" . "products" (where (index $layers 0).projects "runsOn" .id)) -}}
+{{- end -}}
+{{- $talksPage := site.GetPage "/talks" -}}
+{{- $talks := dict -}}
+{{- range uniq $talkIds -}}
+	{{- $id := . -}}
+	{{- $match := where ($talksPage.Params.talks | default slice) "id" $id -}}
+	{{- with index $match 0 | default false -}}
+		{{- $talks = merge $talks (dict $id (dict "short" (.short | default .title) "url" (print $talksPage.Permalink "#" $id))) -}}
+	{{- else -}}
+		{{- errorf "projects: no talk with id %q on /talks/" $id -}}
+	{{- end -}}
+{{- end -}}
+{{- return dict "nodes" $nodes "edges" $edges "groups" $groups "talks" $talks -}}
