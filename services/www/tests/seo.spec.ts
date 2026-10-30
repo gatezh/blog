@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { sitemapPaths } from "./sitemap";
+
 /**
  * Search-engine indexability tests.
  *
@@ -21,10 +23,6 @@ const INDEXABLE_PAGES = ["/", "/posts/", "/ever-learning/", "/about/", "/contact
 // Taxonomy listings: near-duplicates of /posts/ while the post count is small.
 // Term pages exist only as long as a post carries the term.
 const NOINDEX_PAGES = ["/tags/", "/categories/"];
-
-function sitemapPaths(xml: string): string[] {
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
-}
 
 test.describe("robots meta", () => {
   for (const path of INDEXABLE_PAGES) {
