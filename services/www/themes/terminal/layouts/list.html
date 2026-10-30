@@ -47,7 +47,7 @@
 					<li class="post-list-item group">
 						<a href="{{ .Permalink }}" class="post-list-link block">
 							{{/* File listing row */}}
-							<div class="flex items-start gap-4">
+							<div class="flex flex-col items-start gap-1 sm:flex-row sm:gap-4">
 								{{/* File permissions indicator */}}
 								<span class="text-terminal-muted text-sm shrink-0 hidden sm:inline" aria-hidden="true">-rw-r--r--</span>
 
@@ -58,7 +58,7 @@
 
 								{{/* Post title and summary */}}
 								<div class="flex-1 min-w-0">
-									<div class="flex items-start justify-between gap-2">
+									<div class="flex flex-col items-start justify-between gap-1 sm:flex-row sm:gap-2">
 										<span class="post-list-title break-words">{{ .Title }}</span>
 										{{/* Mobile date */}}
 										<time class="post-list-date shrink-0 sm:hidden" datetime="{{ .Date.Format "2006-01-02" }}">
