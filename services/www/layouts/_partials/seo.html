@@ -7,6 +7,7 @@
   - Article pages (posts): Article schema, authored by that Person, whose
     `image` is the same file as og:image (share-image.html)
   - Talks (`talks:` front matter): CollectionPage of Events, see below
+  - Projects (`layers:` front matter): CollectionPage of projects by layer
   - Other pages: WebPage schema
   - Every page but the home page and 404: a BreadcrumbList (Home › Section › Page)
 
@@ -36,6 +37,20 @@
 	"sameAs" (slice "https://github.com/gatezh" "https://linkedin.com/in/gatezh")
 	)
 -}}
+{{- with site.Params.credentials }}
+	{{- $creds := slice }}
+	{{- range . }}
+		{{- $creds = $creds | append (dict
+			"@type" "EducationalOccupationalCredential"
+			"name" .name
+			"credentialCategory" "certification"
+			"recognizedBy" (dict "@type" "Organization" "name" .issuer "url" .issuerUrl)
+			"url" .url
+			)
+		}}
+	{{- end }}
+	{{- $person = merge $person (dict "hasCredential" $creds) }}
+{{- end }}
 {{- with site.GetPage "/about" }}
 	{{- with .Resources.GetMatch .Params.portrait }}
 		{{- $src := .RelPermalink }}
@@ -149,6 +164,37 @@
 		"description" $description
 		"author" $personRef
 		"mainEntity" (dict "@type" "ItemList" "itemListElement" $events)
+	-}}
+<script type="application/ld+json">
+{{- $collection | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+
+{{- else if .Params.layers -}}
+	{{- /* Projects: a CollectionPage whose ItemList holds one ItemList per
+	       layer (products, platforms, workbench), each with that layer's
+	       entries typed by their front matter `type`. An entry with no type
+	       (a shared pattern rather than a product) is left out. Serge is the
+	       creator of each, by the shared Person @id. */ -}}
+	{{- $layerLists := slice -}}
+	{{- range $n, $layer := .Params.layers -}}
+		{{- $items := slice -}}
+		{{- range where $layer.projects "type" "!=" nil -}}
+			{{- $item := dict "@type" .type "name" .name "url" .url "description" .after "creator" $personRef -}}
+			{{- with .category }}{{ $item = merge $item (dict "applicationCategory" .) }}{{ end -}}
+			{{- if hasPrefix .url "https://github.com/" }}{{ $item = merge $item (dict "codeRepository" .url) }}{{ end -}}
+			{{- $items = $items | append (dict "@type" "ListItem" "position" (add (len $items) 1) "item" $item) -}}
+		{{- end -}}
+		{{- $list := dict "@type" "ItemList" "name" $layer.name "description" $layer.blurb "itemListElement" $items -}}
+		{{- $layerLists = $layerLists | append (dict "@type" "ListItem" "position" (add $n 1) "item" $list) -}}
+	{{- end -}}
+	{{- $collection := dict
+		"@context" "https://schema.org"
+		"@type" "CollectionPage"
+		"name" .Title
+		"url" .Permalink
+		"description" $description
+		"author" $personRef
+		"mainEntity" (dict "@type" "ItemList" "itemListElement" $layerLists)
 	-}}
 <script type="application/ld+json">
 {{- $collection | jsonify (dict "indent" "  ") | safeJS -}}

@@ -1,0 +1,90 @@
+{{- /* The Projects page body: a stack diagram (products on top, the
+       platforms they run on, the workbench everything is built in), then one
+       section per layer with each entry as a diff, `before` deleted and
+       `after` inserted. Data comes from _partials/project-graph.html, which
+       the Markdown and llms-full renderings (projects.*.md/.txt) share.
+
+       The diagram is HTML, not an image: each platform spans the products
+       that run on it, every box is a link to its entry below, and it reflows
+       to two columns on phones. Layout and connectors live in main.css
+       (.stack). */ -}}
+{{- $g := partial "project-graph.html" .Page -}}
+{{- $layers := .Page.Params.layers -}}
+{{- $inverse := dict "runs on" "runs" "built in" "builds" -}}
+{{- $cols := slice -}}
+{{- /* One column per platform, as wide as its products. Built from integers
+       only, so safeCSS is sound; without it html/template blanks the value. */ -}}
+{{- range $g.groups }}{{ $cols = $cols | append (printf "minmax(10rem, %dfr)" (len .products)) }}{{ end -}}
+
+<figure class="stack" aria-label="How the projects fit together">
+	<div class="stack-grid" style="--stack-cols: {{ delimit $cols " " | safeCSS }}; --stack-n: {{ len $g.groups }}">
+		<span class="stack-label" style="grid-row: 1">{{ (index $layers 0).name }}</span>
+		<span class="stack-verb" style="grid-row: 2">runs on</span>
+		<span class="stack-label" style="grid-row: 3">{{ (index $layers 1).name }}</span>
+		<span class="stack-verb" style="grid-row: 4">built in</span>
+		<span class="stack-label" style="grid-row: 5">{{ (index $layers 2).name }}</span>
+		{{- range $g.groups }}
+			<div class="stack-group">
+				<ul class="stack-products" style="--n: {{ len .products }}">
+					{{- range .products }}
+						<li><a class="stack-node" href="#{{ .id }}">{{ .name }}</a></li>
+					{{- end }}
+				</ul>
+				<span class="stack-link stack-link-up" aria-hidden="true"></span>
+				<a class="stack-node stack-platform" href="#{{ .platform.id }}">
+					{{ .platform.name }}
+					{{- with .platform.detail }}<small>{{ . }}</small>{{ end }}
+				</a>
+				<span class="stack-link" aria-hidden="true"></span>
+			</div>
+		{{- end }}
+		{{- with index (index $layers 2).projects 0 }}
+			<a class="stack-node stack-workbench" href="#{{ .id }}">
+				{{ .name }}
+				{{- with .detail }}<small>{{ . }}</small>{{ end }}
+			</a>
+		{{- end }}
+	</div>
+</figure>
+
+{{- range $layers }}
+	<section id="{{ .id }}" class="mb-10" aria-labelledby="{{ .id }}-title">
+		<h2 id="{{ .id }}-title" class="mb-1">{{ .name }}</h2>
+		<p class="mt-0 mb-4 text-sm text-terminal-muted"><span class="text-terminal-accent">#</span> {{ .blurb }}</p>
+		{{- range .projects }}
+			{{- $p := . }}
+			{{- $status := "live" }}
+			{{- if or (hasPrefix $p.status "Coming") (hasPrefix $p.status "Waitlist") }}{{ $status = "soon" }}{{ end }}
+			<article id="{{ $p.id }}" class="project-diff">
+				<header class="project-diff-head">
+					<h3>{{ with $p.url }}<a href="{{ . }}">{{ $p.name }}</a>{{ else }}{{ $p.name }}{{ end }}</h3>
+					<span class="project-diff-status" data-status="{{ $status }}">{{ $p.status }}</span>
+				</header>
+				<p class="project-diff-line project-diff-del"><del><span class="sr-only">Before: </span>{{ $p.before }}</del></p>
+				<p class="project-diff-line project-diff-ins"><ins><span class="sr-only">After: </span>{{ $p.after }}</ins></p>
+				{{- /* Relations: what this entry runs on and is built in, what runs on
+				       or is built in it, and the talks that explain it. */}}
+				{{- $phrases := slice }}
+				{{- range where $g.edges "from" $p.id }}
+					{{- $phrases = $phrases | append (printf "%s <a href=\"#%s\">%s</a>" .verb .to ((index $g.nodes .to).name | htmlEscape)) }}
+				{{- end }}
+				{{- range $verb, $_ := $inverse }}
+					{{- $in := where (where $g.edges "to" $p.id) "verb" $verb }}
+					{{- if and $in (eq (len $in) (sub (len $g.nodes) 1)) }}
+						{{- $phrases = $phrases | append (printf "%s everything on this page" (index $inverse $verb)) }}
+					{{- else if $in }}
+						{{- $links := slice }}
+						{{- range $in }}{{ $links = $links | append (printf "<a href=\"#%s\">%s</a>" .from ((index $g.nodes .from).name | htmlEscape)) }}{{ end }}
+						{{- $phrases = $phrases | append (printf "%s %s" (index $inverse $verb) (delimit $links ", ")) }}
+					{{- end }}
+				{{- end }}
+				{{- range $p.talks }}
+					{{- with index $g.talks . }}{{ $phrases = $phrases | append (printf "explained in <a href=\"%s\">%s</a>" .url (.short | htmlEscape)) }}{{ end }}
+				{{- end }}
+				{{- with $phrases }}
+					<p class="project-diff-rel">{{ delimit . ", " | safeHTML }}</p>
+				{{- end }}
+			</article>
+		{{- end }}
+	</section>
+{{- end }}

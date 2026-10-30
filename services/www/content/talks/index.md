@@ -7,10 +7,12 @@ keywords: [talks, speaking, cloudflare, dev-containers, claude-code, frontend-an
 # Each talk renders three ways from this one list: the HTML cards and the
 # Markdown/llms-full text (layouts/_shortcodes/talks.*) and the Event JSON-LD
 # (layouts/_partials/seo.html). Link only public material: the decks below are
-# the PDFs the meetup itself publishes.
+# the PDFs the meetup itself publishes. `short` names the talk where /projects/
+# links to it.
 talks:
   - title: "Zero Servers, Zero Dollars: Shipping Real Apps on Cloudflare"
     id: zero-servers-zero-dollars
+    short: "Zero Servers talk"
     event: "Frontend & Beyond"
     organizerUrl: "https://frontend-yyc.github.io/"
     eventUrl: "https://frontend-yyc.github.io/events/zero-servers-zero-dollars-shipping-real-apps-on-cloudflare/"
@@ -38,6 +40,7 @@ talks:
       price and limit in the deck is sourced and was checked in October 2026.
   - title: "Dev Containers with Claude: Security First"
     id: dev-containers-with-claude
+    short: "Dev Containers talk"
     event: "Frontend & Beyond"
     organizerUrl: "https://frontend-yyc.github.io/"
     eventUrl: "https://frontend-yyc.github.io/events/dev-containers-with-claude-security-first/"
