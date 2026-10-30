@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+import { sitemapPaths } from "./sitemap";
+
 /**
  * Blog functional and accessibility tests.
  * Verifies blog structure works regardless of content.
@@ -91,67 +93,108 @@ test.describe("Single post", () => {
 });
 
 test.describe("Code blocks", () => {
-  // Content changes, so find a post with a highlighted block via the sitemap.
-  test.beforeEach(async ({ page, request }) => {
-    const sitemap = await (await request.get("/sitemap.xml")).text();
-    const posts = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
-      .map((m) => new URL(m[1]).pathname)
-      .filter((path) => /^\/posts\/.+/.test(path));
-    for (const path of posts) {
-      if ((await (await request.get(path)).text()).includes('class="highlight"')) {
-        await page.goto(path);
-        await page.waitForLoadState("load");
-        return;
+  // Fences with a language are highlighted; fences without one render as a
+  // plain <pre><code> with no .highlight wrapper. Both get the same chrome.
+  const KINDS = [
+    {
+      name: "highlighted",
+      marker: 'class="highlight"',
+      selector: ".article-content .highlight > pre",
+    },
+    {
+      name: "plain",
+      marker: '<pre tabindex="0"><code>',
+      selector: ".article-content pre:not(.highlight > pre)",
+    },
+  ];
+
+  for (const { name, marker, selector } of KINDS) {
+    test(`${name} blocks sit inside the content column and scroll from the keyboard`, async ({
+      page,
+      request,
+    }) => {
+      // Content changes, so find a post with this kind of block via the sitemap.
+      const posts = sitemapPaths(await (await request.get("/sitemap.xml")).text()).filter((path) =>
+        /^\/posts\/.+/.test(path),
+      );
+      let found = false;
+      for (const path of posts) {
+        if ((await (await request.get(path)).text()).includes(marker)) {
+          await page.goto(path);
+          await page.waitForLoadState("load");
+          found = true;
+          break;
+        }
       }
-    }
-    throw new Error("no post with a highlighted code block");
-  });
+      expect(found, `no post with a ${name} code block`).toBe(true);
 
-  test("sit inside the content column with the code clear of the title bar", async ({ page }) => {
-    const blocks = await page.locator(".article-content .highlight pre").evaluateAll((pres) =>
-      pres.map((pre) => {
-        const article = pre.closest(".article-content")!.getBoundingClientRect();
-        const box = pre.getBoundingClientRect();
-        const code = pre.querySelector("code")!;
-        const scroller = code.getBoundingClientRect();
-        const bar = getComputedStyle(pre, "::before");
-        const style = getComputedStyle(pre);
-        const borderTop = parseFloat(style.borderTopWidth);
-        const borderBottom = parseFloat(style.borderBottomWidth);
-        const barBottom = box.top + borderTop + parseFloat(bar.top) + parseFloat(bar.height);
-        const firstLine = code.firstElementChild!.getBoundingClientRect();
-        const lastLine = code.lastElementChild!.getBoundingClientRect();
-        return {
-          left: box.left - article.left,
-          right: article.right - box.right,
-          // Padding outside the scroller clips long lines short of the frame.
-          scrollerLeft: scroller.left - (box.left + pre.clientLeft),
-          scrollerRight: box.left + pre.clientLeft + pre.clientWidth - scroller.right,
-          gapAbove: firstLine.top - barBottom,
-          gapBelow: box.bottom - borderBottom - lastLine.bottom,
-          overflows: code.scrollWidth > code.clientWidth,
-          scrolls: ["auto", "scroll"].includes(getComputedStyle(code).overflowX),
-        };
-      }),
-    );
-    expect(blocks.length).toBeGreaterThan(0);
+      const blocks = await page.locator(selector).evaluateAll((pres) =>
+        pres.map((pre) => {
+          const article = pre.closest(".article-content")!.getBoundingClientRect();
+          const box = pre.getBoundingClientRect();
+          const code = pre.querySelector("code")!;
+          const codeBox = code.getBoundingClientRect();
+          const codeStyle = getComputedStyle(code);
+          const style = getComputedStyle(pre);
+          const barBottom =
+            box.top +
+            parseFloat(style.borderTopWidth) +
+            parseFloat(getComputedStyle(pre, "::before").height);
+          // The <code>'s content box is exactly its line boxes. Text rects
+          // follow glyph metrics instead, which are not centred in the line.
+          const textTop = codeBox.top + parseFloat(codeStyle.paddingTop);
+          const textBottom = codeBox.bottom - parseFloat(codeStyle.paddingBottom);
+          // A Range covers highlighted lines (spans) and plain text alike.
+          const range = document.createRange();
+          range.selectNodeContents(code);
+          const textRight = Math.max(...[...range.getClientRects()].map((r) => r.right));
+          return {
+            left: box.left - article.left,
+            right: article.right - box.right,
+            // The <code> spans the frame, or its longest line when wider, and
+            // the <pre> scrolls exactly that far, so the end padding shows.
+            spans: codeBox.width - pre.clientWidth,
+            reach: pre.scrollWidth - codeBox.width,
+            endPadding: codeBox.right - textRight - parseFloat(codeStyle.paddingRight),
+            // Equal only because headless Chromium hides scrollbars; a classic
+            // scrollbar adds its own strip below an overflowing block.
+            gapAbove: textTop - barBottom,
+            gapBelow: box.bottom - parseFloat(style.borderBottomWidth) - textBottom,
+            overflows: pre.scrollWidth > pre.clientWidth,
+            scrolls: ["auto", "scroll"].includes(style.overflowX),
+          };
+        }),
+      );
+      expect(blocks.length).toBeGreaterThan(0);
 
-    for (const block of blocks) {
-      expect(block.left).toBeGreaterThanOrEqual(-0.5);
-      expect(block.right).toBeGreaterThanOrEqual(-0.5);
-      expect(Math.abs(block.scrollerLeft)).toBeLessThan(0.5);
-      expect(Math.abs(block.scrollerRight)).toBeLessThan(0.5);
-      expect(block.gapAbove).toBeGreaterThan(0);
-      expect(Math.abs(block.gapAbove - block.gapBelow)).toBeLessThan(1);
-      if (block.overflows) expect(block.scrolls).toBe(true);
-    }
+      for (const block of blocks) {
+        expect(block.left).toBeGreaterThanOrEqual(-0.5);
+        expect(block.right).toBeGreaterThanOrEqual(-0.5);
+        expect(block.spans).toBeGreaterThanOrEqual(-0.5);
+        expect(Math.abs(block.reach)).toBeLessThan(1);
+        expect(block.endPadding).toBeGreaterThanOrEqual(-0.5);
+        expect(block.gapAbove).toBeGreaterThan(0);
+        expect(Math.abs(block.gapAbove - block.gapBelow)).toBeLessThan(1);
+        if (block.overflows) expect(block.scrolls).toBe(true);
+      }
 
-    // Long lines scroll inside their block, never the page.
-    const pageOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
-    expect(pageOverflow).toBe(0);
-  });
+      // Long lines scroll inside their block, never the page.
+      const pageOverflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(pageOverflow).toBe(0);
+
+      // Hugo makes each <pre> focusable so the keyboard can scroll it, which
+      // works only while the <pre> is the scroller.
+      const index = blocks.findIndex((block) => block.overflows);
+      if (index >= 0) {
+        const pre = page.locator(selector).nth(index);
+        await pre.focus();
+        await page.keyboard.press("ArrowRight");
+        await expect.poll(() => pre.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+      }
+    });
+  }
 });
 
 test.describe("Homepage", () => {

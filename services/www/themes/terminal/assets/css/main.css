@@ -744,25 +744,26 @@
      Article Content - Enhanced Code Blocks
 
      Code blocks within article content get terminal window chrome styling.
-     The <pre> is the frame; the <code> scrolls, so it owns the padding.
+     The <pre> scrolls: Hugo gives it tabindex="0" so the keyboard can scroll
+     it. The <code> sizes to its longest line and owns the padding, so the
+     padding survives at full scroll.
      ------------------------------------------------------------------------- */
   .article-content pre {
-    position: relative;
     margin: 1.5em 0;
-    padding: 2rem 0 0;
+    padding: 0;
     border: 1px solid var(--color-terminal-border);
     border-radius: 0.5rem;
     background-color: var(--color-terminal-code-bg);
-    overflow: hidden;
+    overflow-x: auto;
   }
 
-  /* Terminal window header for code blocks */
+  /* Terminal window header for code blocks: sticky, so it stays put while
+     the code scrolls under it */
   .article-content pre::before {
     content: '';
-    position: absolute;
-    top: 0;
+    display: block;
+    position: sticky;
     left: 0;
-    right: 0;
     height: 2rem;
     background-color: var(--color-terminal-bg-secondary);
     border-bottom: 1px solid var(--color-terminal-border);
@@ -776,22 +777,16 @@
 
   .article-content pre code {
     display: block;
+    width: max-content;
+    min-width: 100%;
     padding: 1rem;
-    overflow-x: auto;
     background: none;
     font-size: 0.8125rem;
     line-height: 1.6;
-  }
 
-  @media (max-width: 640px) {
-    .article-content pre code {
+    @variant max-sm {
       padding: 0.75rem;
     }
-  }
-
-  /* Line numbers effect (optional visual enhancement) */
-  .article-content pre code {
-    counter-reset: line;
   }
 
   /* Syntax highlighting compatible styles */
