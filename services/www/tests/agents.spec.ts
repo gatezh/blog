@@ -51,6 +51,29 @@ test.describe("content coverage", () => {
   });
 });
 
+test.describe("standalone pages", () => {
+  // About and Talks belong to no section, so llms.txt and llms-full.txt list
+  // them by path. A page missing from those lists is invisible to agents
+  // that read the index instead of crawling.
+  for (const path of ["/about/", "/talks/"]) {
+    test(`${path} is in llms.txt and llms-full.txt`, async ({ request }) => {
+      const index = await (await request.get("/llms.txt")).text();
+      expect(index).toMatch(new RegExp(`^- \\[[^\\]]+\\]\\(https?://[^/]+${path}\\):`, "m"));
+      const full = await (await request.get("/llms-full.txt")).text();
+      expect(full).toMatch(new RegExp(`^Source: https?://[^/]+${path}$`, "m"));
+    });
+  }
+
+  test("the talks mirror carries every talk with its slides", async ({ request }) => {
+    const md = await (await request.get("/talks/index.md")).text();
+    expect(md).toContain("## Zero Servers, Zero Dollars: Shipping Real Apps on Cloudflare");
+    expect(md).toContain("## Dev Containers with Claude: Security First");
+    expect(
+      md.match(/^- \[Slides \(PDF\)\]\(https:\/\/\S+\.pdf\)$/gm)?.length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+});
+
 test.describe("llms.txt structure", () => {
   test("is a Markdown list, not an indented code block", async ({ request }) => {
     const body = await text(request, "/llms.txt");
@@ -105,7 +128,7 @@ test.describe("llms-full.txt structure", () => {
 });
 
 test.describe("markdown mirrors", () => {
-  for (const path of ["/", "/posts/", "/ever-learning/", "/about/"]) {
+  for (const path of ["/", "/posts/", "/ever-learning/", "/about/", "/talks/"]) {
     test(`${path} has a Markdown mirror`, async ({ request }) => {
       const res = await request.get(`${path}index.md`);
       expect(res.status(), `${path}index.md should exist`).toBe(200);

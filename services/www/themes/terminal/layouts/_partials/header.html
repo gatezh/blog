@@ -5,7 +5,8 @@
   - Site title styled as a terminal prompt
   - Navigation menu from hugo.yaml menu.main
   - Theme toggle integrated on the right
-  - Responsive mobile menu
+  - Responsive mobile menu below md (768 px). The inline nav fits four
+    items at sm (640 px); from five it wraps the site title onto two lines.
 */}}
 <header class="w-full border-b border-terminal-border">
 	<div class="max-w-3xl mx-auto px-4 py-4">
@@ -20,7 +21,7 @@
 			{{/* Navigation and theme toggle */}}
 			<div class="flex items-center gap-6">
 				{{/* Desktop navigation */}}
-				<nav class="hidden sm:flex items-center gap-4" aria-label="Main navigation">
+				<nav class="hidden md:flex items-center gap-4" aria-label="Main navigation">
 					{{ range site.Menus.main }}
 						<a
 							href="{{ .URL | relURL }}"
@@ -37,7 +38,7 @@
 				{{/* Mobile menu button */}}
 				<button
 					type="button"
-					class="sm:hidden p-2 text-terminal-muted hover:text-terminal-accent transition-colors"
+					class="md:hidden p-2 text-terminal-muted hover:text-terminal-accent transition-colors"
 					aria-label="Toggle menu"
 					aria-expanded="false"
 					id="mobile-menu-btn"
@@ -52,7 +53,7 @@
 		</div>
 
 		{{/* Mobile navigation */}}
-		<nav class="hidden mt-4 pt-4 border-t border-terminal-border sm:hidden" id="mobile-menu" aria-label="Mobile navigation" aria-hidden="true">
+		<nav class="hidden mt-4 pt-4 border-t border-terminal-border md:hidden" id="mobile-menu" aria-label="Mobile navigation" aria-hidden="true">
 			<div class="flex flex-col gap-2">
 				{{ range site.Menus.main }}
 					<a

@@ -18,7 +18,7 @@ import { sitemapPaths } from "./sitemap";
 
 // Structural pages only. Individual posts come and go, and the sitemap sweep
 // below already asserts robots + canonical on every URL the site publishes.
-const INDEXABLE_PAGES = ["/", "/posts/", "/ever-learning/", "/about/", "/contact/"];
+const INDEXABLE_PAGES = ["/", "/posts/", "/ever-learning/", "/about/", "/talks/", "/contact/"];
 
 // Taxonomy listings: near-duplicates of /posts/ while the post count is small.
 // Term pages exist only as long as a post carries the term.
@@ -393,6 +393,37 @@ test.describe("identity structured data", () => {
     // makes every page's Lastmod GitHub's test-merge commit, often in UTC.
     expect(profile.dateModified).toMatch(
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/,
+    );
+  });
+
+  test("/talks/ is a CollectionPage of Events Serge performed", async ({ page }) => {
+    const blocks = await jsonLd(page, "/talks/");
+    const collection = blocks.find((b) => b["@type"] === "CollectionPage");
+    expect(new URL(collection.url).pathname).toBe("/talks/");
+    expect(collection.author["@id"]).toMatch(PERSON_ID);
+
+    const events = collection.mainEntity.itemListElement.map((i: { item: unknown }) => i.item);
+    expect(events.length).toBeGreaterThanOrEqual(2);
+    for (const event of events) {
+      expect(event["@type"]).toBe("Event");
+      expect(event.performer["@id"], event.name).toMatch(PERSON_ID);
+      // ISO 8601 with the venue's own offset, not a bare date.
+      expect(event.startDate, event.name).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/,
+      );
+      expect(event.location.address.addressLocality, event.name).toBe("Calgary");
+      expect(event.organizer.name, event.name).toBe("Frontend & Beyond");
+      expect(event.workPerformed["@type"], event.name).toBe("PresentationDigitalDocument");
+      expect(event.workPerformed.url, event.name).toMatch(/^https:\/\/.+\.pdf$/);
+      // Each Event @id is an anchor that exists on the page.
+      const anchor = new URL(event["@id"]).hash;
+      await expect(page.locator(anchor), event.name).toHaveCount(1);
+    }
+    expect(events.map((e: { name: string }) => e.name)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^Zero Servers, Zero Dollars/),
+        "Dev Containers with Claude: Security First",
+      ]),
     );
   });
 

@@ -6,6 +6,7 @@
   - About page: ProfilePage whose mainEntity is the same Person
   - Article pages (posts): Article schema, authored by that Person, whose
     `image` is the same file as og:image (share-image.html)
+  - Talks (`talks:` front matter): CollectionPage of Events, see below
   - Other pages: WebPage schema
   - Every page but the home page and 404: a BreadcrumbList (Home › Section › Page)
 
@@ -95,6 +96,62 @@
 	{{- end }}
 <script type="application/ld+json">
 {{- $article | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+
+{{- else if .Params.talks -}}
+	{{- /* Talks: a CollectionPage whose ItemList holds one Event per talk.
+	       Event, not CreativeWork, because a talk is a session at a time and
+	       place; Serge is its `performer` by the shared Person @id, and the
+	       meetup its `organizer`. The deck is the `workPerformed`, a
+	       PresentationDigitalDocument, and a public recording would be
+	       `recordedIn`. Past events get no rich result; the value is the
+	       entity graph that ties Serge to the topics he speaks on. */ -}}
+	{{- $events := slice -}}
+	{{- range $i, $t := .Params.talks -}}
+		{{- $event := dict
+			"@type" "Event"
+			"@id" (print $.Permalink "#" $t.id)
+			"name" $t.title
+			"description" $t.abstract
+			"url" $t.eventUrl
+			"startDate" ((time.AsTime $t.start).Format "2006-01-02T15:04:05-07:00")
+			"endDate" ((time.AsTime $t.end).Format "2006-01-02T15:04:05-07:00")
+			"eventStatus" "https://schema.org/EventScheduled"
+			"eventAttendanceMode" "https://schema.org/OfflineEventAttendanceMode"
+			"performer" $personRef
+			"organizer" (dict "@type" "Organization" "name" $t.event "url" $t.organizerUrl)
+			"location" (dict
+			"@type" "Place"
+			"name" $t.venue
+			"address" (dict
+			"@type" "PostalAddress"
+			"streetAddress" $t.address.street
+			"addressLocality" $t.address.locality
+			"addressRegion" $t.address.region
+			"postalCode" $t.address.postalCode
+			"addressCountry" $t.address.country
+			)
+			)
+		-}}
+		{{- with $t.slides }}
+			{{- $event = merge $event (dict "workPerformed" (dict "@type" "PresentationDigitalDocument" "name" $t.title "url" . "encodingFormat" "application/pdf" "author" $personRef)) }}
+		{{- end }}
+		{{- with $t.recording }}
+			{{- $event = merge $event (dict "recordedIn" (dict "@type" "CreativeWork" "url" .)) }}
+		{{- end }}
+		{{- $events = $events | append (dict "@type" "ListItem" "position" (add $i 1) "item" $event) -}}
+	{{- end -}}
+	{{- $collection := dict
+		"@context" "https://schema.org"
+		"@type" "CollectionPage"
+		"name" .Title
+		"url" .Permalink
+		"description" $description
+		"author" $personRef
+		"mainEntity" (dict "@type" "ItemList" "itemListElement" $events)
+	-}}
+<script type="application/ld+json">
+{{- $collection | jsonify (dict "indent" "  ") | safeJS -}}
 </script>
 
 {{- else -}}
