@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { sitemapPaths } from "./sitemap";
+
 /**
  * Agent-facing output: the generated llms.txt index, the llms-full.txt corpus,
  * and the per-page Markdown mirrors.
@@ -38,9 +40,9 @@ test.describe("content coverage", () => {
     const sitemap = await text(request, "/sitemap.xml");
     const llms = await text(request, "/llms.txt");
 
-    const postUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
-      .map((m) => new URL(m[1]).pathname)
-      .filter((p) => p.startsWith("/posts/") && p !== "/posts/");
+    const postUrls = sitemapPaths(sitemap).filter(
+      (p) => p.startsWith("/posts/") && p !== "/posts/",
+    );
 
     expect(postUrls.length).toBeGreaterThan(0);
     for (const path of postUrls) {
