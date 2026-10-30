@@ -205,11 +205,8 @@ jobs:
           [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
           echo "version_id=${id}" >> "$GITHUB_OUTPUT"
 
-      # For promote: `wrangler triggers deploy` reads the whole config and
-      # refuses to run unless assets.directory exists, though it uploads
-      # nothing from it. Handing over the build it uploaded, rather than an
-      # empty stand-in, keeps promote on the exact tree this version came from.
-      # `overwrite` lets "Re-run all jobs" replace an earlier attempt's copy.
+      # promote's `triggers deploy` fails unless assets.directory exists.
+      # `overwrite`: "Re-run all jobs" replaces the earlier attempt's copy.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: www-public
@@ -301,7 +298,7 @@ jobs:
           persist-credentials: false
           ref: ${{ needs.release.outputs.commit_sha }}
       - uses: $/.github/actions/setup
-      # The build upload-www uploaded — see the note there.
+      # See upload-www.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: www-public
