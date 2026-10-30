@@ -90,6 +90,70 @@ test.describe("Single post", () => {
   });
 });
 
+test.describe("Code blocks", () => {
+  // Content changes, so find a post with a highlighted block via the sitemap.
+  test.beforeEach(async ({ page, request }) => {
+    const sitemap = await (await request.get("/sitemap.xml")).text();
+    const posts = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
+      .map((m) => new URL(m[1]).pathname)
+      .filter((path) => /^\/posts\/.+/.test(path));
+    for (const path of posts) {
+      if ((await (await request.get(path)).text()).includes('class="highlight"')) {
+        await page.goto(path);
+        await page.waitForLoadState("load");
+        return;
+      }
+    }
+    throw new Error("no post with a highlighted code block");
+  });
+
+  test("sit inside the content column with the code clear of the title bar", async ({ page }) => {
+    const blocks = await page.locator(".article-content .highlight pre").evaluateAll((pres) =>
+      pres.map((pre) => {
+        const article = pre.closest(".article-content")!.getBoundingClientRect();
+        const box = pre.getBoundingClientRect();
+        const code = pre.querySelector("code")!;
+        const scroller = code.getBoundingClientRect();
+        const bar = getComputedStyle(pre, "::before");
+        const style = getComputedStyle(pre);
+        const borderTop = parseFloat(style.borderTopWidth);
+        const borderBottom = parseFloat(style.borderBottomWidth);
+        const barBottom = box.top + borderTop + parseFloat(bar.top) + parseFloat(bar.height);
+        const firstLine = code.firstElementChild!.getBoundingClientRect();
+        const lastLine = code.lastElementChild!.getBoundingClientRect();
+        return {
+          left: box.left - article.left,
+          right: article.right - box.right,
+          // Padding outside the scroller clips long lines short of the frame.
+          scrollerLeft: scroller.left - (box.left + pre.clientLeft),
+          scrollerRight: box.left + pre.clientLeft + pre.clientWidth - scroller.right,
+          gapAbove: firstLine.top - barBottom,
+          gapBelow: box.bottom - borderBottom - lastLine.bottom,
+          overflows: code.scrollWidth > code.clientWidth,
+          scrolls: ["auto", "scroll"].includes(getComputedStyle(code).overflowX),
+        };
+      }),
+    );
+    expect(blocks.length).toBeGreaterThan(0);
+
+    for (const block of blocks) {
+      expect(block.left).toBeGreaterThanOrEqual(-0.5);
+      expect(block.right).toBeGreaterThanOrEqual(-0.5);
+      expect(Math.abs(block.scrollerLeft)).toBeLessThan(0.5);
+      expect(Math.abs(block.scrollerRight)).toBeLessThan(0.5);
+      expect(block.gapAbove).toBeGreaterThan(0);
+      expect(Math.abs(block.gapAbove - block.gapBelow)).toBeLessThan(1);
+      if (block.overflows) expect(block.scrolls).toBe(true);
+    }
+
+    // Long lines scroll inside their block, never the page.
+    const pageOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(pageOverflow).toBe(0);
+  });
+});
+
 test.describe("Homepage", () => {
   test("renders with correct structure", async ({ page }) => {
     await page.goto("/");
