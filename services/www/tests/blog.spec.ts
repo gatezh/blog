@@ -333,3 +333,39 @@ test.describe("Accessibility", () => {
     }
   });
 });
+
+test.describe("Theme switcher", () => {
+  test("lives in the footer, defaulting to the system theme", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("header input[name=theme]")).toHaveCount(0);
+    const group = page.locator("footer").getByRole("group", { name: "theme" });
+    await expect(group.getByRole("radio")).toHaveCount(3);
+    await expect(group.getByRole("radio", { name: "system" })).toBeChecked();
+  });
+
+  test("applies a choice and keeps it across page loads", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.locator("footer");
+    const html = page.locator("html");
+
+    // The inputs are visually hidden; their labels take the click.
+    await footer.getByText("dark", { exact: true }).click();
+    await expect(html).toHaveClass(/\bdark\b/);
+
+    await footer.getByText("light", { exact: true }).click();
+    await expect(html).not.toHaveClass(/\bdark\b/);
+
+    await page.reload();
+    await expect(footer.getByRole("radio", { name: "light" })).toBeChecked();
+    await expect(html).not.toHaveClass(/\bdark\b/);
+  });
+
+  test("arrow keys move the selection, as in any radio group", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.locator("footer");
+    await footer.getByRole("radio", { name: "system" }).focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(footer.getByRole("radio", { name: "dark" })).toBeChecked();
+    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+  });
+});

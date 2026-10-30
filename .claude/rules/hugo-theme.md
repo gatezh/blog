@@ -43,7 +43,8 @@ directory = page path" rule applies to *directories*; do not "fix" these into
 
 ## Theme features
 
-- Three-position theme switcher (light/dark/system)
+- Theme switcher (light/dark/system, default system) in the footer: native
+  radio inputs, text labels, no icons (`_partials/theme-toggle.html`)
 - Terminal-inspired aesthetic with monospace typography
 - Remark42 comments integration with theme synchronization
 - JSON-LD structured data via `layouts/_partials/seo.html` (site-level override:

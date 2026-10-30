@@ -4,7 +4,6 @@
   Features:
   - Site title styled as a terminal prompt
   - Navigation menu from hugo.yaml menu.main
-  - Theme toggle integrated on the right
   - Responsive mobile menu below md (768 px). The inline nav fits four
     items at sm (640 px); from five it wraps the site title onto two lines.
 */}}
@@ -31,9 +30,6 @@
 						</a>
 					{{ end }}
 				</nav>
-
-				{{/* Theme toggle */}}
-				{{- partial "theme-toggle.html" . -}}
 
 				{{/* Mobile menu button */}}
 				<button
