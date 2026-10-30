@@ -39,13 +39,13 @@ Both deploy workflows change their environment in two phases, with Cloudflare's
    workers.dev, so `promote` also runs `wrangler triggers deploy` (still
    labelled experimental) for each Worker, as `wrangler deploy` did.
 3. `verify` checks the live environment.
-4. If `promote` or `verify` fails, `rollback-command` prints the exact
-   `wrangler versions deploy` commands that restore both previous versions.
-   Nothing rolls back on its own: a part-way promote leaves at most the api
-   newer than the site, which the api-first order already requires to work,
-   and **Re-run failed jobs** finishes it. Most of verify's checks are zone
-   settings (Transform Rules, bot blocking, managed robots.txt) that a rollback
-   cannot change.
+4. If `promote` fails or is cancelled, or `verify` fails, `rollback-command`
+   prints the exact `wrangler versions deploy` commands that restore both
+   previous versions. Nothing rolls back on its own: a part-way promote leaves
+   at most the api newer than the site, which the api-first order already
+   requires to work, and re-running the `promote` job finishes it. Most of
+   verify's checks are zone settings (Transform Rules, bot blocking, managed
+   robots.txt) that a rollback cannot change.
 
 So a failed upload, for example a Cloudflare API error during the asset upload,
 leaves the environment untouched: re-run the failed jobs. A failed promote never
@@ -91,7 +91,8 @@ releases published after the setting was turned on: `v0.0.1` predates it and
 is not immutable, so the guarantee starts with the next release.
 
 Neither deploy workflow cancels a running deploy (`cancel-in-progress: false`):
-a cancelled deploy can leave `www` and `api` on different commits. GitHub keeps
+a deploy cancelled during `promote` can leave `www` and `api` on different
+commits (a cancel during the uploads changes nothing). GitHub keeps
 one pending run per group and replaces it when a newer one arrives. Staging
 relies on that: a pending run has not started any job, and the newer push
 already contains its commit. Release sets `concurrency.queue: max` instead, so
