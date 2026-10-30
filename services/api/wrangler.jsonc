@@ -23,13 +23,13 @@
   // CLI state on every deploy. Local dev reads the repo-root `.env.local`
   // (see services/api/package.json).
   //
-  // Secrets (uploaded with the code via `wrangler deploy --secrets-file`, only
+  // Secrets (uploaded with the code via `versions upload --secrets-file`, only
   // those set; a deploy never deletes one):
   // - RESEND_API_KEY, TURNSTILE_SECRET_KEY
   // - TO_EMAIL, FROM_EMAIL — secrets rather than vars because Actions logs of
   //   this public repo are world-readable, and a var's value is printed there.
   //
-  // Vars (passed via wrangler-action `vars:`):
+  // Vars (passed with `--var` on the upload):
   // - ALLOWED_ORIGIN (required — the deploy fails without it)
 
   // Staging only — see the note in services/www/wrangler.jsonc. `vars` is not
