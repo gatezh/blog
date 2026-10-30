@@ -420,3 +420,115 @@ this time.
 | 7                      | Fixed   | Both upload comments now say `previous` is for the command `rollback-command` prints if promote or verify fails.                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Nit: cancelled promote | Fixed   | `rollback-command` also runs when `promote` was cancelled, and only when both uploads succeeded, so it never prints an empty `previous`. The heading says "was cancelled" or "failed". GitHub's docs confirm that `always()` is true in a cancelled run. They do not say whether **Re-run failed jobs** includes cancelled jobs, so the printed hint (and `docs/deployment.md` step 4) now says "re-running the `promote` job", which works after a failure and after a cancel. Backticks are escaped inside double quotes, which keeps shellcheck's SC2016 quiet. |
 | Nit: cancel wording    | Fixed   | `docs/deployment.md` "Why release-anchored production" now says a deploy cancelled during `promote` can split the Workers, and that a cancel during the uploads changes nothing.                                                                                                                                                                                                                                                                                                                                                                                   |
+
+## Review Round 3
+
+Reviewed: PR #130 at `b3474cd`, the whole change again plus the Round 2 fix in
+`5779fbd`. Checked against Wrangler 4.114.0 (installed; latest 4.156.0),
+cloudflare/wrangler-action v4.1.3 (still the latest release) and actionlint
+1.7.12.
+
+### Status of earlier findings
+
+| #                      | Status   | Check of the fix                                                                                                                                                                                                                                                                |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1–6                    | Resolved | Unchanged since Round 2.                                                                                                                                                                                                                                                        |
+| 7                      | Resolved | `release.yml:197-198` and `deploy-staging.yml:85-86` say `previous` feeds the command `rollback-command` prints.                                                                                                                                                                |
+| Nit: cancelled promote | Resolved | The `if:` adds `needs.promote.result == 'cancelled'` and requires both uploads to have succeeded, so `previous` is never empty. `FAILED`/`OUTCOME` pick the right heading in all three cases (promote failed, promote cancelled, verify failed). See #8 for the hint's wording. |
+| Nit: cancel wording    | Resolved | `docs/deployment.md:93-95` limits the split to a cancel during `promote`.                                                                                                                                                                                                       |
+
+### Summary
+
+The change is ready to merge. The fix for the last nit is correct, and an
+independent pass over the whole PR found no new correctness or security
+problem. The two-phase deploy is still the canonical use of Worker versions,
+and wrangler-action still cannot replace the direct Wrangler calls. One minor
+point is left. The printed advice to re-run `promote` is safe only while that
+run is still the newest deploy, and nothing says so (#8).
+
+### Minor
+
+#### 8. "Re-run the promote job" can revert a newer deploy
+
+`.github/workflows/release.yml:475`, `.github/workflows/deploy-staging.yml:318`,
+`docs/deployment.md:46`, `:51`
+
+A re-run of `promote` reuses the version ids its upload jobs recorded, and
+`versions deploy <id>@100%` deploys them whatever is live now (Round 2,
+"Re-running promote is safe"). The concurrency groups run one deploy at a
+time, but they do not stop a re-run of an older run from starting after a
+newer run has finished.
+
+Scenario on staging, which deploys every push: run A's `promote` fails during
+a Cloudflare outage. The next push's run B uploads, promotes and verifies.
+Later someone opens run A, reads "Re-running the `promote` job finishes the
+promotion" and does that. Staging goes back to A's commit. A's `verify` then
+checks A's commit and passes, so nothing flags the revert. Production needs
+the same mistake on a manual dispatch, but the summary gives the same advice
+there. The printed rollback commands have the same limit: they are correct
+only while this run's versions, or the versions before it, are live.
+
+Before this PR, re-running an old failed `deploy-*` job had the same effect.
+What is new is that the run summary now recommends it.
+
+**Fix (wording only):** add the condition to the hint and to the docs, for
+example "…finishes the promotion, if no later run has deployed since". An
+automated guard in `promote` would compare `deployments status` with the
+recorded `previous` and refuse when they differ. Do not add it: it is about 10
+more lines per workflow, and it would also refuse the legitimate re-run after
+a part-way promote, where the api already differs from `previous`.
+
+### Nits
+
+- `docs/deployment.md:75`: "Roll back both Workers." Add "www first". The
+  printed commands use that order, and the api-first invariant requires it for
+  a manual rollback too, so a new site never meets an old api.
+
+### Native-first audit
+
+Only pieces that are new or changed since Round 2. Earlier verdicts stand,
+re-checked where a version could have moved them.
+
+| Custom piece                               | Built-in checked (where)                                                                                                                                                                   | Verdict                                                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bunx wrangler` instead of wrangler-action | wrangler-action **v4.1.3 is still the latest release**. `src/wranglerAction.ts:366-368` still adds `--var` only to `deploy`/`publish`/`preview`, and `action.yml` has no version-id output | **Keep** (unchanged)                                                                                                                                |
+| `cancelled` branch of `rollback-command`   | An `if: cancelled()` step inside `promote`                                                                                                                                                 | **Keep**: it would repeat the printing that `rollback-command` already does for a failed promote and a failed verify. One job keeps it in one place |
+| Re-run advice in the summary               | Concurrency groups (one run at a time; no ordering against a later run's state). No GitHub setting blocks a re-run of an older run                                                         | **Keep**, reworded (#8)                                                                                                                             |
+
+### Upgrade opportunities
+
+No change from Round 2. Nothing between 4.114.0 and 4.156.0 adds `--json` to
+`versions upload`, removes the experimental label from `triggers deploy`, or
+fixes workers-sdk#16447 (still open, updated 2026-10-29).
+
+### Checked and correct
+
+- **`bunx wrangler` from the repo root in `promote`.** It resolves the pinned
+  4.114.0, because the root `package.json` lists `wrangler: catalog:` and
+  `node_modules/.bin/wrangler` exists at the root as well as in each service.
+  It does not fall back to downloading an unpinned Wrangler from npm.
+- **Version URLs.** Production's top-level config sets no `routes`, so
+  `workers_dev` defaults to true (`getSubdomainValues`, `cli.js:140656`), and
+  Version URLs follow it (Cloudflare docs, Version URLs, "Enable or disable").
+  Every uploaded version, promoted or not, is therefore public at
+  `<prefix>-gatezh-com.<subdomain>.workers.dev`. This is not new: the same
+  docs list `wrangler deploy` among the commands that create versions with
+  Version URLs. So the PR does not widen exposure. Turning them off
+  (`preview_urls: false`) is a separate decision.
+- **The upload jobs fail safe.** If `deployments status` fails, the pipe fails
+  under `bash -eo pipefail` before anything is uploaded.
+  `check-deploy-config` either exits 1 or warns. It never ends the job early
+  with success, so `promote` cannot receive an empty version id.
+- **Token scope.** `CLOUDFLARE_API_TOKEN` is only in the env of the Wrangler
+  steps. `bun install` (setup) and the Hugo build run without it.
+- **Lint.** actionlint 1.7.12 passes on both workflows at `b3474cd`.
+
+## Round 3 resolution
+
+`bun run check` passes, including actionlint with shellcheck. `bun run test`:
+326 passed.
+
+| #                   | Outcome                         | What was done / why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 8                   | Fixed (wording, as recommended) | Re-checked: a re-run of `promote` reuses the upload jobs' outputs and deploys them over whatever is live. The printed hint in both workflows now says "if no later run has deployed since", and the restore line says "and no later run has deployed since". `docs/deployment.md` step 4 says a re-run deploys this run's versions over whatever is live, so re-run, or run the printed commands, only while no later run has deployed. The same condition now applies to "re-run the failed jobs" after a failed upload, which also ends in this run's `promote`. No automated guard, for the reason given in #8. |
+| Nit: rollback order | Fixed                           | "Rolling back" now says "Roll back both Workers, www first, so a new site never meets an old api."                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
