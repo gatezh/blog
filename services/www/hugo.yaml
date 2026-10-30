@@ -185,6 +185,12 @@ params:
   # Searchable nouns first (role, stack), as the per-surface headlines do.
   keywords: "Serge Gatezh, product engineer, Calgary, TypeScript, React, Cloudflare Workers, edge infrastructure, application security, security-first AI workflows, UX"
 
+  # Default link-preview image (og:image, twitter:image, Article JSON-LD image),
+  # a path under assets/. A page overrides it with `image:` and `imageAlt:` in
+  # front matter. Rendered from brand/share-image.html by `bun run brand`.
+  ogImage: "brand/share.png"
+  ogImageAlt: "Serge Gatezh, Product Engineer: I turn messy business processes into simple, secure software."
+
   comments: true
 
   # Contact form Worker URL. The local default keeps `bun run dev` working

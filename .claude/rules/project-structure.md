@@ -13,6 +13,8 @@ This is a Bun monorepo for gatezh.com:
 │   ├── www/                    # Hugo website, served as Workers static assets
 │   │   ├── content/            # Site content (Markdown)
 │   │   ├── assets/js/          # Site scripts (contact form, Turnstile)
+│   │   ├── assets/brand/       # Favicons + share image (fingerprinted)
+│   │   ├── brand/              # Share-image template + render script (`bun run brand`)
 │   │   ├── tests/              # Playwright: blog, seo, agents, assets
 │   │   ├── layouts/            # Site-specific layouts (override theme),
 │   │   │                       #   incl. the generated _headers/_redirects
