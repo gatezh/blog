@@ -743,12 +743,13 @@
   /* -------------------------------------------------------------------------
      Article Content - Enhanced Code Blocks
 
-     Code blocks within article content get terminal window chrome styling
+     Code blocks within article content get terminal window chrome styling.
+     The <pre> is the frame; the <code> scrolls, so it owns the padding.
      ------------------------------------------------------------------------- */
   .article-content pre {
     position: relative;
     margin: 1.5em 0;
-    padding-top: 2.5rem;
+    padding: 2rem 0 0;
     border: 1px solid var(--color-terminal-border);
     border-radius: 0.5rem;
     background-color: var(--color-terminal-code-bg);
@@ -780,6 +781,12 @@
     background: none;
     font-size: 0.8125rem;
     line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    .article-content pre code {
+      padding: 0.75rem;
+    }
   }
 
   /* Line numbers effect (optional visual enhancement) */
@@ -854,16 +861,7 @@
     font-size: 1.125rem;
   }
 
-  /* Full-width code blocks on mobile with tighter spacing */
-  pre {
-    padding: 0.75rem;
-    font-size: 0.8125rem;
-    margin-left: -1rem;
-    margin-right: -1rem;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
+  /* No code-block rules here: unlayered, they beat @layer components. */
 
   /* Adjust table for mobile */
   table {
