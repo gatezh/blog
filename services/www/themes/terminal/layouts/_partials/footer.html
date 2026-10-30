@@ -1,23 +1,27 @@
 {{/*
-  Footer partial - Copyright and social links
+  Footer partial - Copyright, theme switcher and social links
 
   Features:
   - Copyright with current year
+  - Theme switcher (light, dark, system), moved here from the header so the
+    header holds navigation only
   - Social links from hugo.yaml params.socialIcons
-  - Terminal-style presentation
+  - Layout: .site-footer in main.css, two rows on phones, one from 40rem
 */}}
 <footer class="w-full border-t border-terminal-border mt-auto">
 	<div class="max-w-3xl mx-auto px-4 py-6">
-		<div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-terminal-muted">
+		<div class="site-footer text-sm text-terminal-muted">
 			{{/* Copyright */}}
-			<div class="flex items-center gap-2">
+			<div class="site-footer-identity flex items-center gap-2">
 				<span class="text-terminal-accent">$</span>
 				<span>{{ now.Year }} {{ site.Title }}</span>
 			</div>
 
+			{{- partial "theme-toggle.html" . -}}
+
 			{{/* Social links */}}
 			{{ with site.Params.socialIcons }}
-				<div class="flex items-center gap-4">
+				<div class="site-footer-profiles flex items-center gap-4">
 					{{ range . }}
 						<a
 							href="{{ .url }}"

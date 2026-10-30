@@ -326,45 +326,120 @@
    ============================================================================= */
 @layer components {
   /* -------------------------------------------------------------------------
-     Theme Toggle
+     Theme Switcher (footer) - see _partials/theme-toggle.html
      ------------------------------------------------------------------------- */
   .theme-toggle {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.125rem;
-    padding: 0.25rem;
-    border-radius: 0.5rem;
-    background-color: var(--color-terminal-bg-secondary);
-    border: 1px solid var(--color-terminal-border);
+    gap: 0 0.375rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
   }
 
-  .theme-toggle-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.375rem;
-    border-radius: 0.375rem;
-    color: var(--color-terminal-muted);
-    transition: all 150ms ease;
-    cursor: pointer;
-    border: none;
-    background: transparent;
+  /* A floated legend is laid out as an ordinary child, so it sits inline with
+     the options instead of on the fieldset's top edge. */
+  .theme-toggle-legend {
+    float: left;
+    margin-right: 0.5rem;
+    padding: 0;
+  }
 
+  /* "theme:" - a key for the values that follow, not a fourth option. */
+  .theme-toggle-legend::after {
+    content: ":";
+  }
+
+  .theme-toggle-option {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    color: var(--color-terminal-muted);
+    cursor: pointer;
+    transition: color 150ms ease;
+
+    /* Larger touch targets on phones. */
     @variant max-sm {
-      padding: 0.5rem;
-      min-width: 40px;
       min-height: 40px;
     }
   }
 
-  .theme-toggle-btn:hover {
+  .theme-toggle-option:hover {
     color: var(--color-terminal-fg);
   }
 
-  .theme-toggle-btn.active {
-    background-color: var(--color-terminal-bg);
+  /* Visually hidden but still focusable and announced. */
+  .theme-toggle-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Every option reserves its brackets; only the selected one shows them, so
+     the row never shifts. The empty alt text keeps them out of screen readers. */
+  .theme-toggle-option span::before {
+    content: "[" / "";
+    color: transparent;
+  }
+
+  .theme-toggle-option span::after {
+    content: "]" / "";
+    color: transparent;
+  }
+
+  .theme-toggle-input:checked + span {
+    color: var(--color-terminal-fg);
+  }
+
+  .theme-toggle-input:checked + span::before,
+  .theme-toggle-input:checked + span::after {
     color: var(--color-terminal-accent);
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  }
+
+  .theme-toggle-input:focus-visible + span {
+    outline: 2px solid var(--color-terminal-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* -------------------------------------------------------------------------
+     Footer - identity, theme, profiles. Two rows on phones, one from 40rem.
+     ------------------------------------------------------------------------- */
+  .site-footer {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "identity profiles"
+      "theme theme";
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+
+    @variant sm {
+      grid-template-columns: 1fr auto auto;
+      grid-template-areas: "identity theme profiles";
+    }
+  }
+
+  .site-footer-identity {
+    grid-area: identity;
+  }
+
+  .site-footer .theme-toggle {
+    grid-area: theme;
+  }
+
+  .site-footer-profiles {
+    grid-area: profiles;
+
+    @variant sm {
+      padding-left: 1.5rem;
+      border-left: 1px solid var(--color-terminal-border);
+    }
   }
 
   /* -------------------------------------------------------------------------
