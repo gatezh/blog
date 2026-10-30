@@ -1,70 +1,26 @@
 {{/*
-  Three-position theme toggle
+  Theme switcher - light, dark or system (the default), in the footer
 
-  Positions:
-  - Light (sun icon)
-  - System (monitor icon) - default
-  - Dark (moon icon)
+  A set-and-forget preference, so it lives in the footer and leaves the header
+  to navigation. Text labels rather than icons: "system" cannot be misread,
+  where a monitor icon on its own reads as "desktop".
 
-  The toggle uses a segmented button design with the active position highlighted.
-  js/theme-toggle.ts handles theme switching, localStorage persistence, and system preference detection.
+  Native radio inputs in a fieldset: the browser supplies the arrow-key
+  behaviour and the screen-reader semantics of a radio group, with no ARIA to
+  keep in sync. The selected option is wrapped in brackets, like a CLI picker;
+  every option reserves the bracket space, so switching never shifts the row.
+
+  js/theme-toggle.ts checks the stored choice on load and applies a change.
 */}}
-<div class="theme-toggle" role="radiogroup" aria-label="Theme selection">
-	{{/* Light mode button */}}
-	<button
-		type="button"
-		role="radio"
-		aria-checked="false"
-		class="theme-toggle-btn"
-		data-theme="light"
-		aria-label="Light theme"
-		title="Light theme"
-	>
-		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<circle cx="12" cy="12" r="5"></circle>
-			<line x1="12" y1="1" x2="12" y2="3"></line>
-			<line x1="12" y1="21" x2="12" y2="23"></line>
-			<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-			<line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-			<line x1="1" y1="12" x2="3" y2="12"></line>
-			<line x1="21" y1="12" x2="23" y2="12"></line>
-			<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-			<line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-		</svg>
-	</button>
-
-	{{/* System preference button */}}
-	<button
-		type="button"
-		role="radio"
-		aria-checked="false"
-		class="theme-toggle-btn"
-		data-theme="system"
-		aria-label="System theme"
-		title="System theme"
-	>
-		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-			<line x1="8" y1="21" x2="16" y2="21"></line>
-			<line x1="12" y1="17" x2="12" y2="21"></line>
-		</svg>
-	</button>
-
-	{{/* Dark mode button */}}
-	<button
-		type="button"
-		role="radio"
-		aria-checked="false"
-		class="theme-toggle-btn"
-		data-theme="dark"
-		aria-label="Dark theme"
-		title="Dark theme"
-	>
-		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-		</svg>
-	</button>
-</div>
+<fieldset class="theme-toggle">
+	<legend class="theme-toggle-legend">theme</legend>
+	{{- range slice "light" "dark" "system" }}
+		<label class="theme-toggle-option">
+			<input type="radio" name="theme" value="{{ . }}" class="theme-toggle-input">
+			<span>{{ . }}</span>
+		</label>
+	{{- end }}
+</fieldset>
 
 {{ with partial "js.html" "js/theme-toggle.ts" }}
 	<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" defer></script>
