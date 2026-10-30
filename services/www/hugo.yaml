@@ -159,6 +159,10 @@ menu:
       name: Ever Learning
       url: /ever-learning/
       weight: 20
+    - identifier: projects
+      name: Projects
+      url: /projects/
+      weight: 26
     - identifier: talks
       name: Talks
       url: /talks/
@@ -194,6 +198,18 @@ params:
   # front matter. Rendered from brand/share-image.html by `bun run brand`.
   ogImage: "brand/share.png"
   ogImageAlt: "Serge Gatezh, Product Engineer: I turn messy business processes into simple, secure software."
+
+  # Credentials: Person.hasCredential in the JSON-LD (seo.html) and the badges
+  # at the top of any page that sets `showCredentials: true` (Ever Learning).
+  # `image` is the issuer's badge artwork under assets/, cropped to `crop`.
+  credentials:
+    - name: "Claude Certified Architect, Foundations"
+      issuer: "Anthropic"
+      issuerUrl: "https://www.anthropic.com/"
+      earned: "September 2026"
+      url: "https://www.credly.com/badges/9ce5ccf8-7ea5-40d4-9f65-3e0a8a66094a"
+      image: "images/credentials/claude-certified-architect-foundations.png"
+      crop: "352x352 center"
 
   comments: true
 

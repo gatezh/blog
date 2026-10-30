@@ -18,7 +18,15 @@ import { sitemapPaths } from "./sitemap";
 
 // Structural pages only. Individual posts come and go, and the sitemap sweep
 // below already asserts robots + canonical on every URL the site publishes.
-const INDEXABLE_PAGES = ["/", "/posts/", "/ever-learning/", "/about/", "/talks/", "/contact/"];
+const INDEXABLE_PAGES = [
+  "/",
+  "/posts/",
+  "/ever-learning/",
+  "/about/",
+  "/projects/",
+  "/talks/",
+  "/contact/",
+];
 
 // Taxonomy listings: near-duplicates of /posts/ while the post count is small.
 // Term pages exist only as long as a post carries the term.
@@ -425,6 +433,75 @@ test.describe("identity structured data", () => {
         "Dev Containers with Claude: Security First",
       ]),
     );
+  });
+
+  test("/projects/ lists projects by layer, crediting the same Person", async ({ page }) => {
+    const blocks = await jsonLd(page, "/projects/");
+    const collection = blocks.find((b) => b["@type"] === "CollectionPage");
+    expect(collection.author["@id"]).toMatch(PERSON_ID);
+
+    type Item = { "@type": string; [key: string]: unknown };
+    const layers = collection.mainEntity.itemListElement.map(
+      (i: { item: { name: string; itemListElement: { item: Item }[] } }) => i.item,
+    );
+    expect(layers.map((l: { name: string }) => l.name)).toEqual([
+      "Products",
+      "Platforms",
+      "Workbench",
+    ]);
+    for (const layer of layers) {
+      expect(layer.itemListElement.length, layer.name).toBeGreaterThan(0);
+      for (const { item } of layer.itemListElement) {
+        expect((item.creator as Item)["@id"], item.name as string).toMatch(PERSON_ID);
+      }
+    }
+
+    // Every talk the page links to resolves to a talk on /talks/.
+    const talkLinks = await page
+      .locator('a[href*="/talks/#"]')
+      .evaluateAll((links) => links.map((link) => new URL((link as HTMLAnchorElement).href).hash));
+    expect(talkLinks.length).toBeGreaterThan(0);
+    await page.goto("/talks/");
+    for (const hash of talkLinks) await expect(page.locator(hash), hash).toHaveCount(1);
+  });
+
+  test("every box in the /projects/ stack diagram links to its entry", async ({ page }) => {
+    await page.goto("/projects/");
+    const targets = await page
+      .locator(".stack a.stack-node")
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
+    // Four products, two platforms, one workbench.
+    expect(targets.length).toBe(7);
+    for (const hash of targets) {
+      expect(hash).toMatch(/^#[a-z0-9-]+$/);
+      await expect(page.locator(`article${hash}`), hash).toHaveCount(1);
+    }
+  });
+
+  test("the Person carries the Anthropic credential", async ({ page }) => {
+    const person = (await jsonLd(page, "/")).find((b) => b["@type"] === "Person");
+    expect(person.hasCredential).toEqual([
+      expect.objectContaining({
+        "@type": "EducationalOccupationalCredential",
+        name: "Claude Certified Architect, Foundations",
+        recognizedBy: expect.objectContaining({ name: "Anthropic" }),
+        url: expect.stringMatching(/^https:\/\/www\.credly\.com\/badges\//),
+      }),
+    ]);
+  });
+
+  test("/ever-learning/ shows the credential badge, linked to its verification", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/ever-learning/");
+    const badge = page.locator("header .credentials a.credential");
+    await expect(badge).toHaveAttribute("href", /^https:\/\/www\.credly\.com\/badges\//);
+    const img = badge.locator("img");
+    await expect(img).toHaveAttribute("alt", /Claude Certified Architect.*Anthropic/);
+    const res = await request.get((await img.getAttribute("src")) as string);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toBe("image/webp");
   });
 
   test("footer profile links declare rel=me", async ({ page }) => {

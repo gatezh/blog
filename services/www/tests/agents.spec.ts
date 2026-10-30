@@ -52,10 +52,10 @@ test.describe("content coverage", () => {
 });
 
 test.describe("standalone pages", () => {
-  // About and Talks belong to no section, so llms.txt and llms-full.txt list
+  // About, Projects and Talks belong to no section, so llms.txt and llms-full.txt list
   // them by path. A page missing from those lists is invisible to agents
   // that read the index instead of crawling.
-  for (const path of ["/about/", "/talks/"]) {
+  for (const path of ["/about/", "/projects/", "/talks/"]) {
     test(`${path} is in llms.txt and llms-full.txt`, async ({ request }) => {
       const index = await (await request.get("/llms.txt")).text();
       expect(index).toMatch(new RegExp(`^- \\[[^\\]]+\\]\\(https?://[^/]+${path}\\):`, "m"));
@@ -63,6 +63,17 @@ test.describe("standalone pages", () => {
       expect(full).toMatch(new RegExp(`^Source: https?://[^/]+${path}$`, "m"));
     });
   }
+
+  test("the projects mirror carries every layer, as before and after", async ({ request }) => {
+    const md = await (await request.get("/projects/index.md")).text();
+    for (const layer of ["Products", "Platforms", "Workbench"]) {
+      expect(md).toContain(`## ${layer}`);
+    }
+    expect(md).toContain("### [devcontainers](https://github.com/gatezh/devcontainers)");
+    expect(md).toMatch(/^- Before: .+$/m);
+    expect(md).toMatch(/^- After: .+$/m);
+    expect(md).toContain("- Runs on SurgeGate");
+  });
 
   test("the talks mirror carries every talk with its slides", async ({ request }) => {
     const md = await (await request.get("/talks/index.md")).text();
@@ -128,7 +139,7 @@ test.describe("llms-full.txt structure", () => {
 });
 
 test.describe("markdown mirrors", () => {
-  for (const path of ["/", "/posts/", "/ever-learning/", "/about/", "/talks/"]) {
+  for (const path of ["/", "/posts/", "/ever-learning/", "/about/", "/projects/", "/talks/"]) {
     test(`${path} has a Markdown mirror`, async ({ request }) => {
       const res = await request.get(`${path}index.md`);
       expect(res.status(), `${path}index.md should exist`).toBe(200);
