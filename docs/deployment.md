@@ -27,33 +27,45 @@ second tag onto the commit.
 
 ### Upload, then promote
 
-Both deploy workflows change their environment in two phases, with Cloudflare's
+Both deploy workflows run in stages, and change their environment in two
+phases with Cloudflare's
 [Worker versions](https://developers.cloudflare.com/workers/configuration/versions-and-deployments/):
 
-1. `upload-www` and `upload-api` build each service and upload it with
-   `wrangler versions upload`: a new version that serves no traffic. Each also
-   records what the Worker serves now (`wrangler deployments status --json`).
-2. `promote` runs only when **both** uploads succeeded, and switches both
-   Workers to their new version (`wrangler versions deploy <id>@100%`), api
-   first. A version upload does not apply routes, custom domains or
-   workers.dev, so `promote` also runs `wrangler triggers deploy` (still
-   labelled experimental) for each Worker, as `wrangler deploy` did. It fails
-   unless www's `public/` exists, so `upload-www` passes it on as an artifact.
-3. `verify` checks the live environment.
-4. If `promote` fails or is cancelled, or `verify` fails, `rollback-command`
+1. `preflight` checks the environment's variables and secrets
+   (`.github/actions/check-deploy-config`) before CI or anything else runs. In
+   staging it also skips CI when a pull request run already passed on exactly
+   the same tree: `ci.yml`'s lint job uploads a `tested-tree-<tree hash>`
+   artifact on every pull request run, and a merge commit with that tree has the
+   same files. The run summary links the pull request run it relied on.
+2. `upload` builds www and uploads both services with `wrangler versions
+upload`: new versions that serve no traffic. It first records what each
+   Worker serves now (`wrangler deployments status --json`).
+3. `go-live` runs only when the upload succeeded, and switches both Workers to
+   their new version (`wrangler versions deploy <id>@100%`), api first. A
+   version upload does not apply routes, custom domains or workers.dev, so it
+   also runs `wrangler triggers deploy` (still labelled experimental) for each
+   Worker, as `wrangler deploy` did. That fails unless www's `public/` exists,
+   so `upload` passes it on as an artifact. Then it verifies the live
+   environment.
+4. If `go-live` fails or is cancelled after promoting started, a step in it
    prints the exact `wrangler versions deploy` commands that restore both
    previous versions. Nothing rolls back on its own: a part-way promote leaves
    at most the api newer than the site, which the api-first order already
-   requires to work, and re-running the `promote` job finishes it. A re-run
-   deploys this run's versions over whatever is live, so only re-run (or run the
-   printed commands) while no later run has deployed since. Most of
-   verify's checks are zone settings (Transform Rules, bot blocking, managed
-   robots.txt) that a rollback cannot change.
+   requires to work, and re-running `go-live` finishes it. A re-run deploys this
+   run's versions over whatever is live, so only re-run (or run the printed
+   commands) while no later run has deployed since. Most of verify's checks
+   are zone settings (Transform Rules, bot blocking, managed robots.txt) that a
+   rollback cannot change.
 
 So a failed upload, for example a Cloudflare API error during the asset upload,
 leaves the environment untouched: re-run the failed jobs, unless a later run
-has deployed since. A failed promote never
-leaves the site newer than the api.
+has deployed since. A failed promote never leaves the site newer than the api.
+
+Each job bills at least a minute, so a step that marks no new stage stays a
+step: `preflight` decides whether CI runs, `upload` changes nothing live, and
+`go-live` is the one job that does. Every job below `ci` states its condition on
+its direct `needs`: with the default `success()`, a skipped `ci` would skip
+every job after it.
 
 Two consequences:
 
@@ -69,9 +81,9 @@ Two consequences:
 ### Rolling back
 
 A failed promote or verify prints the rollback command in the run summary (see
-above). It restores what was live when the upload jobs ran, so after a failed
-verify use **Re-run failed jobs**, not **Re-run all jobs**: re-running the
-uploads records the new versions as "previous". To roll back by hand:
+above). It restores what was live when `upload` ran, so after a failed
+verify use **Re-run failed jobs**, not **Re-run all jobs**: re-running
+`upload` records the new versions as "previous". To roll back by hand:
 
 - **Instantly:** Workers & Pages → the Worker → **Deployments** → the version
   tagged with the previous release → **Rollback**, or
@@ -96,8 +108,8 @@ releases published after the setting was turned on: `v0.0.1` predates it and
 is not immutable, so the guarantee starts with the next release.
 
 Neither deploy workflow cancels a running deploy (`cancel-in-progress: false`):
-a deploy cancelled during `promote` can leave `www` and `api` on different
-commits (a cancel during the uploads changes nothing). GitHub keeps
+a deploy cancelled while `go-live` promotes can leave `www` and `api` on different
+commits (a cancel during `upload` changes nothing). GitHub keeps
 one pending run per group and replaces it when a newer one arrives. Staging
 relies on that: a pending run has not started any job, and the newer push
 already contains its commit. Release sets `concurrency.queue: max` instead, so
@@ -204,7 +216,7 @@ the bare `www`/`api` a dedicated account can use.
 
 CI cannot create a Worker (see "Upload, then promote"). Before each step, create
 the new Worker in the dashboard under its exact name (**Workers & Pages →
-Create**, any starter). The release then uploads into it, and `promote`'s
+Create**, any starter). The release then uploads into it, and `go-live`'s
 `triggers deploy` attaches the custom domain from `wrangler.jsonc`.
 
 - **API first — no downtime.** Add a `production` env block to
