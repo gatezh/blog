@@ -51,20 +51,44 @@ defaults:
     shell: bash
 
 jobs:
+  # Before CI and before anything is tagged: a production environment that is
+  # missing a value stops the release here.
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Variables and secrets only; the Deployments record belongs to go-live.
+    environment:
+      name: production
+      deployment: false
+    steps:
+      # `$/` loads the action from this workflow's own commit, so it needs no checkout.
+      - uses: $/.github/actions/check-deploy-config
+        with:
+          environment: production
+        env:
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
+          HAS_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY != '' }}
+          HAS_TO_EMAIL: ${{ secrets.TO_EMAIL != '' }}
+          HAS_FROM_EMAIL: ${{ secrets.FROM_EMAIL != '' }}
+          HAS_TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY != '' }}
+
   # The whole of CI on the commit about to be tagged, before anything is
   # tagged — a failure leaves no release behind. Not on a redeploy: that tag
   # passed CI when it was released, and a rollback mid-incident must not wait on
   # a flaky test or a newer ci.yml the old tree cannot satisfy.
   ci:
+    needs: preflight
     if: inputs.action == 'create'
     uses: $/.github/workflows/ci.yml
 
   release:
-    needs: ci
+    needs: [preflight, ci]
     # Only a run from master may tag: the production environment refuses the
     # deploy jobs on any other ref, which would leave a release that was never
     # deployed. `!failure() && !cancelled()` lets it run when ci was skipped (a
-    # redeploy) but not when it failed.
+    # redeploy) but not when it or preflight failed.
     if: ${{ !failure() && !cancelled() && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -132,9 +156,9 @@ jobs:
           echo "version=${next}" >> "$GITHUB_OUTPUT"
           echo "commit_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
-  # Production changes in two phases. The upload jobs build each service and
-  # upload it as a new Worker version that serves no traffic. Only when BOTH
-  # uploads succeed does `promote` switch both Workers to them. A failed upload
+  # Production changes in two phases. `upload` builds both services and
+  # uploads each as a new Worker version that serves no traffic. Only when both
+  # uploads succeed does `go-live` switch both Workers to them. A failed upload
   # leaves production exactly as it was.
   # https://developers.cloudflare.com/workers/configuration/versions-and-deployments/
   #
@@ -143,21 +167,26 @@ jobs:
   # comes from Wrangler's own machine-readable output (WRANGLER_OUTPUT_FILE_PATH).
   # `--env=""` names the top-level config explicitly: production has no env
   # block (see the NOTE at the top).
-  upload-www:
+  upload:
     needs: release
     # Stated outright: only the release job's result matters here, not that
     # ci was skipped on a redeploy.
     if: ${{ !cancelled() && needs.release.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    # Variables and secrets only. The Deployments record belongs to `promote`,
-    # the job that actually changes what production serves.
     environment:
       name: production
       deployment: false
     outputs:
-      version_id: ${{ steps.upload.outputs.version_id }}
-      previous: ${{ steps.upload.outputs.previous }}
+      www_version: ${{ steps.www.outputs.version_id }}
+      www_previous: ${{ steps.www.outputs.previous }}
+      api_version: ${{ steps.api.outputs.version_id }}
+      api_previous: ${{ steps.api.outputs.previous }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      VERSION: ${{ needs.release.outputs.version }}
+      COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -178,73 +207,11 @@ jobs:
           # Optional: unset means the site ships without PostHog.
           HUGO_PARAMS_POSTHOGKEY: ${{ vars.HUGO_PARAMS_POSTHOGKEY }}
           # The tag's commit, not github.sha: on a redeploy those differ, and
-          # the verify job must confirm the tag is what is live.
+          # go-live's verify step must confirm the tag is what is live.
           HUGO_PARAMS_BUILDCOMMIT: ${{ needs.release.outputs.commit_sha }}
         run: |
           : "${HUGO_BASEURL:?Set HUGO_BASEURL on the production environment}"
           bun run --cwd services/www build
-
-      - name: Upload www as a new version
-        id: upload
-        working-directory: services/www
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.json
-          VERSION: ${{ needs.release.outputs.version }}
-          COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
-        run: |
-          # What production serves now, as version specs (id@percentage), for
-          # the command rollback-command prints if promote or verify fails.
-          previous=$(bunx wrangler deployments status --env="" --json | jq -r '[.versions[] | "\(.version_id)@\(.percentage)%"] | join(" ")')
-          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
-          # The release tag on the version maps it to its release in the
-          # dashboard (docs/deployment.md, "Rolling back").
-          bunx wrangler versions upload --env="" --tag "v${VERSION}" --message "${COMMIT_SHA}"
-          id=$(jq -r 'select(.type == "version-upload") | .version_id' "${WRANGLER_OUTPUT_FILE_PATH}")
-          [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
-          echo "version_id=${id}" >> "$GITHUB_OUTPUT"
-
-      # promote's `triggers deploy` fails unless assets.directory exists.
-      # `overwrite`: "Re-run all jobs" replaces the earlier attempt's copy.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: www-public
-          path: services/www/public
-          if-no-files-found: error
-          overwrite: true
-
-  upload-api:
-    needs: release
-    if: ${{ !cancelled() && needs.release.result == 'success' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    environment:
-      name: production
-      deployment: false
-    outputs:
-      version_id: ${{ steps.upload.outputs.version_id }}
-      previous: ${{ steps.upload.outputs.previous }}
-    steps:
-      # First, before anything changes. `$/` loads the action from this
-      # workflow's own commit, so it needs no checkout.
-      - uses: $/.github/actions/check-deploy-config
-        with:
-          environment: production
-        env:
-          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
-          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
-          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
-          HAS_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY != '' }}
-          HAS_TO_EMAIL: ${{ secrets.TO_EMAIL != '' }}
-          HAS_FROM_EMAIL: ${{ secrets.FROM_EMAIL != '' }}
-          HAS_TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY != '' }}
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          ref: ${{ needs.release.outputs.commit_sha }}
-      - uses: $/.github/actions/setup
 
       # Secrets go up with the code in one Worker version — see the same step
       # in deploy-staging.yml.
@@ -260,15 +227,11 @@ jobs:
             | with_entries(select(.value != null and .value != ""))' > "${RUNNER_TEMP}/secrets.json"
 
       - name: Upload api as a new version
-        id: upload
+        id: api
         working-directory: services/api
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.json
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-api.json
           ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
-          VERSION: ${{ needs.release.outputs.version }}
-          COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
         run: |
           previous=$(bunx wrangler deployments status --env="" --json | jq -r '[.versions[] | "\(.version_id)@\(.percentage)%"] | join(" ")')
           echo "previous=${previous}" >> "$GITHUB_OUTPUT"
@@ -284,11 +247,39 @@ jobs:
         if: always()
         run: rm -f "${RUNNER_TEMP}/secrets.json"
 
-  promote:
-    needs: [release, upload-www, upload-api]
-    if: ${{ !cancelled() && needs.upload-www.result == 'success' && needs.upload-api.result == 'success' }}
+      - name: Upload www as a new version
+        id: www
+        working-directory: services/www
+        env:
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-www.json
+        run: |
+          # What production serves now, as version specs (id@percentage), for
+          # the restore command go-live prints if it fails.
+          previous=$(bunx wrangler deployments status --env="" --json | jq -r '[.versions[] | "\(.version_id)@\(.percentage)%"] | join(" ")')
+          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
+          # The release tag on the version maps it to its release in the
+          # dashboard (docs/deployment.md, "Rolling back").
+          bunx wrangler versions upload --env="" --tag "v${VERSION}" --message "${COMMIT_SHA}"
+          id=$(jq -r 'select(.type == "version-upload") | .version_id' "${WRANGLER_OUTPUT_FILE_PATH}")
+          [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
+          echo "version_id=${id}" >> "$GITHUB_OUTPUT"
+
+      # go-live's `triggers deploy` fails unless assets.directory exists.
+      # `overwrite`: "Re-run all jobs" replaces the earlier attempt's copy.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: www-public
+          path: services/www/public
+          if-no-files-found: error
+          overwrite: true
+
+  # Promotes both versions (api first), then checks production. The only job
+  # that changes what production serves.
+  go-live:
+    needs: [release, upload]
+    if: ${{ !cancelled() && needs.upload.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment:
       name: production
       url: https://gatezh.com
@@ -298,7 +289,7 @@ jobs:
           persist-credentials: false
           ref: ${{ needs.release.outputs.commit_sha }}
       - uses: $/.github/actions/setup
-      # See upload-www.
+      # See upload.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: www-public
@@ -308,11 +299,12 @@ jobs:
       # A version upload skips triggers (routes, custom domains, workers.dev);
       # `triggers deploy` (experimental) applies them as `wrangler deploy` did.
       - name: Promote both versions to 100% of traffic
+        id: promote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          API_VERSION_ID: ${{ needs.upload-api.outputs.version_id }}
-          WWW_VERSION_ID: ${{ needs.upload-www.outputs.version_id }}
+          API_VERSION_ID: ${{ needs.upload.outputs.api_version }}
+          WWW_VERSION_ID: ${{ needs.upload.outputs.www_version }}
           MESSAGE: Release v${{ needs.release.outputs.version }}
         run: |
           bunx wrangler versions deploy --cwd services/api --env="" "${API_VERSION_ID}@100%" --message "${MESSAGE}" --yes
@@ -320,17 +312,6 @@ jobs:
           bunx wrangler versions deploy --cwd services/www --env="" "${WWW_VERSION_ID}@100%" --message "${MESSAGE}" --yes
           bunx wrangler triggers deploy --cwd services/www --env=""
 
-  verify:
-    needs: [release, promote]
-    if: ${{ !cancelled() && needs.promote.result == 'success' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    # The environment only for its variables and secrets. deployment: false
-    # keeps this read-only check out of the environment's Deployments list.
-    environment:
-      name: production
-      deployment: false
-    steps:
       - name: Verify production
         env:
           COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
@@ -458,38 +439,26 @@ jobs:
             echo "Deployed \`${deployed}\` to ${SITE}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # Nothing rolls back on its own: a failed promote leaves at most the api newer
-  # than the site (safe, see promote) and "Re-run failed jobs" finishes it; most
-  # of verify's checks are zone settings a rollback cannot change. So this only
-  # prints the command, however verify failed, and when promote failed or was
-  # cancelled part-way (a manual cancel; the uploads must have succeeded, or
-  # there is nothing to restore). www first, so a new site never meets an old
-  # api.
-  rollback-command:
-    needs: [upload-www, upload-api, promote, verify]
-    if: >-
-      ${{ always()
-        && needs.upload-www.result == 'success' && needs.upload-api.result == 'success'
-        && (needs.promote.result == 'failure' || needs.promote.result == 'cancelled'
-          || needs.verify.result == 'failure') }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
+      # Nothing rolls back on its own: a failed promote leaves at most the api
+      # newer than the site (safe, see the promote step) and re-running go-live
+      # finishes it; most of verify's checks are zone settings a rollback cannot
+      # change. So this only prints the command, www first, so a new site never
+      # meets an old api.
       - name: Print the command that restores the previous versions
+        if: failure() || cancelled()
         env:
-          FAILED: ${{ needs.promote.result != 'success' && 'promote' || 'verify' }}
-          OUTCOME: ${{ needs.promote.result == 'cancelled' && 'was cancelled' || 'failed' }}
-          WWW_PREVIOUS: ${{ needs.upload-www.outputs.previous }}
-          API_PREVIOUS: ${{ needs.upload-api.outputs.previous }}
+          PROMOTE: ${{ steps.promote.outcome }}
+          WWW_PREVIOUS: ${{ needs.upload.outputs.www_previous }}
+          API_PREVIOUS: ${{ needs.upload.outputs.api_previous }}
         run: |
           {
-            echo "## ${FAILED} ${OUTCOME} — nothing was rolled back"
-            echo ""
-            if [ "${FAILED}" = "promote" ]; then
-              echo "Re-running the \`promote\` job finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this release:"
-            else
-              echo "If the new versions are the cause, and no later run has deployed since, put both Workers back on what they served before this release:"
-            fi
+            case "${PROMOTE}" in
+              success) echo "## verify failed — nothing was rolled back"; echo ""
+                       echo "If the new versions are the cause, and no later run has deployed since, put both Workers back on what they served before this release:" ;;
+              failure|cancelled) echo "## promote ${PROMOTE/failure/failed} — nothing was rolled back"; echo ""
+                       echo "Re-running \`go-live\` finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this release:" ;;
+              *) echo "## go-live stopped before promoting — production still serves the previous versions"; exit 0 ;;
+            esac
             echo ""
             echo '```sh'
             echo "bunx wrangler versions deploy --cwd services/www --env=\"\" ${WWW_PREVIOUS} --yes"
