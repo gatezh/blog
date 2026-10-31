@@ -32,22 +32,81 @@ defaults:
     shell: bash
 
 jobs:
+  # Before CI or anything else: the deploy configuration, and whether a pull
+  # request run already tested this exact tree.
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Variables and secrets only; the Deployments record belongs to go-live.
+    environment:
+      name: staging
+      deployment: false
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.find.outputs.run }}
+    steps:
+      # `$/` loads the action from this workflow's own commit, so it needs no checkout.
+      - uses: $/.github/actions/check-deploy-config
+        with:
+          environment: staging
+        env:
+          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
+          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
+          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
+          HAS_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY != '' }}
+          HAS_TO_EMAIL: ${{ secrets.TO_EMAIL != '' }}
+          HAS_FROM_EMAIL: ${{ secrets.FROM_EMAIL != '' }}
+          HAS_TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY != '' }}
+
+      # ci.yml's lint job records each pull request run's tree. A merge commit
+      # with the same tree has the same files, so it needs no second CI run.
+      - name: Find a passing pull request run of this tree
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          tree=$(gh api "repos/${REPO}/git/commits/${GITHUB_SHA}" --jq .tree.sha)
+          runs=$(gh api "repos/${REPO}/actions/artifacts?name=tested-tree-${tree}&per_page=100" --jq '.artifacts[] | select(.expired | not) | .workflow_run.id')
+          for id in ${runs}; do
+            run=$(gh api "repos/${REPO}/actions/runs/${id}" --jq 'select(.conclusion == "success" and .event == "pull_request" and .path == ".github/workflows/ci.yml") | .html_url')
+            if [ -n "${run}" ]; then
+              echo "::notice::Skipping CI: tree ${tree::7} passed in ${run}"
+              echo "CI skipped: this tree (\`${tree::7}\`) already passed in [its pull request run](${run})." >> "$GITHUB_STEP_SUMMARY"
+              echo "run=${run}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "No passing pull request run tested tree ${tree::7}; running CI." | tee -a "$GITHUB_STEP_SUMMARY"
+
   ci:
+    needs: preflight
+    if: needs.preflight.outputs.run == ''
     uses: $/.github/workflows/ci.yml
 
   # Same two phases as release.yml: upload both services as versions that serve
-  # no traffic, then promote both only when both uploads succeeded. See the
-  # comment above upload-www there.
-  upload-www:
-    needs: ci
+  # no traffic, then go-live promotes both. See the comment above `upload` there.
+  upload:
+    needs: [preflight, ci]
+    # After CI passed, or was skipped by preflight; never when preflight failed.
+    if: >-
+      ${{ !cancelled() && needs.preflight.result == 'success'
+        && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.preflight.outputs.run != '')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment:
       name: staging
       deployment: false
     outputs:
-      version_id: ${{ steps.upload.outputs.version_id }}
-      previous: ${{ steps.upload.outputs.previous }}
+      www_version: ${{ steps.www.outputs.version_id }}
+      www_previous: ${{ steps.www.outputs.previous }}
+      api_version: ${{ steps.api.outputs.version_id }}
+      api_previous: ${{ steps.api.outputs.previous }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -74,63 +133,6 @@ jobs:
           : "${HUGO_BASEURL:?Set HUGO_BASEURL on the staging environment}"
           bun run --cwd services/www build
 
-      - name: Upload www as a new version
-        id: upload
-        working-directory: services/www
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.json
-        run: |
-          # What staging serves now, as version specs (id@percentage), for the
-          # command rollback-command prints if promote or verify fails.
-          previous=$(bunx wrangler deployments status --env staging --json | jq -r '[.versions[] | "\(.version_id)@\(.percentage)%"] | join(" ")')
-          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
-          # The commit, on the Worker version, so the dashboard's Deployments
-          # list says what each version is.
-          bunx wrangler versions upload --env staging --message "${GITHUB_SHA}"
-          id=$(jq -r 'select(.type == "version-upload") | .version_id' "${WRANGLER_OUTPUT_FILE_PATH}")
-          [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
-          echo "version_id=${id}" >> "$GITHUB_OUTPUT"
-
-      # See the same step in release.yml.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: www-public
-          path: services/www/public
-          if-no-files-found: error
-          overwrite: true
-
-  upload-api:
-    needs: ci
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    environment:
-      name: staging
-      deployment: false
-    outputs:
-      version_id: ${{ steps.upload.outputs.version_id }}
-      previous: ${{ steps.upload.outputs.previous }}
-    steps:
-      # First, before anything changes. `$/` loads the action from this
-      # workflow's own commit, so it needs no checkout.
-      - uses: $/.github/actions/check-deploy-config
-        with:
-          environment: staging
-        env:
-          ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
-          HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
-          HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
-          HAS_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY != '' }}
-          HAS_TO_EMAIL: ${{ secrets.TO_EMAIL != '' }}
-          HAS_FROM_EMAIL: ${{ secrets.FROM_EMAIL != '' }}
-          HAS_TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY != '' }}
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: $/.github/actions/setup
-
       # The secrets go up in the same Worker version as the code (`versions
       # upload --secrets-file`), not as a separate `wrangler secret bulk`
       # deployment of the old code first. Every credential is a secret, so its
@@ -149,14 +151,14 @@ jobs:
             | with_entries(select(.value != null and .value != ""))' > "${RUNNER_TEMP}/secrets.json"
 
       - name: Upload api as a new version
-        id: upload
+        id: api
         working-directory: services/api
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.json
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-api.json
           ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
         run: |
+          # What staging serves now, as version specs (id@percentage), for the
+          # restore command go-live prints if it fails.
           previous=$(bunx wrangler deployments status --env staging --json | jq -r '[.versions[] | "\(.version_id)@\(.percentage)%"] | join(" ")')
           echo "previous=${previous}" >> "$GITHUB_OUTPUT"
           bunx wrangler versions upload --env staging \
@@ -171,10 +173,38 @@ jobs:
         if: always()
         run: rm -f "${RUNNER_TEMP}/secrets.json"
 
-  promote:
-    needs: [upload-www, upload-api]
+      - name: Upload www as a new version
+        id: www
+        working-directory: services/www
+        env:
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-www.json
+        run: |
+          # As for the api: what staging serves now, for go-live's restore command.
+          previous=$(bunx wrangler deployments status --env staging --json | jq -r '[.versions[] | "\(.version_id)@\(.percentage)%"] | join(" ")')
+          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
+          # The commit, on the Worker version, so the dashboard's Deployments
+          # list says what each version is.
+          bunx wrangler versions upload --env staging --message "${GITHUB_SHA}"
+          id=$(jq -r 'select(.type == "version-upload") | .version_id' "${WRANGLER_OUTPUT_FILE_PATH}")
+          [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
+          echo "version_id=${id}" >> "$GITHUB_OUTPUT"
+
+      # See the same step in release.yml.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: www-public
+          path: services/www/public
+          if-no-files-found: error
+          overwrite: true
+
+  # Promotes both versions (api first), then checks staging. The only job that
+  # changes what staging serves.
+  go-live:
+    needs: upload
+    # Stated outright: a skipped ci above would otherwise skip this job too.
+    if: ${{ !cancelled() && needs.upload.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment:
       name: staging
       url: https://staging-www.gatezh.com
@@ -191,27 +221,18 @@ jobs:
       # api first: the new site may post to an api change, never the reverse.
       # `triggers deploy`: see release.yml.
       - name: Promote both versions to 100% of traffic
+        id: promote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          API_VERSION_ID: ${{ needs.upload-api.outputs.version_id }}
-          WWW_VERSION_ID: ${{ needs.upload-www.outputs.version_id }}
+          API_VERSION_ID: ${{ needs.upload.outputs.api_version }}
+          WWW_VERSION_ID: ${{ needs.upload.outputs.www_version }}
         run: |
           bunx wrangler versions deploy --cwd services/api --env staging "${API_VERSION_ID}@100%" --message "${GITHUB_SHA}" --yes
           bunx wrangler triggers deploy --cwd services/api --env staging
           bunx wrangler versions deploy --cwd services/www --env staging "${WWW_VERSION_ID}@100%" --message "${GITHUB_SHA}" --yes
           bunx wrangler triggers deploy --cwd services/www --env staging
 
-  verify:
-    needs: promote
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    # The environment only for its variables and secrets. deployment: false
-    # keeps this read-only check out of the environment's Deployments list.
-    environment:
-      name: staging
-      deployment: false
-    steps:
       - name: Verify staging
         env:
           # Optional: only needed once staging-www sits behind Cloudflare Access.
@@ -305,32 +326,23 @@ jobs:
           [ "${fail}" = "0" ] || exit 1
           echo "Staging verified."
 
-  # Prints the rollback command; nothing rolls back on its own (see release.yml).
-  rollback-command:
-    needs: [upload-www, upload-api, promote, verify]
-    if: >-
-      ${{ always()
-        && needs.upload-www.result == 'success' && needs.upload-api.result == 'success'
-        && (needs.promote.result == 'failure' || needs.promote.result == 'cancelled'
-          || needs.verify.result == 'failure') }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
+      # Nothing rolls back on its own: this says what happened and prints the
+      # command that restores both previous versions (see release.yml).
       - name: Print the command that restores the previous versions
+        if: failure() || cancelled()
         env:
-          FAILED: ${{ needs.promote.result != 'success' && 'promote' || 'verify' }}
-          OUTCOME: ${{ needs.promote.result == 'cancelled' && 'was cancelled' || 'failed' }}
-          WWW_PREVIOUS: ${{ needs.upload-www.outputs.previous }}
-          API_PREVIOUS: ${{ needs.upload-api.outputs.previous }}
+          PROMOTE: ${{ steps.promote.outcome }}
+          WWW_PREVIOUS: ${{ needs.upload.outputs.www_previous }}
+          API_PREVIOUS: ${{ needs.upload.outputs.api_previous }}
         run: |
           {
-            echo "## ${FAILED} ${OUTCOME} — nothing was rolled back"
-            echo ""
-            if [ "${FAILED}" = "promote" ]; then
-              echo "Re-running the \`promote\` job finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this run:"
-            else
-              echo "If the new versions are the cause, and no later run has deployed since, put both Workers back on what they served before this run:"
-            fi
+            case "${PROMOTE}" in
+              success) echo "## verify failed — nothing was rolled back"; echo ""
+                       echo "If the new versions are the cause, and no later run has deployed since, put both Workers back on what they served before this run:" ;;
+              failure|cancelled) echo "## promote ${PROMOTE/failure/failed} — nothing was rolled back"; echo ""
+                       echo "Re-running \`go-live\` finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this run:" ;;
+              *) echo "## go-live stopped before promoting — staging still serves the previous versions"; exit 0 ;;
+            esac
             echo ""
             echo '```sh'
             echo "bunx wrangler versions deploy --cwd services/www --env staging ${WWW_PREVIOUS} --yes"
