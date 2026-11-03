@@ -44,9 +44,9 @@ upload`: new versions that serve no traffic. It first records what each
    their new version (`wrangler versions deploy <id>@100%`), api first. A
    version upload does not apply routes, custom domains or workers.dev, so it
    also runs `wrangler triggers deploy` (still labelled experimental) for each
-   Worker, as `wrangler deploy` did. That fails unless www's `public/` exists,
-   so `upload` passes it on as an artifact. Then it verifies the live
-   environment.
+   Worker, as `wrangler deploy` did. It uploads no assets (`versions upload`
+   did), but it fails unless www's `assets.directory` exists, so `go-live`
+   creates an empty `public/` first. Then it verifies the live environment.
 4. If `go-live` fails or is cancelled after promoting started, a step in it
    prints the exact `wrangler versions deploy` commands that restore both
    previous versions. Nothing rolls back on its own: a part-way promote leaves
