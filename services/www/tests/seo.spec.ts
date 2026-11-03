@@ -216,7 +216,10 @@ test.describe("link previews", () => {
 });
 
 test.describe("favicons", () => {
-  test("the head links an SVG, a 32 px PNG and a 180 px touch icon", async ({ page, request }) => {
+  test("the head links an SVG, 32 and 192 px PNGs and a 180 px touch icon", async ({
+    page,
+    request,
+  }) => {
     await page.goto("/");
     const href = (selector: string) => page.locator(selector).getAttribute("href");
 
@@ -228,6 +231,8 @@ test.describe("favicons", () => {
 
     for (const [selector, size] of [
       ['link[rel="icon"][type="image/png"][sizes="32x32"]', 32],
+      // Google Search reads no SVG favicons and recommends more than 48 px.
+      ['link[rel="icon"][type="image/png"][sizes="192x192"]', 192],
       ['link[rel="apple-touch-icon"][sizes="180x180"]', 180],
     ] as const) {
       const png = await href(selector);

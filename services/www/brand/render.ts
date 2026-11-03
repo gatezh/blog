@@ -3,6 +3,7 @@
  *
  *   brand/share-image.html  -> assets/brand/share.png            (1200 × 630)
  *   assets/brand/favicon.svg -> assets/brand/favicon-32.png       (32 × 32)
+ *                            -> assets/brand/favicon-192.png      (192 × 192)
  *                            -> assets/brand/apple-touch-icon.png (180 × 180)
  *                            -> static/favicon.ico                (16, 32, 48)
  *
@@ -73,6 +74,10 @@ await renderShareImage(page);
 
 await writeFile(path("assets/brand/favicon-32.png"), await renderIcon(page, 32));
 
+// Google Search reads no SVG favicons and recommends one larger than 48 px, so
+// it gets a raster icon well above that.
+await writeFile(path("assets/brand/favicon-192.png"), await renderIcon(page, 192));
+
 // iOS draws its own rounded mask and shows transparent pixels as black, so the
 // touch icon is a full square of the mark's background colour.
 await writeFile(path("assets/brand/apple-touch-icon.png"), await renderIcon(page, 180, "#0d1117"));
@@ -83,4 +88,6 @@ for (const size of sizes) icons.push({ size, png: await renderIcon(page, size) }
 await writeFile(path("static/favicon.ico"), ico(icons));
 
 await browser.close();
-console.log("Rendered share.png, favicon-32.png, apple-touch-icon.png and favicon.ico");
+console.log(
+  "Rendered share.png, favicon-32.png, favicon-192.png, apple-touch-icon.png and favicon.ico",
+);
