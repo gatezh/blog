@@ -370,16 +370,6 @@
     color: var(--color-terminal-fg);
   }
 
-  /* Visually hidden but still focusable and announced. */
-  .theme-toggle-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: 0;
-    opacity: 0;
-    pointer-events: none;
-  }
-
   /* Every option reserves its brackets; only the selected one shows them, so
      the row never shifts. The empty alt text keeps them out of screen readers. */
   .theme-toggle-option span::before {
