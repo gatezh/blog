@@ -53,12 +53,10 @@
 		<p class="mt-0 mb-4 text-sm text-terminal-muted"><span class="text-terminal-accent">#</span> {{ .blurb }}</p>
 		{{- range .projects }}
 			{{- $p := . }}
-			{{- $status := "live" }}
-			{{- if or (hasPrefix $p.status "Coming") (hasPrefix $p.status "Waitlist") }}{{ $status = "soon" }}{{ end }}
 			<article id="{{ $p.id }}" class="project-diff">
 				<header class="project-diff-head">
 					<h3>{{ with $p.url }}<a href="{{ . }}">{{ $p.name }}</a>{{ else }}{{ $p.name }}{{ end }}</h3>
-					<span class="project-diff-status" data-status="{{ $status }}">{{ $p.status }}</span>
+					<span class="project-diff-status" data-status="{{ $p.state | default "live" }}">{{ $p.status }}</span>
 				</header>
 				<p class="project-diff-line project-diff-del"><del><span class="sr-only">Before: </span>{{ $p.before }}</del></p>
 				<p class="project-diff-line project-diff-ins"><ins><span class="sr-only">After: </span>{{ $p.after }}</ins></p>
