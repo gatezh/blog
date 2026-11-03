@@ -51,18 +51,33 @@ test.describe("content coverage", () => {
   });
 });
 
-test.describe("standalone pages", () => {
-  // About and Talks belong to no section, so llms.txt and llms-full.txt list
-  // them by path. A page missing from those lists is invisible to agents
-  // that read the index instead of crawling.
-  for (const path of ["/about/", "/talks/"]) {
-    test(`${path} is in llms.txt and llms-full.txt`, async ({ request }) => {
-      const index = await (await request.get("/llms.txt")).text();
-      expect(index).toMatch(new RegExp(`^- \\[[^\\]]+\\]\\(https?://[^/]+${path}\\):`, "m"));
-      const full = await (await request.get("/llms-full.txt")).text();
-      expect(full).toMatch(new RegExp(`^Source: https?://[^/]+${path}$`, "m"));
-    });
-  }
+// Top-level section listings. Their pages reach llms.txt through the section
+// lists, and the listing itself is not an entry. Every other top-level path in
+// the sitemap is a page directly under content/ and must be listed, so a new
+// page is covered with no change here; a new section fails until added.
+const TOP_LEVEL_SECTIONS = ["/posts/", "/ever-learning/", "/contact/"];
+
+test.describe("top-level pages", () => {
+  // Pages directly under content/ (About, Talks...) belong to no section.
+  // Both templates list them from site.Home.RegularPages; a page missing from
+  // the indexes is invisible to agents that read them instead of crawling.
+  test("every top-level page is in llms.txt and llms-full.txt", async ({ request }) => {
+    const pages = sitemapPaths(await text(request, "/sitemap.xml")).filter(
+      (p) => /^\/[^/]+\/$/.test(p) && !TOP_LEVEL_SECTIONS.includes(p),
+    );
+    expect(pages).toEqual(expect.arrayContaining(["/about/", "/talks/"]));
+
+    const index = await text(request, "/llms.txt");
+    const full = await text(request, "/llms-full.txt");
+    for (const path of pages) {
+      expect(index, `${path} in llms.txt`).toMatch(
+        new RegExp(`^- \\[[^\\]]+\\]\\(https?://[^/]+${path}\\):`, "m"),
+      );
+      expect(full, `${path} in llms-full.txt`).toMatch(
+        new RegExp(`^Source: https?://[^/]+${path}$`, "m"),
+      );
+    }
+  });
 
   test("the talks mirror carries every talk with its slides", async ({ request }) => {
     const md = await (await request.get("/talks/index.md")).text();
