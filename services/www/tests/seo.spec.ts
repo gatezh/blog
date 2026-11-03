@@ -482,8 +482,10 @@ test.describe("identity structured data", () => {
     const targets = await page
       .locator(".stack a.stack-node")
       .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
-    // Four products, two platforms, one workbench.
-    expect(targets.length).toBe(7);
+    // One box per entry: project-graph.html fails the build for a product
+    // that would otherwise drop out of the diagram.
+    expect(targets.length).toBeGreaterThan(0);
+    expect(targets.length).toBe(await page.locator("article.project-diff").count());
     for (const hash of targets) {
       expect(hash).toMatch(/^#[a-z0-9-]+$/);
       await expect(page.locator(`article${hash}`), hash).toHaveCount(1);
