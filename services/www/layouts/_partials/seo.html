@@ -4,8 +4,10 @@
   Outputs schema.org structured data as JSON-LD:
   - Homepage: Person + WebSite schemas
   - About page: ProfilePage whose mainEntity is the same Person
-  - Article pages (posts): Article schema, authored by that Person, whose
-    `image` is the same file as og:image (share-image.html)
+  - Article pages (posts): Article schema, authored by that Person. Its
+    `image` is the post's own `images:` entry (the same file as og:image, via
+    share-image.html); the site-wide card is never used, because Google requires
+    an Article image to represent the article
   - Other pages: WebPage schema
   - Every page but the home page and 404: a BreadcrumbList (Home › Section › Page)
 
@@ -91,7 +93,9 @@
 	-}}
 	{{- with .Keywords }}{{ $article = merge $article (dict "keywords" .) }}{{ end }}
 	{{- with partial "share-image.html" . }}
-		{{- $article = merge $article (dict "image" (dict "@type" "ImageObject" "url" .url "width" .width "height" .height)) }}
+		{{- if .own }}
+			{{- $article = merge $article (dict "image" (dict "@type" "ImageObject" "url" .url "width" .width "height" .height)) }}
+		{{- end }}
 	{{- end }}
 <script type="application/ld+json">
 {{- $article | jsonify (dict "indent" "  ") | safeJS -}}

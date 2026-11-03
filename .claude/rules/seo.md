@@ -49,6 +49,8 @@ globs: services/www/**
 - Share image and favicons are **generated**: edit `services/www/brand/share-image.html`
   or `services/www/assets/brand/favicon.svg`, then run `bun run brand` from
   `services/www` and commit the PNGs and `static/favicon.ico`. Never edit those by
-  hand. `params.ogImage` sets the default; a page overrides it with `image:` and
-  `imageAlt:` front matter. One partial (`share-image.html`) feeds both the meta
-  tags and the Article JSON-LD `image`.
+  hand. `params.images` (Hugo's own key, first entry used) sets the default; a page
+  overrides it with `images:` and `imageAlt:` front matter. One partial
+  (`share-image.html`) feeds both the meta tags and the Article JSON-LD
+  `image`, which is set only from a post's own `images:` (Google requires an
+  Article image to represent the article).

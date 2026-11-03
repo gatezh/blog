@@ -53,7 +53,7 @@
 <meta property="og:locale" content="en_US">
 {{ with $description }}<meta property="og:description" content="{{ . }}">{{ end }}
 {{ with site.Title }}<meta property="og:site_name" content="{{ . }}">{{ end }}
-{{- /* Link preview image: site.Params.ogImage, or a page's `image:` front
+{{- /* Link preview image: site.Params.images, or a page's `images:` front
        matter. Width and height let platforms lay out the card before fetching
        the file; the alt text is read out where the card is shown. */}}
 {{- $share := partial "share-image.html" . }}

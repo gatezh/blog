@@ -199,12 +199,19 @@ test.describe("link previews", () => {
     });
   }
 
-  test("a post's Article image is the share image", async ({ page }) => {
+  test("a post without its own image gets no Article image", async ({ page }) => {
+    // Google: "Images must represent the marked up content". The site-wide
+    // card is fine as a link preview but not as the article's image, so only a
+    // post's own `images:` entry becomes the Article `image`.
     await page.goto("/posts/docker-desktop-disk-full-macos/");
-    const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+      "content",
+      /\/brand\/share\./,
+    );
     const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
     const article = blocks.map((b) => JSON.parse(b)).find((b) => b["@type"] === "Article");
-    expect(article.image).toEqual({ "@type": "ImageObject", url: og, width: 1200, height: 630 });
+    expect(article).toBeTruthy();
+    expect(article.image).toBeUndefined();
   });
 });
 
