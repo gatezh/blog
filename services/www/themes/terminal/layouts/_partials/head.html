@@ -106,7 +106,9 @@
 {{/* Favicons, fingerprinted from assets/brand/. The PNGs are rendered from
      favicon.svg by brand/render.ts.
      Browsers that support SVG favicons take the SVG; the 32 px PNG is the
-     fallback, and iOS reads the opaque 180 px apple-touch-icon. /favicon.ico
+     fallback, the 192 px PNG is for Google Search (no SVG support, and it
+     recommends more than 48 px), and iOS reads the opaque 180 px
+     apple-touch-icon. /favicon.ico
      is a plain static/ file because clients request that exact path without
      reading any markup. */}}
 {{- with resources.Get "brand/favicon.svg" }}
@@ -114,6 +116,9 @@
 {{- end }}
 {{- with resources.Get "brand/favicon-32.png" }}
 	<link rel="icon" href="{{ (. | fingerprint).RelPermalink }}" type="image/png" sizes="32x32">
+{{- end }}
+{{- with resources.Get "brand/favicon-192.png" }}
+	<link rel="icon" href="{{ (. | fingerprint).RelPermalink }}" type="image/png" sizes="192x192">
 {{- end }}
 {{- with resources.Get "brand/apple-touch-icon.png" }}
 	<link rel="apple-touch-icon" href="{{ (. | fingerprint).RelPermalink }}" sizes="180x180">
