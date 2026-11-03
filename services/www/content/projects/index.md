@@ -65,8 +65,10 @@ layers:
       - id: surgegate
         name: "SurgeGate"
         url: "https://surgegate.dev/"
-        type: SoftwareSourceCode
+        # Its source is private, so it is an application here, not source code.
+        type: SoftwareApplication
         status: "Coming soon"
+        state: soon
         detail: "Apps: Workers, D1, passkeys"
         before: "Nginx configs, certificate renewals, firewall rules, OS updates"
         after: "Hono on Workers, D1, passkeys and React 19, on the free tier"
