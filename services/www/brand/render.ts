@@ -17,10 +17,14 @@
 import { Buffer } from "node:buffer";
 import { readFile, writeFile } from "node:fs/promises";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import { chromium, type Page } from "@playwright/test";
 
 const root = new URL("../", import.meta.url);
 const path = (relative: string) => new URL(relative, root);
+// `URL.pathname` stays percent-encoded, so a checkout path with a space in it
+// would break; fileURLToPath decodes it.
+const filePath = (relative: string) => fileURLToPath(path(relative));
 
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
@@ -30,9 +34,15 @@ const page = await browser.newPage({ deviceScaleFactor: 1 });
 async function renderShareImage(page: Page) {
   await page.setViewportSize({ width: 1200, height: 630 });
   await page.goto(path("brand/share-image.html").href);
-  // A screenshot taken before the web font loads silently uses the fallback.
-  await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: path("assets/brand/share.png").pathname });
+  // A screenshot without the web font silently uses the fallback. Waiting for
+  // document.fonts.ready is not enough: it also resolves when the font fails to
+  // load. FontFaceSet.load() rejects on failure, and an empty result means no
+  // @font-face matched at all.
+  const loaded = await page.evaluate(
+    async () => (await document.fonts.load('800 108px "JetBrains Mono"')).length,
+  );
+  if (!loaded) throw new Error("JetBrains Mono did not load; share.png would use a fallback font");
+  await page.screenshot({ path: filePath("assets/brand/share.png") });
 }
 
 /**
