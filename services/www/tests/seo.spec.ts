@@ -465,6 +465,11 @@ test.describe("identity structured data", () => {
       expect(layer.itemListElement.length, layer.name).toBeGreaterThan(0);
       for (const { item } of layer.itemListElement) {
         expect((item.creator as Item)["@id"], item.name as string).toMatch(PERSON_ID);
+        // Private code is listed by its website: only an entry with a public
+        // repository is typed as source code.
+        if (item["@type"] === "SoftwareSourceCode") {
+          expect(item.codeRepository, item.name as string).toMatch(/^https:\/\/github\.com\//);
+        }
       }
     }
 
