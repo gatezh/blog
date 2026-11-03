@@ -20,9 +20,12 @@ permissions:
 # Never cancel a running deploy: that can leave www and api on different
 # commits. GitHub keeps one pending run and replaces it when a newer push
 # arrives. That is what staging wants: the pending run never started a job, and
-# the newer commit already contains it.
+# the newer commit already contains it. Keyed by ref: a dispatch from another
+# branch joins its group before the environment's branch policy refuses its
+# jobs, and in a shared group it would replace a waiting master deploy and then
+# do nothing.
 concurrency:
-  group: deploy-staging
+  group: deploy-staging-${{ github.ref }}
   cancel-in-progress: false
 
 # An explicit `bash` runs `bash -eo pipefail`; the implicit default is
@@ -35,7 +38,8 @@ jobs:
   # Before CI or anything else: the deploy configuration, and whether a pull
   # request run already tested this exact tree.
   preflight:
-    runs-on: ubuntu-24.04
+    # bash, jq and gh only: the single-CPU runner is enough (15-minute cap).
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     # Variables and secrets only; the Deployments record belongs to go-live.
     environment:
@@ -69,7 +73,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           tree=$(gh api "repos/${REPO}/git/commits/${GITHUB_SHA}" --jq .tree.sha)
-          runs=$(gh api "repos/${REPO}/actions/artifacts?name=tested-tree-${tree}&per_page=100" --jq '.artifacts[] | select(.expired | not) | .workflow_run.id')
+          runs=$(gh api "repos/${REPO}/actions/artifacts?name=tested-tree-${tree}&per_page=100" --jq '.artifacts[] | select(.expired | not) | .workflow_run.id // empty')
           for id in ${runs}; do
             run=$(gh api "repos/${REPO}/actions/runs/${id}" --jq 'select(.conclusion == "success" and .event == "pull_request" and .path == ".github/workflows/ci.yml") | .html_url')
             if [ -n "${run}" ]; then
@@ -165,7 +169,7 @@ jobs:
             --secrets-file "${RUNNER_TEMP}/secrets.json" \
             --var "ALLOWED_ORIGIN:${ALLOWED_ORIGIN}" \
             --message "${GITHUB_SHA}"
-          id=$(jq -r 'select(.type == "version-upload") | .version_id' "${WRANGLER_OUTPUT_FILE_PATH}")
+          id=$(jq -r 'select(.type == "version-upload") | .version_id // empty' "${WRANGLER_OUTPUT_FILE_PATH}")
           [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
           echo "version_id=${id}" >> "$GITHUB_OUTPUT"
 
@@ -185,7 +189,7 @@ jobs:
           # The commit, on the Worker version, so the dashboard's Deployments
           # list says what each version is.
           bunx wrangler versions upload --env staging --message "${GITHUB_SHA}"
-          id=$(jq -r 'select(.type == "version-upload") | .version_id' "${WRANGLER_OUTPUT_FILE_PATH}")
+          id=$(jq -r 'select(.type == "version-upload") | .version_id // empty' "${WRANGLER_OUTPUT_FILE_PATH}")
           [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
           echo "version_id=${id}" >> "$GITHUB_OUTPUT"
 
