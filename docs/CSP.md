@@ -103,7 +103,7 @@ the generated header wholesale on every request it matches.
 The main site's old **CSP** rule was deleted on 2026-10-03, after the first
 release served the (then Worker-set) policy cleanly. Never add a rule that sets
 `Content-Security-Policy` on `gatezh.com` or the staging hosts — every
-deploy's verify job fails if the site stops serving the generated policy.
+deploy's verify step fails if the site stops serving the generated policy.
 
 The comments subdomain's policy, for reference:
 
@@ -122,6 +122,6 @@ $ curl -sI https://gatezh.com/ | grep -i content-security-policy
 ```
 
 The policy should match `public/_headers` from that release's build. Every
-deploy workflow's verify job fails if the site does not serve it, or if its
+deploy workflow's verify step fails if the site does not serve it, or if its
 `connect-src` does not allow the contact API. Violations in production show up
 in PostHog (its "CSP Violation Reports" dashboard template is a starting point).
