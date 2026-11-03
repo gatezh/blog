@@ -65,8 +65,8 @@ So a failed upload, for example a Cloudflare API error during the asset upload,
 leaves the environment untouched: re-run the failed jobs, unless a later run
 has deployed since. A failed promote never leaves the site newer than the api.
 
-Each job bills at least a minute, so a step that marks no new stage stays a
-step: `preflight` decides whether CI runs, `upload` changes nothing live, and
+Each job adds its own runner start-up and setup (checkout, mise, `bun
+install`), so a step that marks no new stage stays a step: `preflight` decides whether CI runs, `upload` changes nothing live, and
 `go-live` is the one job that does. Every job below `ci` states its condition on
 its direct `needs`: with the default `success()`, a skipped `ci` would skip
 every job after it.
