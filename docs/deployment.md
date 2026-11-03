@@ -116,7 +116,10 @@ a deploy cancelled while `go-live` promotes can leave `www` and `api` on differe
 commits (a cancel during `upload` changes nothing). GitHub keeps
 one pending run per group and replaces it when a newer one arrives. Staging
 relies on that: a pending run has not started any job, and the newer push
-already contains its commit. Release sets `concurrency.queue: max` instead, so
+already contains its commit. Staging's group includes the ref: a dispatch from
+another branch joins its group before the environment's branch policy refuses
+its jobs, so in a shared group it could replace a waiting `master` deploy and
+then deploy nothing. Release sets `concurrency.queue: max` instead, so
 every dispatch runs in turn, because each one names a release or a tag on
 purpose.
 

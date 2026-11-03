@@ -54,7 +54,8 @@ jobs:
   # Before CI and before anything is tagged: a production environment that is
   # missing a value stops the release here.
   preflight:
-    runs-on: ubuntu-24.04
+    # bash only: the single-CPU runner is enough (15-minute cap).
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     # Variables and secrets only; the Deployments record belongs to go-live.
     environment:
@@ -90,7 +91,8 @@ jobs:
     # deployed. `!failure() && !cancelled()` lets it run when ci was skipped (a
     # redeploy) but not when it or preflight failed.
     if: ${{ !failure() && !cancelled() && github.ref == 'refs/heads/master' }}
-    runs-on: ubuntu-24.04
+    # git and gh only: as for preflight, the single-CPU runner is enough.
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       contents: write
@@ -239,7 +241,7 @@ jobs:
             --secrets-file "${RUNNER_TEMP}/secrets.json" \
             --var "ALLOWED_ORIGIN:${ALLOWED_ORIGIN}" \
             --tag "v${VERSION}" --message "${COMMIT_SHA}"
-          id=$(jq -r 'select(.type == "version-upload") | .version_id' "${WRANGLER_OUTPUT_FILE_PATH}")
+          id=$(jq -r 'select(.type == "version-upload") | .version_id // empty' "${WRANGLER_OUTPUT_FILE_PATH}")
           [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
           echo "version_id=${id}" >> "$GITHUB_OUTPUT"
 
@@ -260,7 +262,7 @@ jobs:
           # The release tag on the version maps it to its release in the
           # dashboard (docs/deployment.md, "Rolling back").
           bunx wrangler versions upload --env="" --tag "v${VERSION}" --message "${COMMIT_SHA}"
-          id=$(jq -r 'select(.type == "version-upload") | .version_id' "${WRANGLER_OUTPUT_FILE_PATH}")
+          id=$(jq -r 'select(.type == "version-upload") | .version_id // empty' "${WRANGLER_OUTPUT_FILE_PATH}")
           [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
           echo "version_id=${id}" >> "$GITHUB_OUTPUT"
 
