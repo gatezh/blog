@@ -36,7 +36,11 @@ phases with Cloudflare's
    staging it also skips CI when a pull request run already passed on exactly
    the same tree: `ci.yml`'s lint job uploads a `tested-tree-<tree hash>`
    artifact on every pull request run, and a merge commit with that tree has the
-   same files. The run summary links the pull request run it relied on.
+   same files. The run summary links the pull request run it relied on. In a
+   stack of pull requests only the top one runs the browser tests and leaves a
+   marker
+   ([stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests)),
+   so merging part of a stack runs CI in full.
 2. `upload` builds www and uploads both services with `wrangler versions
 upload`: new versions that serve no traffic. It first records what each
    Worker serves now (`wrangler deployments status --json`).
