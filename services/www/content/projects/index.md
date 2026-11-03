@@ -14,6 +14,8 @@ keywords: [projects, portfolio, cloudflare, dev-containers, ux, product-engineer
 # Public work only. A project whose code is private appears by its public
 # website and never by its repository; client work needs the client's written
 # permission first. `talks` lists ids on /talks/ that explain the entry.
+# `status` is the label shown; `state: soon` colours it as not yet live
+# (the default is live).
 layers:
   - name: "Products"
     id: products
@@ -25,6 +27,7 @@ layers:
         type: WebApplication
         category: FinanceApplication
         status: "Waitlist"
+        state: soon
         before: "An Alberta utility bill that never says which charges you can shop for"
         after: "Regulated delivery and shoppable energy, split out in plain words"
         runsOn: surgegate

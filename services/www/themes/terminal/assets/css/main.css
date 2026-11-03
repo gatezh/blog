@@ -624,10 +624,6 @@
     background: #d97706;
   }
 
-  .project-diff-status[data-status="done"]::before {
-    background: var(--color-terminal-muted);
-  }
-
   .project-diff-line {
     position: relative;
     margin: 0;
