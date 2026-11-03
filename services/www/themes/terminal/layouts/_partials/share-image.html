@@ -1,32 +1,35 @@
 {{/*
   Share-image partial - Resolves the page's link-preview image
 
-  Returns a dict (url, width, height, alt) or false. Used by head.html for the
-  og:image and twitter:image tags and by seo.html for the JSON-LD `image`, so
-  the meta tags and the structured data always name the same file.
+  Returns a dict (url, width, height, alt, own) or false. Used by head.html for
+  the og:image and twitter:image tags and by seo.html for the JSON-LD `image`,
+  so the meta tags and the structured data always name the same file.
 
-  Source, first match wins:
-  - `image:` front matter: a page resource (e.g. images/cover.png in the page
+  Source, first match wins. The keys are Hugo's own (`images`, as read by its
+  embedded opengraph.html and twitter_cards.html), first entry only:
+  - `images:` front matter: a page resource (e.g. images/cover.png in the page
     bundle) or a path under assets/. `imageAlt:` describes it; without one the
-    page title stands in.
-  - site.Params.ogImage, a path under assets/, described by site.Params.ogImageAlt.
+    page title stands in. `own` is true for this case only.
+  - site.Params.images, a path under assets/, described by site.Params.imageAlt.
 
   Images are fingerprinted, so a changed image is a new URL and platforms that
   cache previews by URL pick it up. The URL is absolute (.Permalink), which the
   Open Graph protocol requires. A path that resolves to nothing fails the build
   rather than shipping a preview that 404s.
 */}}
-{{- $src := site.Params.ogImage -}}
-{{- $alt := site.Params.ogImageAlt -}}
-{{- with .Params.image -}}
-	{{- $src = . -}}
+{{- $src := index (site.Params.images | default (slice "")) 0 -}}
+{{- $alt := site.Params.imageAlt -}}
+{{- $own := false -}}
+{{- with .Params.images -}}
+	{{- $src = index . 0 -}}
 	{{- $alt = $.Params.imageAlt | default $.Title -}}
+	{{- $own = true -}}
 {{- end -}}
 {{- $result := false -}}
 {{- with $src -}}
 	{{- with $.Resources.Get . | default (resources.Get .) -}}
 		{{- with . | fingerprint -}}
-			{{- $result = dict "url" .Permalink "width" .Width "height" .Height "alt" $alt -}}
+			{{- $result = dict "url" .Permalink "width" .Width "height" .Height "alt" $alt "own" $own -}}
 		{{- end -}}
 	{{- else -}}
 		{{- errorf "share image %q not found for %q: expected a page resource or a file under assets/" $src $.RelPermalink -}}
