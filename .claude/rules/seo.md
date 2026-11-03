@@ -23,9 +23,9 @@ globs: services/www/**
   hand and never add a static copy. The stubs are `services/www/content/llms.md`
   and `llms-full.md` (front matter only; `url:` sets the output path), rendered
   by `services/www/layouts/llms*._outputformat_llmtext_.txt`. Adding a post
-  updates both automatically; a standalone page (About, Talks) belongs to no
-  section and is listed by path in both templates, so a new one needs adding
-  there (`tests/agents.spec.ts` checks the list).
+  updates both automatically, and so does adding a page directly under
+  `content/` (About, Talks): both templates list `site.Home.RegularPages`.
+  `tests/agents.spec.ts` checks every top-level sitemap page is in both.
 - Home, section listings and regular pages each emit an `index.md` Markdown
   mirror (`outputs` in `hugo.yaml` lists all three kinds — a kind that is not
   listed gets no mirror). Each HTML page advertises its mirror with
