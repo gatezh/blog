@@ -93,7 +93,7 @@ cf bot-management get --zone gatezh.com
 cf bot-management update --zone gatezh.com --ai-bots-protection disabled
 ```
 
-The release verify job requests the home page as several AI crawlers and fails
+The release's verify step requests the home page as several AI crawlers and fails
 on anything but `200`, so a zone change that blocks them again shows up on the
 next release.
 
@@ -131,12 +131,12 @@ Recorded so a future reader does not "discover" and undo any of it.
 | Legacy URLs 301 in one hop, with no meta-refresh stub     | `hugo.yaml` → `disableAliases` + `layouts/home._outputformat_redirects_.txt` | `tests/assets.spec.ts` |
 | Every post links out to related posts                     | `hugo.yaml` → `related`                                                      | `tests/seo.spec.ts`    |
 | `<lastmod>` tracks the last commit, not the authored date | `hugo.yaml` → `enableGitInfo`                                                | needs `fetch-depth: 0` |
-| The deployed artifact is the build CI expects             | `<meta name="build-commit">`                                                 | `verify` job           |
+| The deployed artifact is the build CI expects             | `<meta name="build-commit">`                                                 | `go-live` verify step  |
 | Stale build output is never deployed                      | `--cleanDestinationDir`                                                      | —                      |
 
 Five things that look redundant but are not:
 
-- **`fetch-depth: 0` on the upload-www checkout.** `enableGitInfo` reads git
+- **`fetch-depth: 0` on the upload checkout.** `enableGitInfo` reads git
   history for each page's `<lastmod>`. On a shallow clone Hugo does not warn or
   error — it silently falls back to the `date` front matter, reproducing exactly
   the stale-date problem `enableGitInfo` was added to fix.
@@ -264,7 +264,7 @@ stack, or a decision only the owner can make.
       from an HTML template with Playwright and committed, emitted with
       `og:image:width`, `og:image:height` and `og:image:alt`; the same image as
       the Article `image`.
-- [ ] **Post-deploy redirect check.** Assert in the verify job that one known
+- [ ] **Post-deploy redirect check.** Assert in the verify step that one known
       legacy URL (e.g. a `.html` path) answers `301`. Today only
       `tests/assets.spec.ts` covers `_redirects`, locally.
 - [ ] **Sitemap `lastmod` tripwire.** A test that every `<loc>` has a

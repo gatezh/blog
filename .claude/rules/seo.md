@@ -44,5 +44,5 @@ globs: services/www/**
   meta-refresh stubs that would otherwise shadow those rules — it is a different
   setting from `pagination.disableAliases`, and both are needed.
 - Indexability rules are pinned by `services/www/tests/seo.spec.ts`,
-  `services/www/tests/assets.spec.ts` and the post-deploy `verify` job. See
+  `services/www/tests/assets.spec.ts` and the post-deploy verify step. See
   `docs/seo.md` before changing any of them.
