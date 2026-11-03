@@ -10,7 +10,10 @@
                  with the first-layer entries that run on it, for the diagram
        - talks:  talk id -> dict (short, url), for every `talks` id used
 
-       An edge or talk id that does not exist fails the build. */ -}}
+       An edge or talk id that does not exist fails the build, and so does a
+       first-layer entry whose `runsOn` is not a second-layer entry: the
+       diagram draws products only above their platform, so such an entry
+       would silently be missing from it. */ -}}
 {{- $layers := .Params.layers -}}
 {{- $nodes := dict -}}
 {{- $talkIds := slice -}}
@@ -32,6 +35,11 @@
 {{- end -}}
 {{- range $edges -}}
 	{{- if not (index $nodes .to) }}{{ errorf "projects: %q %s %q, which is not on the page" .from .verb .to }}{{ end -}}
+{{- end -}}
+{{- $platformIds := slice -}}
+{{- range (index $layers 1).projects }}{{ $platformIds = $platformIds | append .id }}{{ end -}}
+{{- range (index $layers 0).projects -}}
+	{{- if not (in $platformIds .runsOn) }}{{ errorf "projects: %q must run on one of %v to appear in the diagram" .id $platformIds }}{{ end -}}
 {{- end -}}
 {{- $groups := slice -}}
 {{- range (index $layers 1).projects -}}
