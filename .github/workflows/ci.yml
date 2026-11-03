@@ -32,15 +32,21 @@ jobs:
           persist-credentials: false
 
       # Names the tree this pull request run tests, so deploy-staging.yml's
-      # preflight can skip CI for a merge commit with the same tree.
+      # preflight can skip CI for a merge commit with the same tree. Not on a
+      # lower PR in a stack: test-browser skips those, and merging one alone
+      # must not deploy a tree whose browser tests never ran.
       - name: Record the tested tree
-        if: github.event_name == 'pull_request'
+        if: >-
+          github.event_name == 'pull_request'
+          && (github.event.pull_request.stack == null || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
         run: |
           echo "TESTED_TREE=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_ENV"
           echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" > "$RUNNER_TEMP/tested-tree.txt"
 
       - name: Upload the tested-tree marker
-        if: github.event_name == 'pull_request'
+        if: >-
+          github.event_name == 'pull_request'
+          && (github.event.pull_request.stack == null || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tested-tree-${{ env.TESTED_TREE }}
@@ -62,6 +68,11 @@ jobs:
 
   test-browser:
     name: Test (Browser)
+    # In a stack of pull requests, only the top one's tree is what lands, so
+    # only it runs the browser tests. A deploy's own CI (workflow_call) has no
+    # pull_request, so it always runs them.
+    # https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests
+    if: github.event.pull_request.stack == null || github.event.pull_request.stack.position == github.event.pull_request.stack.size
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
