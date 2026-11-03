@@ -10,13 +10,16 @@
   keep in sync. The selected option is wrapped in brackets, like a CLI picker;
   every option reserves the bracket space, so switching never shifts the row.
 
-  js/theme-toggle.ts checks the stored choice on load and applies a change.
+  System, the default, is checked in the markup, so the group shows a
+  selection before (or without) the script; js/theme-toggle.ts then checks
+  the stored choice and applies a change. The inputs are visually hidden with
+  Tailwind's sr-only, and their labels take the click.
 */}}
 <fieldset class="theme-toggle">
 	<legend class="theme-toggle-legend">theme</legend>
 	{{- range slice "light" "dark" "system" }}
 		<label class="theme-toggle-option">
-			<input type="radio" name="theme" value="{{ . }}" class="theme-toggle-input">
+			<input type="radio" name="theme" value="{{ . }}" class="theme-toggle-input sr-only"{{ if eq . "system" }} checked{{ end }}>
 			<span>{{ . }}</span>
 		</label>
 	{{- end }}

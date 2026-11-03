@@ -335,7 +335,12 @@ test.describe("Accessibility", () => {
 });
 
 test.describe("Theme switcher", () => {
-  test("lives in the footer, defaulting to the system theme", async ({ page }) => {
+  test("lives in the footer, defaulting to the system theme", async ({ page, request }) => {
+    // The default is in the markup, not only set by the script.
+    const html = await (await request.get("/")).text();
+    expect(html).toMatch(/<input[^>]*value="?system"?[^>]*\bchecked\b/);
+    expect(html.match(/<input[^>]*name="?theme"?[^>]*\bchecked\b/g)).toHaveLength(1);
+
     await page.goto("/");
     await expect(page.locator("header input[name=theme]")).toHaveCount(0);
     const group = page.locator("footer").getByRole("group", { name: "theme" });
