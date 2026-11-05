@@ -139,6 +139,31 @@ describe("header safety", () => {
   });
 });
 
+describe("email body", () => {
+  test("escapes markup in every field of the HTML body", async () => {
+    await submit({ ...VALID, name: "<b>Ada</b>", message: `<script>alert("x")</script>` });
+    const body = String(sentEmail?.html);
+    expect(body).not.toContain("<script>");
+    expect(body).not.toContain("<b>");
+    expect(body).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+  });
+
+  test("escapes ampersands, so entities typed by the sender arrive as typed", async () => {
+    await submit({ ...VALID, message: "Fish & chips; &lt;b&gt; is not bold" });
+    expect(String(sentEmail?.html)).toContain("Fish &amp; chips; &amp;lt;b&amp;gt; is not bold");
+  });
+
+  test("keeps the subject header plain text, not HTML-escaped", async () => {
+    await submit({ ...VALID, subject: `Q&A about <Hugo> "themes"` });
+    expect(sentEmail?.subject).toBe(`Contact: Q&A about <Hugo> "themes"`);
+  });
+
+  test("sends the plain-text body unescaped", async () => {
+    await submit({ ...VALID, message: "a < b & c" });
+    expect(String(sentEmail?.text)).toContain("a < b & c");
+  });
+});
+
 describe("optional feature credentials", () => {
   /** Same request shape as `submit`, but against a caller-supplied environment. */
   function submitWith(env: Record<string, string>, body: Record<string, unknown>) {

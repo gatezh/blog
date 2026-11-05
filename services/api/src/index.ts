@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { html } from "hono/html";
 import { methodNotAllowed } from "hono/method-not-allowed";
 import { Resend } from "resend";
 
@@ -88,71 +89,96 @@ function isValidEmail(email: string): boolean {
 // an oversized body is rejected without spending a verification.
 const LIMITS = { name: 100, subject: 200, message: 5000 } as const;
 
-// Sanitize input to prevent injection
-function sanitize(input: string): string {
-  return input
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
+// Collapse a value onto one line. It ends up in the Subject header, where
+// CR/LF is header injection (`Subject: x\r\nBcc: ...`).
+function oneLine(input: string): string {
+  return input.replace(/\s+/g, " ").trim();
 }
 
-// Sanitize a value that ends up in the Subject header. CR/LF there is header
-// injection (`Subject: x\r\nBcc: ...`), so newlines collapse to spaces.
-function sanitizeLine(input: string): string {
-  return sanitize(input).replace(/\s+/g, " ").trim();
-}
-
-// Build HTML email content
-function buildHtmlContent(
-  safeName: string,
-  safeEmail: string,
-  safeSubject: string | null,
-  safeMessage: string,
-): string {
-  const subjectLine = safeSubject ? `<p><strong>Subject:</strong> ${safeSubject}</p>` : "";
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #334155; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 30px; border-radius: 12px 12px 0 0; }
-    .header h1 { color: white; margin: 0; font-size: 24px; }
-    .content { background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; }
-    .field { margin-bottom: 20px; }
-    .field strong { color: #3b82f6; }
-    .message { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; }
-    .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>New Contact Form Submission</h1>
-    </div>
-    <div class="content">
-      <div class="field">
-        <p><strong>Name:</strong> ${safeName}</p>
-      </div>
-      <div class="field">
-        <p><strong>Email:</strong> <a href="mailto:${safeEmail}">${safeEmail}</a></p>
-      </div>
-      ${subjectLine ? `<div class="field">${subjectLine}</div>` : ""}
-      <div class="field">
-        <p><strong>Message:</strong></p>
-        <div class="message">${safeMessage}</div>
-      </div>
-      <div class="footer">
-        <p>This message was sent via the contact form on gatezh.com</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+// Build HTML email content. `html` escapes every interpolated value.
+function buildHtmlContent(name: string, email: string, subject: string | null, message: string) {
+  return html` <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: #334155;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            padding: 30px;
+            border-radius: 12px 12px 0 0;
+          }
+          .header h1 {
+            color: white;
+            margin: 0;
+            font-size: 24px;
+          }
+          .content {
+            background: #f8fafc;
+            padding: 30px;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+          }
+          .field {
+            margin-bottom: 20px;
+          }
+          .field strong {
+            color: #3b82f6;
+          }
+          .message {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            white-space: pre-wrap;
+          }
+          .footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 12px;
+            color: #64748b;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>New Contact Form Submission</h1>
+          </div>
+          <div class="content">
+            <div class="field">
+              <p><strong>Name:</strong> ${name}</p>
+            </div>
+            <div class="field">
+              <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+            </div>
+            ${subject
+              ? html`<div class="field">
+                  <p><strong>Subject:</strong> ${subject}</p>
+                </div>`
+              : ""}
+            <div class="field">
+              <p><strong>Message:</strong></p>
+              <div class="message">${message}</div>
+            </div>
+            <div class="footer">
+              <p>This message was sent via the contact form on gatezh.com</p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>`;
 }
 
 // Build plain text email content
@@ -262,20 +288,17 @@ app.post("/", async (c) => {
       }
     }
 
-    // Sanitize inputs
-    const safeName = sanitizeLine(data.name);
-    const safeEmail = sanitize(data.email);
-    const safeSubject = data.subject ? sanitizeLine(data.subject) : null;
-    const safeMessage = sanitize(data.message);
+    const name = oneLine(data.name);
+    const subject = data.subject ? oneLine(data.subject) : null;
 
     // Build email content
-    const htmlContent = buildHtmlContent(safeName, safeEmail, safeSubject, safeMessage);
+    const htmlContent = await buildHtmlContent(name, data.email, subject, data.message);
     const textContent = buildTextContent(data.name, data.email, data.subject, data.message);
 
     // Send email via Resend
     const resend = new Resend(c.env.RESEND_API_KEY);
 
-    const emailSubject = safeSubject ? `Contact: ${safeSubject}` : `Contact from ${safeName}`;
+    const emailSubject = subject ? `Contact: ${subject}` : `Contact from ${name}`;
 
     const { data: emailData, error } = await resend.emails.send({
       from: `Serge Gatezh Blog <${c.env.FROM_EMAIL}>`,
