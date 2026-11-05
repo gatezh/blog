@@ -1,0 +1,38 @@
+{{- /* The talks listed in the page's `talks:` front matter, newest first as
+       authored. The Markdown and llms-full renderings are talks.*.md/.txt;
+       the Event JSON-LD is in _partials/seo.html. */ -}}
+<div class="space-y-8">
+	{{- range .Page.Params.talks }}
+		{{- $start := time.AsTime .start }}
+		<section id="{{ .id }}" class="terminal-window" aria-labelledby="{{ .id }}-title">
+			<div class="terminal-window-header" aria-hidden="true">
+				<span class="terminal-window-dot red"></span>
+				<span class="terminal-window-dot yellow"></span>
+				<span class="terminal-window-dot green"></span>
+				<span class="terminal-window-title">~/talks/{{ .id }}</span>
+			</div>
+			<div class="terminal-window-content">
+				<p class="mb-3 text-sm text-terminal-muted">
+					<time datetime="{{ $start.Format "2006-01-02T15:04:05-07:00" }}">{{ $start.Format "January 2, 2006" }}</time>
+					· {{ .event }}, {{ .venue }}
+				</p>
+				<h2 id="{{ .id }}-title" class="mt-0 mb-3 text-xl font-semibold leading-snug">{{ .title }}</h2>
+				<p class="mb-4 leading-relaxed">{{ .abstract }}</p>
+				<ul class="m-0 flex list-none flex-wrap gap-x-6 gap-y-2 p-0 text-sm">
+					{{- with .slides }}
+						<li><span class="text-terminal-accent">></span> <a href="{{ . }}">Slides (PDF)</a></li>
+					{{- end }}
+					{{- with .recording }}
+						<li><span class="text-terminal-accent">></span> <a href="{{ . }}">Recording</a></li>
+					{{- end }}
+					{{- with .eventUrl }}
+						<li><span class="text-terminal-accent">></span> <a href="{{ . }}">Event page</a></li>
+					{{- end }}
+					{{- with .code }}
+						<li><span class="text-terminal-accent">></span> <a href="{{ . }}">Code</a></li>
+					{{- end }}
+				</ul>
+			</div>
+		</section>
+	{{- end }}
+</div>

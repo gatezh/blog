@@ -9,6 +9,11 @@
        whole link list into a code listing. Keeping the emitted text on one line
        with the action leaves gotmplfmt nothing to indent.
 
+       Pages: site.Home.RegularPages, the regular pages directly under the
+       content root (About, Projects, Talks...), which belong to no
+       section. A new one is listed automatically. The llms stubs themselves
+       are kept out by their `build: list: never`.
+
        Excluded: pages carrying `robots: noindex`. That front matter is the
        site's only "publish but do not index" lever, and listing such a page in
        an index whose whole purpose is discovery defeats it. */ -}}
@@ -20,8 +25,8 @@
 
 > {{ site.Params.description }}
 
-## About
-{{ with site.GetPage "/about" }}{{ template "entry" . }}{{ end }}
+## Pages
+{{ range partial "agent-listable.html" site.Home.RegularPages }}{{ template "entry" . }}{{ end }}
 
 ## Blog Posts
 {{ range where $listable "Section" "posts" }}{{ template "entry" . }}{{ end }}

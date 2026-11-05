@@ -1,0 +1,36 @@
+{{- /* Layout for pages that list Serge's work rather than tell a story: Talks
+       (and Projects). Selected with `layout: showcase` in front matter.
+
+       It exists so these pages do NOT use the theme's page.html, whose
+       itemtype="https://schema.org/Article" microdata would declare a list
+       page to be an article and contradict its JSON-LD (seo.html). The
+       entries themselves come from front matter through a shortcode in the
+       body, so the HTML, the Markdown mirror and llms-full.txt share one
+       source. */ -}}
+{{- define "main" }}
+<article>
+	<section class="terminal-window mb-10" aria-labelledby="showcase-title">
+		<div class="terminal-window-header" aria-hidden="true">
+			<span class="terminal-window-dot red"></span>
+			<span class="terminal-window-dot yellow"></span>
+			<span class="terminal-window-dot green"></span>
+			<span class="terminal-window-title">~/{{ .Title | urlize }}</span>
+		</div>
+		<div class="terminal-window-content">
+			<p class="mb-4 text-sm text-terminal-muted">
+				<span class="text-terminal-accent">$</span> ls -l ./{{ .Title | urlize }}
+			</p>
+			<h1 id="showcase-title" class="mb-4 text-3xl font-semibold leading-tight">
+				{{ .Title }}<span class="text-terminal-accent">.</span>
+			</h1>
+			{{- with .Description }}
+				<p class="m-0 text-terminal-muted">{{ . }}</p>
+			{{- end }}
+		</div>
+	</section>
+
+	<div class="article-content prose max-w-none">
+		{{ .Content }}
+	</div>
+</article>
+{{- end }}
