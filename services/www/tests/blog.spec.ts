@@ -332,6 +332,17 @@ test.describe("Accessibility", () => {
       expect(hasContent).toBeTruthy();
     }
   });
+
+  test("image alt text is escaped once, not twice", async ({ request }) => {
+    // html/template already escapes attribute values. Escaping again in the
+    // template turns an apostrophe into a literal "&#39;" that screen readers
+    // read out.
+    const paths = sitemapPaths(await (await request.get("/sitemap.xml")).text());
+    for (const path of paths) {
+      const html = await (await request.get(path)).text();
+      expect(html, `${path} has double-escaped alt text`).not.toMatch(/alt="[^"]*&amp;(#\d+|[a-z]+);/);
+    }
+  });
 });
 
 test.describe("Theme switcher", () => {
