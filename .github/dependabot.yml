@@ -18,3 +18,8 @@ updates:
     # release is not proposed until it has been public for a week.
     cooldown:
       default-days: 7
+    # One pull request a week for every action in every directory.
+    groups:
+      actions:
+        patterns:
+          - "*"
