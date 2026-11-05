@@ -2,8 +2,8 @@
 title: "Projects"
 layout: showcase
 comments: false
-description: "What Serge Gatezh, product engineer in Calgary, has shipped in public: the products, the edge platforms they run on, and where they are built."
-keywords: [projects, portfolio, cloudflare, dev-containers, ux, product-engineering, calgary]
+description: "What Serge Gatezh has shipped in public: the products, the edge platforms they run on, and where they are built."
+keywords: [projects, portfolio, cloudflare, dev-containers, ux, product-engineering]
 # Three layers, top to bottom: the products people use, the platforms they run
 # on, and the workbench they are built in. The stack diagram at the top of the
 # page is drawn from `runsOn` and `builtIn`; each must be true today. Each

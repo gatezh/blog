@@ -196,9 +196,9 @@ they are the redirects this repo deliberately serves: the seven dated
 `/posts/YYYY/MM/DD/<slug>` paths, the four Jekyll-era `/<slug>.html` paths, and
 `/portfolio/`. All 301 to a canonical page.
 
-One deliberate orphan: `/early-projects/` is indexable and in the sitemap, but
-nothing on the site links to it — it is an archive of the 2017 portfolio, kept
-out of the nav on purpose. A page reachable only from the sitemap is the usual
+Out of the nav on purpose: `/ever-learning/` (linked from `/about/`, in the
+sitemap, llms.txt and the home feed) and `/early-projects/`, a deliberate
+orphan: indexable, in the sitemap, linked from nowhere — the 2017 portfolio. A page reachable only from the sitemap is the usual
 recipe for `Discovered - currently not indexed`, so if it lands there, that is
 the cause and it is a known trade-off rather than a defect. Linking it from
 `/about/` would be the fix if it ever matters.
