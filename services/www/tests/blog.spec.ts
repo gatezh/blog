@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 import { sitemapPaths } from "./sitemap";
 
@@ -103,6 +103,63 @@ test.describe("Single post", () => {
       const html = await (await request.get(path)).text();
       expect(html, path).toContain(`cat ${slug}.md`);
     }
+  });
+});
+
+test.describe("Mobile menu", () => {
+  test("the menu button opens and closes the navigation", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "the menu button exists below md only");
+    await page.goto("/");
+
+    const button = page.locator("#mobile-menu-btn");
+    const menu = page.getByRole("navigation", { name: "Mobile navigation" });
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(menu).toBeHidden();
+
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("link", { name: /Posts/ })).toBeVisible();
+
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(menu).toBeHidden();
+  });
+});
+
+test.describe("Contact form", () => {
+  // hugo server builds with no Turnstile site key, so no widget is rendered and
+  // the form submits straight to params.apiUrl, stubbed here.
+  async function fillAndSend(page: Page, response: { status: number; body: object }) {
+    await page.route("http://localhost:8787/**", (route) =>
+      route.fulfill({ status: response.status, json: response.body }),
+    );
+    await page.goto("/contact/");
+    await page.locator("#contact-name").fill("Ada");
+    await page.locator("#contact-email").fill("ada@example.com");
+    await page.locator("#contact-message").fill("Hello");
+    await page.locator("#contact-submit").click();
+  }
+
+  test("a sent message replaces the form with the confirmation", async ({ page }) => {
+    const success = page.locator("#contact-success");
+    await page.goto("/contact/");
+    await expect(success).toBeHidden();
+    await expect(page.locator("#contact-error")).toBeHidden();
+
+    await fillAndSend(page, { status: 200, body: { success: true } });
+    await expect(success).toBeVisible();
+    await expect(page.locator("#contact-form")).toBeHidden();
+  });
+
+  test("a rejected message shows the error and re-enables the button", async ({ page }) => {
+    await fillAndSend(page, { status: 400, body: { error: "Invalid email address" } });
+    await expect(page.locator("#contact-error")).toBeVisible();
+    await expect(page.locator("#contact-error-text")).toHaveText("Invalid email address");
+    await expect(page.locator("#contact-submit")).toBeEnabled();
+    await expect(page.locator("#submit-spinner")).toBeHidden();
+    await expect(page.locator("#submit-icon")).toBeVisible();
+    await expect(page.locator("#contact-success")).toBeHidden();
   });
 });
 

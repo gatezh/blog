@@ -41,17 +41,18 @@ if (!apiUrl) {
   const setLoading = (loading: boolean): void => {
     submitBtn.disabled = loading;
     submitText.textContent = loading ? "$ sending..." : "$ send";
-    submitIcon.classList.toggle("hidden", loading);
-    submitSpinner.classList.toggle("hidden", !loading);
+    // SVG elements have no `hidden` property, only the attribute.
+    submitIcon.toggleAttribute("hidden", loading);
+    submitSpinner.toggleAttribute("hidden", !loading);
   };
 
   const showError = (message: string): void => {
     errorText.textContent = message;
-    errorDiv.classList.remove("hidden");
+    errorDiv.hidden = false;
   };
 
   const hideError = (): void => {
-    errorDiv.classList.add("hidden");
+    errorDiv.hidden = true;
   };
 
   const isValidEmail = (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -114,8 +115,8 @@ if (!apiUrl) {
       }
 
       if (response.ok && data.success) {
-        form.classList.add("hidden");
-        successDiv.classList.remove("hidden");
+        form.hidden = true;
+        successDiv.hidden = false;
       } else {
         showError(data.error || "Failed to send message. Please try again.");
         resetTurnstile();

@@ -4,11 +4,11 @@ const menuBtn = document.getElementById("mobile-menu-btn");
 const mobileMenu = document.getElementById("mobile-menu");
 
 if (menuBtn && mobileMenu) {
+  // The hidden attribute also takes the closed menu out of the accessibility
+  // tree, so it needs no aria-hidden of its own.
   menuBtn.addEventListener("click", () => {
-    const isExpanded = menuBtn.getAttribute("aria-expanded") === "true";
-    menuBtn.setAttribute("aria-expanded", String(!isExpanded));
-    mobileMenu.classList.toggle("hidden");
-    mobileMenu.setAttribute("aria-hidden", String(isExpanded));
+    mobileMenu.hidden = !mobileMenu.hidden;
+    menuBtn.setAttribute("aria-expanded", String(!mobileMenu.hidden));
   });
 }
 
