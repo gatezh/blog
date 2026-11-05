@@ -23,7 +23,9 @@ globs: services/www/**
   hand and never add a static copy. The stubs are `services/www/content/llms.md`
   and `llms-full.md` (front matter only; `url:` sets the output path), rendered
   by `services/www/layouts/llms*._outputformat_llmtext_.txt`. Adding a post
-  updates both automatically.
+  updates both automatically, and so does adding a page directly under
+  `content/` (About, Projects, Talks): both templates list `site.Home.RegularPages`.
+  `tests/agents.spec.ts` checks every top-level sitemap page is in both.
 - Home, section listings and regular pages each emit an `index.md` Markdown
   mirror (`outputs` in `hugo.yaml` lists all three kinds — a kind that is not
   listed gets no mirror). Each HTML page advertises its mirror with
@@ -46,3 +48,11 @@ globs: services/www/**
 - Indexability rules are pinned by `services/www/tests/seo.spec.ts`,
   `services/www/tests/assets.spec.ts` and the post-deploy verify step. See
   `docs/seo.md` before changing any of them.
+- Share image and favicons are **generated**: edit `services/www/brand/share-image.html`
+  or `services/www/assets/brand/favicon.svg`, then run `bun run brand` from
+  `services/www` and commit the PNGs and `static/favicon.ico`. Never edit those by
+  hand. `params.images` (Hugo's own key, first entry used) sets the default; a page
+  overrides it with `images:` and `imageAlt:` front matter. One partial
+  (`share-image.html`) feeds both the meta tags and the Article JSON-LD
+  `image`, which is set only from a post's own `images:` (Google requires an
+  Article image to represent the article).

@@ -18,7 +18,15 @@ import { sitemapPaths } from "./sitemap";
 
 // Structural pages only. Individual posts come and go, and the sitemap sweep
 // below already asserts robots + canonical on every URL the site publishes.
-const INDEXABLE_PAGES = ["/", "/posts/", "/ever-learning/", "/about/", "/contact/"];
+const INDEXABLE_PAGES = [
+  "/",
+  "/posts/",
+  "/ever-learning/",
+  "/about/",
+  "/projects/",
+  "/talks/",
+  "/contact/",
+];
 
 // Taxonomy listings: near-duplicates of /posts/ while the post count is small.
 // Term pages exist only as long as a post carries the term.
@@ -155,6 +163,102 @@ test.describe("titles and descriptions", () => {
       "content",
       /Product Engineer/,
     );
+  });
+});
+
+/** Width and height from a PNG's IHDR chunk, which always starts at byte 16. */
+function pngSize(png: Buffer): { width: number; height: number } {
+  expect(png.subarray(1, 4).toString("latin1"), "not a PNG").toBe("PNG");
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+}
+
+test.describe("link previews", () => {
+  // Every platform that unfurls links (LinkedIn, Slack, X, iMessage) reads these.
+  for (const path of INDEXABLE_PAGES) {
+    test(`${path} has a large share image with dimensions and alt text`, async ({
+      page,
+      request,
+    }) => {
+      await page.goto(path);
+      const og = (property: string) =>
+        page.locator(`meta[property="og:${property}"]`).getAttribute("content");
+
+      const image = await og("image");
+      // Open Graph requires an absolute URL; a relative one shows no preview.
+      expect(image).toMatch(/^https?:\/\/[^/]+\/brand\/share\.[a-f0-9]+\.png$/);
+      expect(await og("image:width")).toBe("1200");
+      expect(await og("image:height")).toBe("630");
+      expect(await og("image:alt")).toMatch(/^Serge Gatezh, Product Engineer/);
+
+      await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+        "content",
+        "summary_large_image",
+      );
+      await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
+        "content",
+        image as string,
+      );
+
+      // The declared size is the file's real size.
+      const res = await request.get(new URL(image as string).pathname);
+      expect(res.status()).toBe(200);
+      expect(res.headers()["content-type"]).toBe("image/png");
+      expect(pngSize(await res.body())).toEqual({ width: 1200, height: 630 });
+    });
+  }
+
+  test("a post without its own image gets no Article image", async ({ page }) => {
+    // Google: "Images must represent the marked up content". The site-wide
+    // card is fine as a link preview but not as the article's image, so only a
+    // post's own `images:` entry becomes the Article `image`.
+    await page.goto("/posts/docker-desktop-disk-full-macos/");
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+      "content",
+      /\/brand\/share\./,
+    );
+    const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
+    const article = blocks.map((b) => JSON.parse(b)).find((b) => b["@type"] === "Article");
+    expect(article).toBeTruthy();
+    expect(article.image).toBeUndefined();
+  });
+});
+
+test.describe("favicons", () => {
+  test("the head links an SVG, 32 and 192 px PNGs and a 180 px touch icon", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/");
+    const href = (selector: string) => page.locator(selector).getAttribute("href");
+
+    const svg = await href('link[rel="icon"][type="image/svg+xml"]');
+    expect(svg).toMatch(/^\/brand\/favicon\.[a-f0-9]+\.svg$/);
+    const svgRes = await request.get(svg as string);
+    expect(svgRes.status()).toBe(200);
+    expect(svgRes.headers()["content-type"]).toContain("image/svg+xml");
+
+    for (const [selector, size] of [
+      ['link[rel="icon"][type="image/png"][sizes="32x32"]', 32],
+      // Google Search reads no SVG favicons and recommends more than 48 px.
+      ['link[rel="icon"][type="image/png"][sizes="192x192"]', 192],
+      ['link[rel="apple-touch-icon"][sizes="180x180"]', 180],
+    ] as const) {
+      const png = await href(selector);
+      expect(png, selector).toMatch(/^\/brand\/[a-z0-9-]+\.[a-f0-9]+\.png$/);
+      const res = await request.get(png as string);
+      expect(res.status(), selector).toBe(200);
+      expect(pngSize(await res.body())).toEqual({ width: size, height: size });
+    }
+  });
+
+  test("/favicon.ico exists and is a real ICO", async ({ request }) => {
+    const res = await request.get("/favicon.ico");
+    expect(res.status()).toBe(200);
+    // ICONDIR header: reserved 0, type 1 (icon), then the image count.
+    const body = await res.body();
+    expect(body.readUInt16LE(0)).toBe(0);
+    expect(body.readUInt16LE(2)).toBe(1);
+    expect(body.readUInt16LE(4)).toBeGreaterThan(0);
   });
 });
 
@@ -310,6 +414,113 @@ test.describe("identity structured data", () => {
     expect(profile.dateModified).toMatch(
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/,
     );
+  });
+
+  test("/talks/ is a CollectionPage of Events Serge performed", async ({ page }) => {
+    const blocks = await jsonLd(page, "/talks/");
+    const collection = blocks.find((b) => b["@type"] === "CollectionPage");
+    expect(new URL(collection.url).pathname).toBe("/talks/");
+    expect(collection.author["@id"]).toMatch(PERSON_ID);
+
+    const events = collection.mainEntity.itemListElement.map((i: { item: unknown }) => i.item);
+    expect(events.length).toBeGreaterThanOrEqual(2);
+    for (const event of events) {
+      expect(event["@type"]).toBe("Event");
+      expect(event.performer["@id"], event.name).toMatch(PERSON_ID);
+      // ISO 8601 with the venue's own offset, not a bare date.
+      expect(event.startDate, event.name).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/,
+      );
+      expect(event.location.address.addressLocality, event.name).toBe("Calgary");
+      expect(event.organizer.name, event.name).toBe("Frontend & Beyond");
+      expect(event.workPerformed["@type"], event.name).toBe("PresentationDigitalDocument");
+      expect(event.workPerformed.url, event.name).toMatch(/^https:\/\/.+\.pdf$/);
+      // Each Event @id is an anchor that exists on the page.
+      const anchor = new URL(event["@id"]).hash;
+      await expect(page.locator(anchor), event.name).toHaveCount(1);
+    }
+    expect(events.map((e: { name: string }) => e.name)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^Zero Servers, Zero Dollars/),
+        "Dev Containers with Claude: Security First",
+      ]),
+    );
+  });
+
+  test("/projects/ lists projects by layer, crediting the same Person", async ({ page }) => {
+    const blocks = await jsonLd(page, "/projects/");
+    const collection = blocks.find((b) => b["@type"] === "CollectionPage");
+    expect(collection.author["@id"]).toMatch(PERSON_ID);
+
+    type Item = { "@type": string; [key: string]: unknown };
+    const layers = collection.mainEntity.itemListElement.map(
+      (i: { item: { name: string; itemListElement: { item: Item }[] } }) => i.item,
+    );
+    expect(layers.map((l: { name: string }) => l.name)).toEqual([
+      "Products",
+      "Platforms",
+      "Workbench",
+    ]);
+    for (const layer of layers) {
+      expect(layer.itemListElement.length, layer.name).toBeGreaterThan(0);
+      for (const { item } of layer.itemListElement) {
+        expect((item.creator as Item)["@id"], item.name as string).toMatch(PERSON_ID);
+        // Private code is listed by its website: only an entry with a public
+        // repository is typed as source code.
+        if (item["@type"] === "SoftwareSourceCode") {
+          expect(item.codeRepository, item.name as string).toMatch(/^https:\/\/github\.com\//);
+        }
+      }
+    }
+
+    // Every talk the page links to resolves to a talk on /talks/.
+    const talkLinks = await page
+      .locator('a[href*="/talks/#"]')
+      .evaluateAll((links) => links.map((link) => new URL((link as HTMLAnchorElement).href).hash));
+    expect(talkLinks.length).toBeGreaterThan(0);
+    await page.goto("/talks/");
+    for (const hash of talkLinks) await expect(page.locator(hash), hash).toHaveCount(1);
+  });
+
+  test("every box in the /projects/ stack diagram links to its entry", async ({ page }) => {
+    await page.goto("/projects/");
+    const targets = await page
+      .locator(".stack a.stack-node")
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
+    // One box per entry: project-graph.html fails the build for a product
+    // that would otherwise drop out of the diagram.
+    expect(targets.length).toBeGreaterThan(0);
+    expect(targets.length).toBe(await page.locator("article.project-diff").count());
+    for (const hash of targets) {
+      expect(hash).toMatch(/^#[a-z0-9-]+$/);
+      await expect(page.locator(`article${hash}`), hash).toHaveCount(1);
+    }
+  });
+
+  test("the Person carries the Anthropic credential", async ({ page }) => {
+    const person = (await jsonLd(page, "/")).find((b) => b["@type"] === "Person");
+    expect(person.hasCredential).toEqual([
+      expect.objectContaining({
+        "@type": "EducationalOccupationalCredential",
+        name: "Claude Certified Architect, Foundations",
+        recognizedBy: expect.objectContaining({ name: "Anthropic" }),
+        url: expect.stringMatching(/^https:\/\/www\.credly\.com\/badges\//),
+      }),
+    ]);
+  });
+
+  test("/ever-learning/ shows the credential badge, linked to its verification", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/ever-learning/");
+    const badge = page.locator("header .credentials a.credential");
+    await expect(badge).toHaveAttribute("href", /^https:\/\/www\.credly\.com\/badges\//);
+    const img = badge.locator("img");
+    await expect(img).toHaveAttribute("alt", /Claude Certified Architect.*Anthropic/);
+    const res = await request.get((await img.getAttribute("src")) as string);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toBe("image/webp");
   });
 
   test("footer profile links declare rel=me", async ({ page }) => {

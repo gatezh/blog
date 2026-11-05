@@ -14,7 +14,9 @@
 
        As in llms.txt, emitted text stays on one line with its action so
        gotmplfmt cannot indent it into a CommonMark code block, and pages
-       carrying `robots: noindex` are left out. */ -}}
+       carrying `robots: noindex` are left out. The pages directly under the
+       content root (site.Home.RegularPages) come first, then each main
+       section's. */ -}}
 {{- define "page" -}}
 {{- printf "\n---\n\n## %s\n\nSource: %s\n" .Title .Permalink -}}
 {{- with .Date }}{{ if not .IsZero }}{{ printf "Published: %s\n" (.Format "2006-01-02") }}{{ end }}{{ end -}}
@@ -24,5 +26,5 @@
 # {{ site.Title }}
 
 > {{ site.Params.description }}
-{{ with site.GetPage "/about" }}{{ template "page" . }}{{ end }}
+{{ range partial "agent-listable.html" site.Home.RegularPages }}{{ template "page" . }}{{ end }}
 {{- range site.MainSections }}{{ range where $listable "Section" . }}{{ template "page" . }}{{ end }}{{ end }}

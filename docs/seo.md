@@ -133,6 +133,9 @@ Recorded so a future reader does not "discover" and undo any of it.
 | `<lastmod>` tracks the last commit, not the authored date | `hugo.yaml` → `enableGitInfo`                                                | needs `fetch-depth: 0` |
 | The deployed artifact is the build CI expects             | `<meta name="build-commit">`                                                 | `go-live` verify step  |
 | Stale build output is never deployed                      | `--cleanDestinationDir`                                                      | —                      |
+| Every page has a 1200 × 630 share image with alt text     | `_partials/share-image.html` (theme) + `params.images`                       | `tests/seo.spec.ts`    |
+| SVG, PNG and touch favicons, and a root `/favicon.ico`    | `head.html` + `assets/brand/`, `static/favicon.ico`                          | both specs             |
+| Every top-level page is in both llms indexes              | `site.Home.RegularPages` in `layouts/llms*._outputformat_llmtext_.txt`       | `tests/agents.spec.ts` |
 
 Five things that look redundant but are not:
 
@@ -256,14 +259,19 @@ deliberately not repeated here.
 Open items, highest value first. Each is a gap against the other sites on this
 stack, or a decision only the owner can make.
 
-- [ ] **Favicon.** `/favicon.ico` is a 404 and `<head>` has no `rel=icon`.
-      Google shows the favicon beside every result. An SVG, a 32 px PNG and a
-      180 px `apple-touch-icon`, fingerprinted from `assets/`.
-- [ ] **`og:image`.** `params.ogImage` is unset, so shared links have no
-      preview and Article JSON-LD has no `image`. A 1200 × 630 PNG rendered
-      from an HTML template with Playwright and committed, emitted with
-      `og:image:width`, `og:image:height` and `og:image:alt`; the same image as
-      the Article `image`.
+- [x] **Favicon.** Done. `assets/brand/favicon.svg` (an outlined "G." mark
+      in the dark theme colours) plus 32 px and 192 px PNGs and a 180 px
+      `apple-touch-icon` rendered from it, all fingerprinted under `/brand/`,
+      and a real `/favicon.ico` (16, 32 and 48 px) in `static/`. The 192 px
+      PNG is for Google Search, which reads no SVG favicons and recommends
+      more than 48 px.
+- [x] **`og:image`.** Done. `params.images` is `[brand/share.png]`, a
+      1200 × 630 PNG rendered from `brand/share-image.html` by
+      `bun run brand`, emitted with `og:image:width`, `og:image:height` and
+      `og:image:alt`. A page overrides it with `images:` / `imageAlt:` front
+      matter, and only such a page's own image becomes its Article `image`:
+      Google requires that image to represent the article, which the
+      site-wide card does not.
 - [ ] **Post-deploy redirect check.** Assert in the verify step that one known
       legacy URL (e.g. a `.html` path) answers `301`. Today only
       `tests/assets.spec.ts` covers `_redirects`, locally.

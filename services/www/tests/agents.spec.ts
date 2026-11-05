@@ -51,6 +51,55 @@ test.describe("content coverage", () => {
   });
 });
 
+// Top-level section listings. Their pages reach llms.txt through the section
+// lists, and the listing itself is not an entry. Every other top-level path in
+// the sitemap is a page directly under content/ and must be listed, so a new
+// page is covered with no change here; a new section fails until added.
+const TOP_LEVEL_SECTIONS = ["/posts/", "/ever-learning/", "/contact/"];
+
+test.describe("top-level pages", () => {
+  // Pages directly under content/ (About, Talks...) belong to no section.
+  // Both templates list them from site.Home.RegularPages; a page missing from
+  // the indexes is invisible to agents that read them instead of crawling.
+  test("every top-level page is in llms.txt and llms-full.txt", async ({ request }) => {
+    const pages = sitemapPaths(await text(request, "/sitemap.xml")).filter(
+      (p) => /^\/[^/]+\/$/.test(p) && !TOP_LEVEL_SECTIONS.includes(p),
+    );
+    expect(pages).toEqual(expect.arrayContaining(["/about/", "/projects/", "/talks/"]));
+
+    const index = await text(request, "/llms.txt");
+    const full = await text(request, "/llms-full.txt");
+    for (const path of pages) {
+      expect(index, `${path} in llms.txt`).toMatch(
+        new RegExp(`^- \\[[^\\]]+\\]\\(https?://[^/]+${path}\\):`, "m"),
+      );
+      expect(full, `${path} in llms-full.txt`).toMatch(
+        new RegExp(`^Source: https?://[^/]+${path}$`, "m"),
+      );
+    }
+  });
+
+  test("the projects mirror carries every layer, as before and after", async ({ request }) => {
+    const md = await (await request.get("/projects/index.md")).text();
+    for (const layer of ["Products", "Platforms", "Workbench"]) {
+      expect(md).toContain(`## ${layer}`);
+    }
+    expect(md).toContain("### [devcontainers](https://github.com/gatezh/devcontainers)");
+    expect(md).toMatch(/^- Before: .+$/m);
+    expect(md).toMatch(/^- After: .+$/m);
+    expect(md).toContain("- Runs on SurgeGate");
+  });
+
+  test("the talks mirror carries every talk with its slides", async ({ request }) => {
+    const md = await (await request.get("/talks/index.md")).text();
+    expect(md).toContain("## Zero Servers, Zero Dollars: Shipping Real Apps on Cloudflare");
+    expect(md).toContain("## Dev Containers with Claude: Security First");
+    expect(
+      md.match(/^- \[Slides \(PDF\)\]\(https:\/\/\S+\.pdf\)$/gm)?.length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+});
+
 test.describe("llms.txt structure", () => {
   test("is a Markdown list, not an indented code block", async ({ request }) => {
     const body = await text(request, "/llms.txt");
@@ -105,7 +154,7 @@ test.describe("llms-full.txt structure", () => {
 });
 
 test.describe("markdown mirrors", () => {
-  for (const path of ["/", "/posts/", "/ever-learning/", "/about/"]) {
+  for (const path of ["/", "/posts/", "/ever-learning/", "/about/", "/projects/", "/talks/"]) {
     test(`${path} has a Markdown mirror`, async ({ request }) => {
       const res = await request.get(`${path}index.md`);
       expect(res.status(), `${path}index.md should exist`).toBe(200);
