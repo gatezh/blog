@@ -2,13 +2,13 @@
 title: "About"
 layout: about
 comments: false
-description: "About Serge Gatezh, a product engineer in Calgary who turns messy business processes into simple, secure software."
+description: "About Serge Gatezh, a product engineer who turns messy business processes into simple, secure software, shipped end to end on the edge."
 tagline: "I turn messy business processes into simple, secure software."
 role: "Product Engineer · Calgary, Canada"
 portrait: "images/serge-gatezh-sticker.png"
 ---
 
-I'm a product engineer based in Calgary, Alberta. Since 2018, I've built web applications that solve complex product and engineering problems without passing that complexity on to users.
+I'm a product engineer. Since 2018, I've built web applications that solve complex product and engineering problems without passing that complexity on to users, and since 2020 I've done it on remote teams.
 
 My front-end roots still shape how I work across the stack. I pay attention to the small decisions that determine whether a product feels obvious or exhausting: information hierarchy, useful feedback, sensible defaults, accessibility, and the awkward edge cases users find before anyone else. React and TypeScript are familiar tools, but the goal is never a particular framework. The goal is to help someone finish what they came to do without making them carry the complexity that made it possible.
 
@@ -36,7 +36,7 @@ Outside work, I still explore personal-finance products with equal parts curiosi
 
 ## What I share here
 
-This site is my working notebook: a place for solutions worth remembering, experiments worth explaining, and the occasional lesson learned the hard way. You can also find my open-source work on [GitHub](https://github.com/gatezh) or connect with me on [LinkedIn](https://linkedin.com/in/gatezh).
+This site is my working notebook: a place for solutions worth remembering, experiments worth explaining, and the occasional lesson learned the hard way. Notes on other people's articles, videos and books live in the [learning log](/ever-learning/). You can also find my open-source work on [GitHub](https://github.com/gatezh) or connect with me on [LinkedIn](https://linkedin.com/in/gatezh).
 
 I give [talks](/talks/) at Frontend & Beyond, Calgary's web developer meetup, on shipping real apps on zero-cost edge infrastructure and on security-first AI workflows. The slides are public. Anthropic certified me as a [Claude Certified Architect, Foundations](https://www.credly.com/badges/9ce5ccf8-7ea5-40d4-9f65-3e0a8a66094a) in September 2026.
 

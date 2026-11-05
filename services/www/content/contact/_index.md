@@ -7,4 +7,4 @@ layout: "contact"
 outputs: [HTML, Markdown]
 ---
 
-Have a question, feedback, or just want to say hello? Feel free to reach out using the form below. I'll get back to you as soon as I can.
+Have a question, feedback, or just want to say hello? Feel free to reach out using the form below. I'm in Calgary, Alberta (UTC−6 all year: Chicago's clock in winter, Denver's in summer) and I'll get back to you within a day.
