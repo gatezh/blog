@@ -13,6 +13,15 @@ enableRobotsTXT: true
 # full history in CI — the deploy workflow checks out with fetch-depth: 0.
 enableGitInfo: true
 
+# Hugo's embedded sitemap template skips any page with `sitemap.disable`.
+# Taxonomy and term listings carry `noindex` (_partials/head.html), and a
+# sitemap should only advertise URLs meant to be indexed, so they opt out here.
+cascade:
+  - sitemap:
+      disable: true
+    target:
+      kind: "{taxonomy,term}"
+
 # The sections that hold the site's dated entries, read as site.MainSections.
 # The home RSS feed (layouts/home.rss.xml) lists only their pages, so the
 # standalone pages /about/ and /early-projects/ don't reach feed readers as
