@@ -108,6 +108,8 @@ describe("request body", () => {
   test("malformed JSON is a 400, not a server error", async () => {
     const res = await post("{not json", "application/json");
     expect(res.status).toBe(400);
+    // JSON like every other error, so the form can show it.
+    expect(await res.json()).toEqual({ error: "Malformed JSON in request body" });
   });
 
   test("a field of the wrong type is a 400, not a server error", async () => {
@@ -122,6 +124,20 @@ describe("request body", () => {
     const res = await post(JSON.stringify(VALID), "text/plain");
     expect(res.status).toBe(400);
     expect(sentEmail).toBeNull();
+  });
+});
+
+describe("unexpected errors", () => {
+  test("a network failure is a JSON 500 that leaks nothing", async () => {
+    globalThis.fetch = (async () => {
+      throw new TypeError("network down");
+    }) as unknown as typeof fetch;
+
+    const res = await submit(VALID);
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      error: "An unexpected error occurred. Please try again.",
+    });
   });
 });
 
