@@ -124,7 +124,7 @@ Recorded so a future reader does not "discover" and undo any of it.
 | Taxonomy/term listings are `noindex, follow`              | `themes/terminal/layouts/_partials/head.html`                                | `tests/seo.spec.ts`    |
 | The 404 page is `noindex`                                 | same                                                                         | `tests/seo.spec.ts`    |
 | Every page has a self-referencing canonical               | same                                                                         | `tests/seo.spec.ts`    |
-| Taxonomy/term listings are excluded from the sitemap      | `layouts/sitemap.xml`                                                        | `tests/seo.spec.ts`    |
+| Taxonomy/term listings are excluded from the sitemap      | `hugo.yaml` → `cascade` (`sitemap.disable` on kinds taxonomy, term)          | `tests/seo.spec.ts`    |
 | Every sitemap URL is reachable and indexable              | —                                                                            | `tests/seo.spec.ts`    |
 | No `/page/1/` pagination alias stubs are emitted          | `hugo.yaml` → `pagination.disableAliases`                                    | `tests/seo.spec.ts`    |
 | Internal page links all carry a trailing slash            | —                                                                            | `tests/seo.spec.ts`    |

@@ -50,7 +50,7 @@ scale - max width as % of container on wide screens (optional, default 100)
 		{{- if eq hugo.Environment "production" -}}
 			{{- $imgSrc = print "/cdn-cgi/image/format=auto,width=auto" $imgSrc -}}
 		{{- end }}
-		<img src="{{ $imgSrc }}" alt="{{ $alt | htmlEscape }}" loading="lazy"
+		<img src="{{ $imgSrc }}" alt="{{ $alt }}" loading="lazy"
 			style="aspect-ratio: {{ $img.Width }}/{{ $img.Height }};">
 		{{- with $caption }}
 			<figcaption>{{ . | markdownify }}</figcaption>

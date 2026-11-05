@@ -1,6 +1,9 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
+import { html } from "hono/html";
 import { methodNotAllowed } from "hono/method-not-allowed";
+import { validator } from "hono/validator";
 import { Resend } from "resend";
 
 // Environment bindings type
@@ -88,71 +91,96 @@ function isValidEmail(email: string): boolean {
 // an oversized body is rejected without spending a verification.
 const LIMITS = { name: 100, subject: 200, message: 5000 } as const;
 
-// Sanitize input to prevent injection
-function sanitize(input: string): string {
-  return input
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
+// Collapse a value onto one line. It ends up in the Subject header, where
+// CR/LF is header injection (`Subject: x\r\nBcc: ...`).
+function oneLine(input: string): string {
+  return input.replace(/\s+/g, " ").trim();
 }
 
-// Sanitize a value that ends up in the Subject header. CR/LF there is header
-// injection (`Subject: x\r\nBcc: ...`), so newlines collapse to spaces.
-function sanitizeLine(input: string): string {
-  return sanitize(input).replace(/\s+/g, " ").trim();
-}
-
-// Build HTML email content
-function buildHtmlContent(
-  safeName: string,
-  safeEmail: string,
-  safeSubject: string | null,
-  safeMessage: string,
-): string {
-  const subjectLine = safeSubject ? `<p><strong>Subject:</strong> ${safeSubject}</p>` : "";
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #334155; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 30px; border-radius: 12px 12px 0 0; }
-    .header h1 { color: white; margin: 0; font-size: 24px; }
-    .content { background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; }
-    .field { margin-bottom: 20px; }
-    .field strong { color: #3b82f6; }
-    .message { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; }
-    .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>New Contact Form Submission</h1>
-    </div>
-    <div class="content">
-      <div class="field">
-        <p><strong>Name:</strong> ${safeName}</p>
-      </div>
-      <div class="field">
-        <p><strong>Email:</strong> <a href="mailto:${safeEmail}">${safeEmail}</a></p>
-      </div>
-      ${subjectLine ? `<div class="field">${subjectLine}</div>` : ""}
-      <div class="field">
-        <p><strong>Message:</strong></p>
-        <div class="message">${safeMessage}</div>
-      </div>
-      <div class="footer">
-        <p>This message was sent via the contact form on gatezh.com</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+// Build HTML email content. `html` escapes every interpolated value.
+function buildHtmlContent(name: string, email: string, subject: string | null, message: string) {
+  return html` <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: #334155;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            padding: 30px;
+            border-radius: 12px 12px 0 0;
+          }
+          .header h1 {
+            color: white;
+            margin: 0;
+            font-size: 24px;
+          }
+          .content {
+            background: #f8fafc;
+            padding: 30px;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+          }
+          .field {
+            margin-bottom: 20px;
+          }
+          .field strong {
+            color: #3b82f6;
+          }
+          .message {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            white-space: pre-wrap;
+          }
+          .footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 12px;
+            color: #64748b;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>New Contact Form Submission</h1>
+          </div>
+          <div class="content">
+            <div class="field">
+              <p><strong>Name:</strong> ${name}</p>
+            </div>
+            <div class="field">
+              <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+            </div>
+            ${subject
+              ? html`<div class="field">
+                  <p><strong>Subject:</strong> ${subject}</p>
+                </div>`
+              : ""}
+            <div class="field">
+              <p><strong>Message:</strong></p>
+              <div class="message">${message}</div>
+            </div>
+            <div class="footer">
+              <p>This message was sent via the contact form on gatezh.com</p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>`;
 }
 
 // Build plain text email content
@@ -206,8 +234,52 @@ app.use(
   }),
 );
 
+// Checks the body before the handler runs. Malformed JSON is answered with a
+// 400 by the validator itself. A body not declared as JSON is never parsed: it
+// arrives here as {} and fails the required-fields check.
+const contactForm = validator("json", (value, c) => {
+  const { name, email, subject, message, turnstileToken } = value ?? {};
+  const fields = { name, email, subject, message, turnstileToken };
+
+  if (Object.values(fields).some((v) => v !== undefined && typeof v !== "string")) {
+    return c.json({ error: "Invalid request body" }, 400);
+  }
+  const data = fields as ContactFormData;
+
+  // Validate required fields
+  if (!data.name || !data.email || !data.message) {
+    return c.json({ error: "Missing required fields" }, 400);
+  }
+
+  // Only demand a captcha token when the bot gate is configured; otherwise a
+  // correctly-behaving client that was served no widget would be rejected.
+  if (c.env.TURNSTILE_SECRET_KEY && !data.turnstileToken) {
+    return c.json({ error: "Missing required fields" }, 400);
+  }
+
+  // Validate email format
+  if (!isValidEmail(data.email)) {
+    return c.json({ error: "Invalid email address" }, 400);
+  }
+
+  // Enforce length limits before the Turnstile call
+  const tooLong = (
+    [
+      ["name", data.name, LIMITS.name],
+      ["subject", data.subject ?? "", LIMITS.subject],
+      ["message", data.message, LIMITS.message],
+    ] as const
+  ).find(([, value, limit]) => value.length > limit);
+
+  if (tooLong) {
+    return c.json({ error: `The ${tooLong[0]} field is too long (max ${tooLong[2]})` }, 400);
+  }
+
+  return data;
+});
+
 // Contact form submission endpoint
-app.post("/", async (c) => {
+app.post("/", contactForm, async (c) => {
   // Without these the Worker cannot send anything. 503 rather than a 500 from
   // deep inside Resend: this is a deployment that was never configured, not a
   // request that went wrong.
@@ -215,91 +287,64 @@ app.post("/", async (c) => {
     return c.json({ error: "Contact form is not configured on this deployment." }, 503);
   }
 
-  try {
-    const data = await c.req.json<ContactFormData>();
+  const data = c.req.valid("json");
 
-    // Validate required fields
-    if (!data.name || !data.email || !data.message) {
-      return c.json({ error: "Missing required fields" }, 400);
+  // Verify Turnstile token, when the bot gate is configured at all.
+  if (c.env.TURNSTILE_SECRET_KEY) {
+    const clientIP = c.req.header("CF-Connecting-IP") || null;
+    const turnstileResult = await verifyTurnstile(
+      data.turnstileToken,
+      c.env.TURNSTILE_SECRET_KEY,
+      clientIP,
+      new URL(c.env.ALLOWED_ORIGIN).hostname,
+    );
+
+    if (!turnstileResult.success) {
+      return c.json({ error: "Captcha verification failed. Please try again." }, 400);
     }
-
-    // Only demand a captcha token when the bot gate is configured; otherwise a
-    // correctly-behaving client that was served no widget would be rejected.
-    if (c.env.TURNSTILE_SECRET_KEY && !data.turnstileToken) {
-      return c.json({ error: "Missing required fields" }, 400);
-    }
-
-    // Validate email format
-    if (!isValidEmail(data.email)) {
-      return c.json({ error: "Invalid email address" }, 400);
-    }
-
-    // Enforce length limits before the Turnstile call
-    const tooLong = (
-      [
-        ["name", data.name, LIMITS.name],
-        ["subject", data.subject ?? "", LIMITS.subject],
-        ["message", data.message, LIMITS.message],
-      ] as const
-    ).find(([, value, limit]) => value.length > limit);
-
-    if (tooLong) {
-      return c.json({ error: `The ${tooLong[0]} field is too long (max ${tooLong[2]})` }, 400);
-    }
-
-    // Verify Turnstile token, when the bot gate is configured at all.
-    if (c.env.TURNSTILE_SECRET_KEY) {
-      const clientIP = c.req.header("CF-Connecting-IP") || null;
-      const turnstileResult = await verifyTurnstile(
-        data.turnstileToken,
-        c.env.TURNSTILE_SECRET_KEY,
-        clientIP,
-        new URL(c.env.ALLOWED_ORIGIN).hostname,
-      );
-
-      if (!turnstileResult.success) {
-        return c.json({ error: "Captcha verification failed. Please try again." }, 400);
-      }
-    }
-
-    // Sanitize inputs
-    const safeName = sanitizeLine(data.name);
-    const safeEmail = sanitize(data.email);
-    const safeSubject = data.subject ? sanitizeLine(data.subject) : null;
-    const safeMessage = sanitize(data.message);
-
-    // Build email content
-    const htmlContent = buildHtmlContent(safeName, safeEmail, safeSubject, safeMessage);
-    const textContent = buildTextContent(data.name, data.email, data.subject, data.message);
-
-    // Send email via Resend
-    const resend = new Resend(c.env.RESEND_API_KEY);
-
-    const emailSubject = safeSubject ? `Contact: ${safeSubject}` : `Contact from ${safeName}`;
-
-    const { data: emailData, error } = await resend.emails.send({
-      from: `Serge Gatezh Blog <${c.env.FROM_EMAIL}>`,
-      to: c.env.TO_EMAIL,
-      replyTo: data.email,
-      subject: emailSubject,
-      html: htmlContent,
-      text: textContent,
-    });
-
-    if (error) {
-      console.error("Resend error:", error);
-      return c.json({ error: "Failed to send message. Please try again later." }, 500);
-    }
-
-    return c.json({
-      success: true,
-      message: "Thank you! Your message has been sent successfully.",
-      id: emailData?.id,
-    });
-  } catch (error) {
-    console.error("Worker error:", error);
-    return c.json({ error: "An unexpected error occurred. Please try again." }, 500);
   }
+
+  const name = oneLine(data.name);
+  const subject = data.subject ? oneLine(data.subject) : null;
+
+  // Build email content
+  const htmlContent = await buildHtmlContent(name, data.email, subject, data.message);
+  const textContent = buildTextContent(data.name, data.email, data.subject, data.message);
+
+  // Send email via Resend
+  const resend = new Resend(c.env.RESEND_API_KEY);
+
+  const emailSubject = subject ? `Contact: ${subject}` : `Contact from ${name}`;
+
+  const { data: emailData, error } = await resend.emails.send({
+    from: `Serge Gatezh Blog <${c.env.FROM_EMAIL}>`,
+    to: c.env.TO_EMAIL,
+    replyTo: data.email,
+    subject: emailSubject,
+    html: htmlContent,
+    text: textContent,
+  });
+
+  if (error) {
+    console.error("Resend error:", error);
+    return c.json({ error: "Failed to send message. Please try again later." }, 500);
+  }
+
+  return c.json({
+    success: true,
+    message: "Thank you! Your message has been sent successfully.",
+    id: emailData?.id,
+  });
+});
+
+// Errors nothing above handled: the validator's 400 for malformed JSON, or a
+// throw from fetch or Resend. Every error body is JSON, so the form can show it.
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ error: err.message }, err.status);
+  }
+  console.error("Worker error:", err);
+  return c.json({ error: "An unexpected error occurred. Please try again." }, 500);
 });
 
 // Googlebot crawls this host and issues GET, not POST. Answering 405 put the

@@ -42,21 +42,13 @@ if (data.host) {
     locale: "en",
   };
 
-  // Remark42's documented loader: the ES module build where supported.
-  const supportsModules = "noModule" in HTMLScriptElement.prototype;
-  for (const component of ["embed"]) {
-    const script = document.createElement("script");
-    let ext = ".js";
-    if (supportsModules) {
-      script.type = "module";
-      ext = ".mjs";
-    } else {
-      script.async = true;
-    }
-    script.defer = true;
-    script.src = `${data.host}/web/${component}${ext}`;
-    (document.head || document.body).appendChild(script);
-  }
+  // The ES module build of the embed. Remark42's documented loader falls back
+  // to the classic build where `noModule` is missing, but no such browser can
+  // parse this bundle (it ships `?.` and `??`), so only the module branch runs.
+  const script = document.createElement("script");
+  script.type = "module";
+  script.src = `${data.host}/web/embed.mjs`;
+  document.head.appendChild(script);
 
   function syncRemark42Theme(isDark: boolean): void {
     try {

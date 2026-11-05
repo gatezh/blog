@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 import { sitemapPaths } from "./sitemap";
 
@@ -89,6 +89,99 @@ test.describe("Single post", () => {
     // Should have paragraph content
     const paragraphs = content.locator("p");
     expect(await paragraphs.count()).toBeGreaterThan(0);
+  });
+
+  test("terminal chrome names the post, not its bundle's index.md", async ({ request }) => {
+    // Post URLs are /posts/:contentbasename/, so the slug is the content base
+    // name whether the post is a single file or a page bundle.
+    const paths = sitemapPaths(await (await request.get("/sitemap.xml")).text()).filter((p) =>
+      /^\/posts\/[^/]+\/$/.test(p),
+    );
+    expect(paths.length).toBeGreaterThan(0);
+    for (const path of paths) {
+      const slug = path.split("/")[2];
+      const html = await (await request.get(path)).text();
+      expect(html, path).toContain(`cat ${slug}.md`);
+    }
+  });
+});
+
+test.describe("Mobile menu", () => {
+  test("the menu button opens and closes the navigation", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "the menu button exists below md only");
+    await page.goto("/");
+
+    const button = page.locator("#mobile-menu-btn");
+    const menu = page.getByRole("navigation", { name: "Mobile navigation" });
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(menu).toBeHidden();
+
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("link", { name: /Posts/ })).toBeVisible();
+
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(menu).toBeHidden();
+  });
+});
+
+test.describe("Contact form", () => {
+  // hugo server builds with no Turnstile site key, so no widget is rendered and
+  // the form submits straight to params.apiUrl, stubbed here.
+  async function fillAndSend(page: Page, response: { status: number; body: object }) {
+    await page.route("http://localhost:8787/**", (route) =>
+      route.fulfill({ status: response.status, json: response.body }),
+    );
+    await page.goto("/contact/");
+    await page.locator("#contact-name").fill("Ada");
+    await page.locator("#contact-email").fill("ada@example.com");
+    await page.locator("#contact-message").fill("Hello");
+    await page.locator("#contact-submit").click();
+  }
+
+  test("a sent message replaces the form with the confirmation", async ({ page }) => {
+    const success = page.locator("#contact-success");
+    await page.goto("/contact/");
+    await expect(success).toBeHidden();
+    await expect(page.locator("#contact-error")).toBeHidden();
+
+    await fillAndSend(page, { status: 200, body: { success: true } });
+    await expect(success).toBeVisible();
+    await expect(page.locator("#contact-form")).toBeHidden();
+  });
+
+  test("a rejected message shows the error and re-enables the button", async ({ page }) => {
+    await fillAndSend(page, { status: 400, body: { error: "Invalid email address" } });
+    await expect(page.locator("#contact-error")).toBeVisible();
+    await expect(page.locator("#contact-error-text")).toHaveText("Invalid email address");
+    await expect(page.locator("#contact-submit")).toBeEnabled();
+    await expect(page.locator("#submit-spinner")).toBeHidden();
+    await expect(page.locator("#submit-icon")).toBeVisible();
+    await expect(page.locator("#contact-success")).toBeHidden();
+  });
+});
+
+test.describe("Comments", () => {
+  test("loads the Remark42 embed as an ES module", async ({ page }) => {
+    // Stubbed, so the test never reaches the real comments server.
+    const requested: string[] = [];
+    await page.route("https://comments.gatezh.com/**", (route) => {
+      requested.push(new URL(route.request().url()).pathname);
+      return route.fulfill({ contentType: "text/javascript", body: "" });
+    });
+
+    await page.goto("/posts/");
+    await page.locator(".post-list .post-list-item a").first().click();
+
+    await expect(
+      page.locator('script[src="https://comments.gatezh.com/web/embed.mjs"]'),
+    ).toHaveAttribute("type", "module");
+    await expect.poll(() => requested).toContain("/web/embed.mjs");
+    expect(await page.evaluate(() => (window as any).remark_config?.host)).toBe(
+      "https://comments.gatezh.com",
+    );
   });
 });
 
@@ -330,6 +423,19 @@ test.describe("Accessibility", () => {
       const ariaLabel = await link.getAttribute("aria-label");
       const hasContent = (text && text.trim()) || ariaLabel;
       expect(hasContent).toBeTruthy();
+    }
+  });
+
+  test("image alt text is escaped once, not twice", async ({ request }) => {
+    // html/template already escapes attribute values. Escaping again in the
+    // template turns an apostrophe into a literal "&#39;" that screen readers
+    // read out.
+    const paths = sitemapPaths(await (await request.get("/sitemap.xml")).text());
+    for (const path of paths) {
+      const html = await (await request.get(path)).text();
+      expect(html, `${path} has double-escaped alt text`).not.toMatch(
+        /alt="[^"]*&amp;(#\d+|[a-z]+);/,
+      );
     }
   });
 });
