@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { html } from "hono/html";
 import { methodNotAllowed } from "hono/method-not-allowed";
+import { validator } from "hono/validator";
 import { Resend } from "resend";
 
 // Environment bindings type
@@ -232,8 +233,52 @@ app.use(
   }),
 );
 
+// Checks the body before the handler runs. Malformed JSON is answered with a
+// 400 by the validator itself. A body not declared as JSON is never parsed: it
+// arrives here as {} and fails the required-fields check.
+const contactForm = validator("json", (value, c) => {
+  const { name, email, subject, message, turnstileToken } = value ?? {};
+  const fields = { name, email, subject, message, turnstileToken };
+
+  if (Object.values(fields).some((v) => v !== undefined && typeof v !== "string")) {
+    return c.json({ error: "Invalid request body" }, 400);
+  }
+  const data = fields as ContactFormData;
+
+  // Validate required fields
+  if (!data.name || !data.email || !data.message) {
+    return c.json({ error: "Missing required fields" }, 400);
+  }
+
+  // Only demand a captcha token when the bot gate is configured; otherwise a
+  // correctly-behaving client that was served no widget would be rejected.
+  if (c.env.TURNSTILE_SECRET_KEY && !data.turnstileToken) {
+    return c.json({ error: "Missing required fields" }, 400);
+  }
+
+  // Validate email format
+  if (!isValidEmail(data.email)) {
+    return c.json({ error: "Invalid email address" }, 400);
+  }
+
+  // Enforce length limits before the Turnstile call
+  const tooLong = (
+    [
+      ["name", data.name, LIMITS.name],
+      ["subject", data.subject ?? "", LIMITS.subject],
+      ["message", data.message, LIMITS.message],
+    ] as const
+  ).find(([, value, limit]) => value.length > limit);
+
+  if (tooLong) {
+    return c.json({ error: `The ${tooLong[0]} field is too long (max ${tooLong[2]})` }, 400);
+  }
+
+  return data;
+});
+
 // Contact form submission endpoint
-app.post("/", async (c) => {
+app.post("/", contactForm, async (c) => {
   // Without these the Worker cannot send anything. 503 rather than a 500 from
   // deep inside Resend: this is a deployment that was never configured, not a
   // request that went wrong.
@@ -242,36 +287,7 @@ app.post("/", async (c) => {
   }
 
   try {
-    const data = await c.req.json<ContactFormData>();
-
-    // Validate required fields
-    if (!data.name || !data.email || !data.message) {
-      return c.json({ error: "Missing required fields" }, 400);
-    }
-
-    // Only demand a captcha token when the bot gate is configured; otherwise a
-    // correctly-behaving client that was served no widget would be rejected.
-    if (c.env.TURNSTILE_SECRET_KEY && !data.turnstileToken) {
-      return c.json({ error: "Missing required fields" }, 400);
-    }
-
-    // Validate email format
-    if (!isValidEmail(data.email)) {
-      return c.json({ error: "Invalid email address" }, 400);
-    }
-
-    // Enforce length limits before the Turnstile call
-    const tooLong = (
-      [
-        ["name", data.name, LIMITS.name],
-        ["subject", data.subject ?? "", LIMITS.subject],
-        ["message", data.message, LIMITS.message],
-      ] as const
-    ).find(([, value, limit]) => value.length > limit);
-
-    if (tooLong) {
-      return c.json({ error: `The ${tooLong[0]} field is too long (max ${tooLong[2]})` }, 400);
-    }
+    const data = c.req.valid("json");
 
     // Verify Turnstile token, when the bot gate is configured at all.
     if (c.env.TURNSTILE_SECRET_KEY) {

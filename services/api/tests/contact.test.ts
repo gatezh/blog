@@ -96,6 +96,35 @@ describe("input limits", () => {
   });
 });
 
+describe("request body", () => {
+  function post(body: string, contentType: string) {
+    return app.request(
+      "/",
+      { method: "POST", headers: { "Content-Type": contentType }, body },
+      ENV,
+    );
+  }
+
+  test("malformed JSON is a 400, not a server error", async () => {
+    const res = await post("{not json", "application/json");
+    expect(res.status).toBe(400);
+  });
+
+  test("a field of the wrong type is a 400, not a server error", async () => {
+    const res = await submit({ ...VALID, name: 123 });
+    expect(res.status).toBe(400);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a body that is not declared as JSON is refused", async () => {
+    // text/plain is a CORS "simple" request, sent cross-origin without a
+    // preflight. Requiring application/json keeps every submission preflighted.
+    const res = await post(JSON.stringify(VALID), "text/plain");
+    expect(res.status).toBe(400);
+    expect(sentEmail).toBeNull();
+  });
+});
+
 describe("turnstile", () => {
   test("rejects a token solved for a different hostname", async () => {
     turnstileResponse = { success: true, hostname: "attacker.example" };
