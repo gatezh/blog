@@ -106,6 +106,28 @@ test.describe("Single post", () => {
   });
 });
 
+test.describe("Comments", () => {
+  test("loads the Remark42 embed as an ES module", async ({ page }) => {
+    // Stubbed, so the test never reaches the real comments server.
+    const requested: string[] = [];
+    await page.route("https://comments.gatezh.com/**", (route) => {
+      requested.push(new URL(route.request().url()).pathname);
+      return route.fulfill({ contentType: "text/javascript", body: "" });
+    });
+
+    await page.goto("/posts/");
+    await page.locator(".post-list .post-list-item a").first().click();
+
+    await expect(
+      page.locator('script[src="https://comments.gatezh.com/web/embed.mjs"]'),
+    ).toHaveAttribute("type", "module");
+    await expect.poll(() => requested).toContain("/web/embed.mjs");
+    expect(await page.evaluate(() => (window as any).remark_config?.host)).toBe(
+      "https://comments.gatezh.com",
+    );
+  });
+});
+
 test.describe("Code blocks", () => {
   // Fences with a language are highlighted; fences without one render as a
   // plain <pre><code> with no .highlight wrapper. Both get the same chrome.
@@ -354,7 +376,9 @@ test.describe("Accessibility", () => {
     const paths = sitemapPaths(await (await request.get("/sitemap.xml")).text());
     for (const path of paths) {
       const html = await (await request.get(path)).text();
-      expect(html, `${path} has double-escaped alt text`).not.toMatch(/alt="[^"]*&amp;(#\d+|[a-z]+);/);
+      expect(html, `${path} has double-escaped alt text`).not.toMatch(
+        /alt="[^"]*&amp;(#\d+|[a-z]+);/,
+      );
     }
   });
 });
