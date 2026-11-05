@@ -90,6 +90,20 @@ test.describe("Single post", () => {
     const paragraphs = content.locator("p");
     expect(await paragraphs.count()).toBeGreaterThan(0);
   });
+
+  test("terminal chrome names the post, not its bundle's index.md", async ({ request }) => {
+    // Post URLs are /posts/:contentbasename/, so the slug is the content base
+    // name whether the post is a single file or a page bundle.
+    const paths = sitemapPaths(await (await request.get("/sitemap.xml")).text()).filter((p) =>
+      /^\/posts\/[^/]+\/$/.test(p),
+    );
+    expect(paths.length).toBeGreaterThan(0);
+    for (const path of paths) {
+      const slug = path.split("/")[2];
+      const html = await (await request.get(path)).text();
+      expect(html, path).toContain(`cat ${slug}.md`);
+    }
+  });
 });
 
 test.describe("Code blocks", () => {
