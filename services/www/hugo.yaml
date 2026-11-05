@@ -149,16 +149,14 @@ services:
 permalinks:
   posts: "/posts/:contentbasename/"
 
+# /ever-learning/ is not a menu item: linked from /about/, listed in the
+# sitemap, llms.txt and the home feed.
 menu:
   main:
     - identifier: posts
       name: Posts
       url: /posts/
       weight: 10
-    - identifier: ever-learning
-      name: Ever Learning
-      url: /ever-learning/
-      weight: 20
     - identifier: projects
       name: Projects
       url: /projects/
@@ -181,17 +179,17 @@ params:
   # (this site, LinkedIn, GitHub, talk bios); these are its gatezh.com variants.
   # Change the wording there first, then here — never only here.
   #
-  # Home <title>: name first, then the role a recruiter searches for. Keep it
-  # under 60 characters (tests/seo.spec.ts) so results pages don't truncate it.
-  homeTitle: "Serge Gatezh · Product Engineer in Calgary"
+  # Home <title>: name, role, stack. Under 60 characters (tests/seo.spec.ts).
+  # Location goes in the About role line and JSON-LD, not in titles or descriptions.
+  homeTitle: "Serge Gatezh · Product Engineer · Cloudflare, TypeScript"
   # Meta description and WebSite description, under 160 characters.
-  description: "Serge Gatezh, product engineer in Calgary. Simple, secure software, shipped end to end on zero-cost edge infrastructure."
+  description: "Serge Gatezh, product engineer. Messy business processes into simple, secure software, shipped end to end on Cloudflare's free tier with security-first AI."
   # Person.description in the JSON-LD: the positioning sentence, verbatim.
   bio: "Serge Gatezh is a product engineer who turns messy business processes into simple, secure software, shipped end to end on zero-cost edge infrastructure using security-first AI workflows."
   jobTitle: "Product Engineer"
   author: "Serge Gatezh"
   # Searchable nouns first (role, stack), as the per-surface headlines do.
-  keywords: "Serge Gatezh, product engineer, Calgary, TypeScript, React, Cloudflare Workers, edge infrastructure, application security, security-first AI workflows, UX"
+  keywords: "Serge Gatezh, product engineer, TypeScript, React, Cloudflare Workers, edge infrastructure, application security, security-first AI workflows, UX"
 
   # Default link-preview image (og:image, twitter:image), a path under assets/,
   # under Hugo's own `images` key (first entry used). A page overrides it with
