@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
 import { html } from "hono/html";
 import { methodNotAllowed } from "hono/method-not-allowed";
@@ -286,59 +287,64 @@ app.post("/", contactForm, async (c) => {
     return c.json({ error: "Contact form is not configured on this deployment." }, 503);
   }
 
-  try {
-    const data = c.req.valid("json");
+  const data = c.req.valid("json");
 
-    // Verify Turnstile token, when the bot gate is configured at all.
-    if (c.env.TURNSTILE_SECRET_KEY) {
-      const clientIP = c.req.header("CF-Connecting-IP") || null;
-      const turnstileResult = await verifyTurnstile(
-        data.turnstileToken,
-        c.env.TURNSTILE_SECRET_KEY,
-        clientIP,
-        new URL(c.env.ALLOWED_ORIGIN).hostname,
-      );
+  // Verify Turnstile token, when the bot gate is configured at all.
+  if (c.env.TURNSTILE_SECRET_KEY) {
+    const clientIP = c.req.header("CF-Connecting-IP") || null;
+    const turnstileResult = await verifyTurnstile(
+      data.turnstileToken,
+      c.env.TURNSTILE_SECRET_KEY,
+      clientIP,
+      new URL(c.env.ALLOWED_ORIGIN).hostname,
+    );
 
-      if (!turnstileResult.success) {
-        return c.json({ error: "Captcha verification failed. Please try again." }, 400);
-      }
+    if (!turnstileResult.success) {
+      return c.json({ error: "Captcha verification failed. Please try again." }, 400);
     }
-
-    const name = oneLine(data.name);
-    const subject = data.subject ? oneLine(data.subject) : null;
-
-    // Build email content
-    const htmlContent = await buildHtmlContent(name, data.email, subject, data.message);
-    const textContent = buildTextContent(data.name, data.email, data.subject, data.message);
-
-    // Send email via Resend
-    const resend = new Resend(c.env.RESEND_API_KEY);
-
-    const emailSubject = subject ? `Contact: ${subject}` : `Contact from ${name}`;
-
-    const { data: emailData, error } = await resend.emails.send({
-      from: `Serge Gatezh Blog <${c.env.FROM_EMAIL}>`,
-      to: c.env.TO_EMAIL,
-      replyTo: data.email,
-      subject: emailSubject,
-      html: htmlContent,
-      text: textContent,
-    });
-
-    if (error) {
-      console.error("Resend error:", error);
-      return c.json({ error: "Failed to send message. Please try again later." }, 500);
-    }
-
-    return c.json({
-      success: true,
-      message: "Thank you! Your message has been sent successfully.",
-      id: emailData?.id,
-    });
-  } catch (error) {
-    console.error("Worker error:", error);
-    return c.json({ error: "An unexpected error occurred. Please try again." }, 500);
   }
+
+  const name = oneLine(data.name);
+  const subject = data.subject ? oneLine(data.subject) : null;
+
+  // Build email content
+  const htmlContent = await buildHtmlContent(name, data.email, subject, data.message);
+  const textContent = buildTextContent(data.name, data.email, data.subject, data.message);
+
+  // Send email via Resend
+  const resend = new Resend(c.env.RESEND_API_KEY);
+
+  const emailSubject = subject ? `Contact: ${subject}` : `Contact from ${name}`;
+
+  const { data: emailData, error } = await resend.emails.send({
+    from: `Serge Gatezh Blog <${c.env.FROM_EMAIL}>`,
+    to: c.env.TO_EMAIL,
+    replyTo: data.email,
+    subject: emailSubject,
+    html: htmlContent,
+    text: textContent,
+  });
+
+  if (error) {
+    console.error("Resend error:", error);
+    return c.json({ error: "Failed to send message. Please try again later." }, 500);
+  }
+
+  return c.json({
+    success: true,
+    message: "Thank you! Your message has been sent successfully.",
+    id: emailData?.id,
+  });
+});
+
+// Errors nothing above handled: the validator's 400 for malformed JSON, or a
+// throw from fetch or Resend. Every error body is JSON, so the form can show it.
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ error: err.message }, err.status);
+  }
+  console.error("Worker error:", err);
+  return c.json({ error: "An unexpected error occurred. Please try again." }, 500);
 });
 
 // Googlebot crawls this host and issues GET, not POST. Answering 405 put the
