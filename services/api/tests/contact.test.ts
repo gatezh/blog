@@ -211,5 +211,14 @@ describe("crawlability", () => {
     const res = await app.request("/", { method: "DELETE" }, ENV);
 
     expect(res.status).toBe(405);
+    // RFC 9110 §15.5.6: a 405 must list the methods the resource supports.
+    expect(res.headers.get("Allow")?.split(", ").sort()).toEqual(["GET", "HEAD", "POST"]);
+    expect(await res.json()).toEqual({ error: "Method not allowed" });
+  });
+
+  test("a path that does not exist is 404, not 405", async () => {
+    const res = await app.request("/nope", { method: "DELETE" }, ENV);
+
+    expect(res.status).toBe(404);
   });
 });

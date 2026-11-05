@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { methodNotAllowed } from "hono/method-not-allowed";
 import { Resend } from "resend";
 
 // Environment bindings type
@@ -194,6 +195,17 @@ app.use(
   }),
 );
 
+// A known path with an unsupported method is 405 with the `Allow` header
+// RFC 9110 requires, built from the routes below. Registered after `cors` so
+// the 405 still carries CORS headers and preflights never reach it.
+app.use(
+  methodNotAllowed({
+    app,
+    onMethodNotAllowed: (c, methods) =>
+      c.json({ error: "Method not allowed" }, 405, { Allow: methods.join(", ") }),
+  }),
+);
+
 // Contact form submission endpoint
 app.post("/", async (c) => {
   // Without these the Worker cannot send anything. 503 rather than a 500 from
@@ -297,11 +309,6 @@ app.get("/", (c) => {
   return c.json({ service: "gatezh.com contact API", endpoint: "POST /" }, 200, {
     "X-Robots-Tag": "noindex",
   });
-});
-
-// Any other method on root really is unsupported.
-app.all("/", (c) => {
-  return c.json({ error: "Method not allowed" }, 405);
 });
 
 export default app;
