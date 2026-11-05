@@ -96,6 +96,51 @@ describe("input limits", () => {
   });
 });
 
+describe("request body", () => {
+  function post(body: string, contentType: string) {
+    return app.request(
+      "/",
+      { method: "POST", headers: { "Content-Type": contentType }, body },
+      ENV,
+    );
+  }
+
+  test("malformed JSON is a 400, not a server error", async () => {
+    const res = await post("{not json", "application/json");
+    expect(res.status).toBe(400);
+    // JSON like every other error, so the form can show it.
+    expect(await res.json()).toEqual({ error: "Malformed JSON in request body" });
+  });
+
+  test("a field of the wrong type is a 400, not a server error", async () => {
+    const res = await submit({ ...VALID, name: 123 });
+    expect(res.status).toBe(400);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a body that is not declared as JSON is refused", async () => {
+    // text/plain is a CORS "simple" request, sent cross-origin without a
+    // preflight. Requiring application/json keeps every submission preflighted.
+    const res = await post(JSON.stringify(VALID), "text/plain");
+    expect(res.status).toBe(400);
+    expect(sentEmail).toBeNull();
+  });
+});
+
+describe("unexpected errors", () => {
+  test("a network failure is a JSON 500 that leaks nothing", async () => {
+    globalThis.fetch = (async () => {
+      throw new TypeError("network down");
+    }) as unknown as typeof fetch;
+
+    const res = await submit(VALID);
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      error: "An unexpected error occurred. Please try again.",
+    });
+  });
+});
+
 describe("turnstile", () => {
   test("rejects a token solved for a different hostname", async () => {
     turnstileResponse = { success: true, hostname: "attacker.example" };
@@ -136,6 +181,31 @@ describe("header safety", () => {
   test("strips CR/LF from the name before it reaches the mail API", async () => {
     await submit({ ...VALID, subject: undefined, name: "Ada\r\nBcc: victim@example.com" });
     expect(String(sentEmail?.subject)).not.toMatch(/[\r\n]/);
+  });
+});
+
+describe("email body", () => {
+  test("escapes markup in every field of the HTML body", async () => {
+    await submit({ ...VALID, name: "<b>Ada</b>", message: `<script>alert("x")</script>` });
+    const body = String(sentEmail?.html);
+    expect(body).not.toContain("<script>");
+    expect(body).not.toContain("<b>");
+    expect(body).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+  });
+
+  test("escapes ampersands, so entities typed by the sender arrive as typed", async () => {
+    await submit({ ...VALID, message: "Fish & chips; &lt;b&gt; is not bold" });
+    expect(String(sentEmail?.html)).toContain("Fish &amp; chips; &amp;lt;b&amp;gt; is not bold");
+  });
+
+  test("keeps the subject header plain text, not HTML-escaped", async () => {
+    await submit({ ...VALID, subject: `Q&A about <Hugo> "themes"` });
+    expect(sentEmail?.subject).toBe(`Contact: Q&A about <Hugo> "themes"`);
+  });
+
+  test("sends the plain-text body unescaped", async () => {
+    await submit({ ...VALID, message: "a < b & c" });
+    expect(String(sentEmail?.text)).toContain("a < b & c");
   });
 });
 
