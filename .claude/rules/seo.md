@@ -12,8 +12,9 @@ globs: services/www/**
   JSON-LD `keywords`. Templates read it through `.Keywords`; no content uses
   `tags:`.
 - JSON-LD comes from `services/www/layouts/_partials/seo.html`: Person + WebSite
-  on the home page, ProfilePage on `/about/`, Article on posts, WebPage
-  elsewhere, plus a BreadcrumbList (from `.Ancestors`) on every page except the
+  on the home page, ProfilePage on `/about/`, Article on posts, a
+  CollectionPage on `/talks/`, `/projects/` and `/upstream/` (from their front
+  matter lists), WebPage elsewhere, plus a BreadcrumbList (from `.Ancestors`) on every page except the
   home page and the 404.
 - The home RSS feed lists only top-level `mainSections` (`site.MainSections`):
   `services/www/layouts/home.rss.xml` is Hugo's embedded `rss.xml` with that

@@ -25,6 +25,7 @@ const INDEXABLE_PAGES = [
   "/about/",
   "/projects/",
   "/talks/",
+  "/upstream/",
   "/contact/",
 ];
 
@@ -480,6 +481,42 @@ test.describe("identity structured data", () => {
     expect(talkLinks.length).toBeGreaterThan(0);
     await page.goto("/talks/");
     for (const hash of talkLinks) await expect(page.locator(hash), hash).toHaveCount(1);
+  });
+
+  test("/upstream/ lists every issue and pull request with its GitHub link", async ({ page }) => {
+    const blocks = await jsonLd(page, "/upstream/");
+    const collection = blocks.find((b) => b["@type"] === "CollectionPage");
+    expect(new URL(collection.url).pathname).toBe("/upstream/");
+    expect(collection.author["@id"]).toMatch(PERSON_ID);
+
+    const works = collection.mainEntity.itemListElement.map((i: { item: unknown }) => i.item);
+    expect(works.length).toBeGreaterThanOrEqual(10);
+    for (const work of works) {
+      expect(work["@type"]).toBe("CreativeWork");
+      expect(work.author["@id"], work.name).toMatch(PERSON_ID);
+      expect(work.url, work.name).toMatch(
+        /^https:\/\/github\.com\/[^/]+\/[^/]+\/(issues|pull)\/\d+$/,
+      );
+      expect(work.about.codeRepository, work.name).toMatch(/^https:\/\/github\.com\/[^/]+\/[^/]+$/);
+      // Each @id is an entry on the page, and that entry's title links to GitHub.
+      const anchor = new URL(work["@id"]).hash;
+      const entry = page.locator(`article${anchor}`);
+      await expect(entry, work.name).toHaveCount(1);
+      await expect(entry.locator("a.upstream-title"), work.name).toHaveAttribute("href", work.url);
+    }
+    // The page shows exactly the entries the JSON-LD lists, nothing unlinked.
+    expect(await page.locator("article.upstream-entry").count()).toBe(works.length);
+
+    // Every shortlog row links to a project group on the page.
+    const rows = await page
+      .locator(".shortlog a.shortlog-project")
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
+    expect(rows.length).toBeGreaterThan(0);
+    for (const hash of rows) {
+      expect(hash).toMatch(/^#[a-z0-9-]+$/);
+      await expect(page.locator(`section${hash}`), hash).toHaveCount(1);
+    }
+    expect(rows.length).toBe(await page.locator("section.upstream-group").count());
   });
 
   test("every box in the /projects/ stack diagram links to its entry", async ({ page }) => {

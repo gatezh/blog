@@ -36,7 +36,7 @@ Outside work, I still explore personal-finance products with equal parts curiosi
 
 ## What I share here
 
-This site is my working notebook: a place for solutions worth remembering, experiments worth explaining, and the occasional lesson learned the hard way. Notes on other people's articles, videos and books live in the [learning log](/ever-learning/). You can also find my open-source work on [GitHub](https://github.com/gatezh) or connect with me on [LinkedIn](https://linkedin.com/in/gatezh).
+This site is my working notebook: a place for solutions worth remembering, experiments worth explaining, and the occasional lesson learned the hard way. Notes on other people's articles, videos and books live in the [learning log](/ever-learning/). You can also find my open-source work on [GitHub](https://github.com/gatezh), the issues and pull requests I file on other people's projects on the [upstream](/upstream/) page, or connect with me on [LinkedIn](https://linkedin.com/in/gatezh).
 
 I give [talks](/talks/) at Frontend & Beyond, Calgary's web developer meetup, on shipping real apps on zero-cost edge infrastructure and on security-first AI workflows. The slides are public. Anthropic certified me as a [Claude Certified Architect, Foundations](https://www.credly.com/badges/9ce5ccf8-7ea5-40d4-9f65-3e0a8a66094a) in September 2026.
 
