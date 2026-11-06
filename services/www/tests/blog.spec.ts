@@ -440,6 +440,33 @@ test.describe("Accessibility", () => {
   });
 });
 
+test.describe("Footer", () => {
+  test("maps the site: every page the header leaves out, each link resolving", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/");
+    const map = page.locator("footer").getByRole("navigation", { name: "Site map" });
+    const hrefs = await map
+      .locator("a")
+      .evaluateAll((links) => links.map((a) => a.getAttribute("href")));
+    for (const href of [
+      "/ever-learning/",
+      "/upstream/",
+      "/early-projects/",
+      "/llms.txt",
+      "/index.xml",
+    ]) {
+      expect(hrefs, href).toContain(href);
+      expect((await request.get(href)).status(), href).toBe(200);
+    }
+    await expect(page.locator("header nav").locator('a[href="/upstream/"]')).toHaveCount(0);
+    await expect(
+      page.locator("footer").getByRole("link", { name: "Get in touch" }),
+    ).toHaveAttribute("href", "/contact/");
+  });
+});
+
 test.describe("Theme switcher", () => {
   test("lives in the footer, defaulting to the system theme", async ({ page, request }) => {
     // The default is in the markup, not only set by the script.
