@@ -16,6 +16,9 @@
       "enabled": true,
     },
   },
+  // GET / returns the running version id, so the deploy can tell the version
+  // it staged at 0% from the live one. Not inherited: repeated in env.staging.
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
 
   // All runtime configuration comes from the GitHub Environment the deploy job
   // runs in (staging or production) — that is the single source of truth, and
@@ -40,6 +43,7 @@
       "workers_dev": false,
       "routes": [{ "pattern": "staging-api.gatezh.com", "custom_domain": true }],
       "vars": {},
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
     },
   },
 }
