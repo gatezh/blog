@@ -181,9 +181,7 @@ jobs:
       deployment: false
     outputs:
       www_version: ${{ steps.www.outputs.version_id }}
-      www_previous: ${{ steps.www.outputs.previous }}
       api_version: ${{ steps.api.outputs.version_id }}
-      api_previous: ${{ steps.api.outputs.previous }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -235,8 +233,6 @@ jobs:
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-api.json
           ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
         run: |
-          previous=$(bunx wrangler deployments status --env="" --json | jq -r '[.versions[] | "\(.version_id)@\(.percentage)%"] | join(" ")')
-          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
           bunx wrangler versions upload --env="" \
             --secrets-file "${RUNNER_TEMP}/secrets.json" \
             --var "ALLOWED_ORIGIN:${ALLOWED_ORIGIN}" \
@@ -255,10 +251,6 @@ jobs:
         env:
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-www.json
         run: |
-          # What production serves now, as version specs (id@percentage), for
-          # the restore command go-live prints if it fails.
-          previous=$(bunx wrangler deployments status --env="" --json | jq -r '[.versions[] | "\(.version_id)@\(.percentage)%"] | join(" ")')
-          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
           # The release tag on the version maps it to its release in the
           # dashboard (docs/deployment.md, "Rolling back").
           bunx wrangler versions upload --env="" --tag "v${VERSION}" --message "${COMMIT_SHA}"
@@ -266,8 +258,13 @@ jobs:
           [ -n "${id}" ] || { echo "::error::wrangler reported no version id"; exit 1; }
           echo "version_id=${id}" >> "$GITHUB_OUTPUT"
 
-  # Promotes both versions (api first), then checks production. The only job
-  # that changes what production serves.
+  # Stages both new versions at 0% beside the live ones, checks them through a
+  # version override on the real hostnames, then promotes them (api first).
+  # The only job that changes what production serves, and visitors see no
+  # change before the promote. While the checks run, anyone who sends the
+  # override with the staged version's id reaches it; the id is never
+  # published, and the live site never names it.
+  # https://developers.cloudflare.com/workers/versions-and-deployments/version-overrides/
   go-live:
     needs: [release, upload]
     if: ${{ !cancelled() && needs.upload.result == 'success' }}
@@ -276,6 +273,16 @@ jobs:
     environment:
       name: production
       url: https://gatezh.com
+    env:
+      API_VERSION_ID: ${{ needs.upload.outputs.api_version }}
+      WWW_VERSION_ID: ${{ needs.upload.outputs.www_version }}
+      # The tag's commit, not github.sha: on a redeploy those differ.
+      COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
+      VERSION: ${{ needs.release.outputs.version }}
+      SITE: https://gatezh.com
+      # The api's workers.dev URL. Optional (preflight only warns): unset, the
+      # site posts nowhere and the api's version is not checked.
+      API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -283,33 +290,50 @@ jobs:
           ref: ${{ needs.release.outputs.commit_sha }}
       - uses: $/.github/actions/setup
 
-      # api first: the new site may post to an api change, never the reverse.
-      # A version upload skips triggers (routes, custom domains, workers.dev);
-      # `triggers deploy` (experimental) applies them as `wrangler deploy` did.
-      - name: Promote both versions to 100% of traffic
-        id: promote
+      # Reads what is live here, not in upload: re-running go-live on an older
+      # release (a rollback) must stage beside today's versions. A version
+      # upload skips triggers (routes, custom domains, workers.dev); `triggers
+      # deploy` (experimental) applies them as `wrangler deploy` did, first, so
+      # the hostnames the checks use exist.
+      - name: Stage both versions at 0% of traffic
+        id: stage
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          API_VERSION_ID: ${{ needs.upload.outputs.api_version }}
-          WWW_VERSION_ID: ${{ needs.upload.outputs.www_version }}
-          MESSAGE: Release v${{ needs.release.outputs.version }}
         run: |
-          bunx wrangler versions deploy --cwd services/api --env="" "${API_VERSION_ID}@100%" --message "${MESSAGE}" --yes
+          # Only the version at 100% is live: a failed earlier run can leave its own at 0%.
+          live() { bunx wrangler deployments status --cwd "$1" --env="" --json | jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty'; }
+          api_live=$(live services/api)
+          www_live=$(live services/www)
+          [ -n "${api_live}" ] && [ -n "${www_live}" ] \
+            || { echo "::error::a Worker has no version at 100% (api '${api_live}', www '${www_live}'); finish or roll back that deployment first"; exit 1; }
+          echo "api_live=${api_live}" >> "$GITHUB_OUTPUT"
+          echo "www_live=${www_live}" >> "$GITHUB_OUTPUT"
+
           bunx wrangler triggers deploy --cwd services/api --env=""
-          bunx wrangler versions deploy --cwd services/www --env="" "${WWW_VERSION_ID}@100%" --message "${MESSAGE}" --yes
           # It uploads no assets (upload did), but fails unless assets.directory exists.
           mkdir -p services/www/public
           bunx wrangler triggers deploy --cwd services/www --env=""
 
-      - name: Verify production
+          stage() {
+            if [ "$2" = "$3" ]; then echo "$1 already serves $2."; return; fi
+            bunx wrangler versions deploy --cwd "services/$1" --env="" "$2@0%" "$3@100%" --message "Release v${VERSION} (staged)" --yes
+            echo "Staged $1 $2 at 0%; $3 still serves all traffic."
+          }
+          stage api "${API_VERSION_ID}" "${api_live}"
+          stage www "${WWW_VERSION_ID}" "${www_live}"
+
+      # Every request carries the override, so each check reaches the staged
+      # versions. One that does not apply reaches the live versions, and the
+      # identity check below fails before anything is promoted.
+      - name: Verify the staged versions
         env:
-          COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
-          VERSION: ${{ needs.release.outputs.version }}
-          API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
+          # The top-level names in wrangler.jsonc: production has no env block.
+          API_WORKER: gatezh-com-email-worker
+          WWW_WORKER: gatezh-com
           ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
         run: |
-          SITE="https://gatezh.com"
+          OVERRIDE=(-H "Cloudflare-Workers-Version-Overrides: ${API_WORKER}=\"${API_VERSION_ID}\", ${WWW_WORKER}=\"${WWW_VERSION_ID}\"")
 
           # A failed fetch fails the step (`-eo pipefail`), so no assertion
           # below can pass on an empty response. Assertions read with `<<<`,
@@ -318,25 +342,30 @@ jobs:
           # or a 5xx a few times, so one network blip after a good deploy
           # does not fail the run; status() never retries a 4xx it reports.
           fetch() {
-            curl -sf --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 "$@" || { echo "::error::fetch failed: $*"; return 1; }
+            curl -sf --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 "${OVERRIDE[@]}" "$@" || { echo "::error::fetch failed: $*"; return 1; }
           }
           status() {
-            curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' "$1" || true
+            curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' "${OVERRIDE[@]}" "$1" || true
           }
 
           fail=0
 
-          # A new version takes a few seconds to reach every edge location.
+          # An override takes a few seconds to reach every edge location.
           # Plain curl, not fetch: an early miss here is expected, not an error.
-          for _ in 1 2 3 4 5 6; do
-            deployed=$(curl -sf --max-time 20 "${SITE}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
-            [ "${deployed}" = "${COMMIT_SHA}" ] && break
+          want_api="${API_URL:+${API_VERSION_ID}}"
+          for attempt in $(seq 1 12); do
+            deployed=$(curl -sf --max-time 20 "${OVERRIDE[@]}" "${SITE}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
+            api=""
+            [ -z "${API_URL}" ] || api=$(curl -sf -o /dev/null -D - --max-time 20 "${OVERRIDE[@]}" "${API_URL}" | tr -d '\r' | grep -i '^worker-version:' | cut -d' ' -f2 || true)
+            [ "${deployed}" = "${COMMIT_SHA}" ] && [ "${api}" = "${want_api}" ] && break
+            echo "Attempt ${attempt}: the override reaches www '${deployed::7}' and api '${api}'; waiting for ${COMMIT_SHA::7} and '${want_api}'."
             sleep 5
           done
-          if [ "${deployed}" != "${COMMIT_SHA}" ]; then
-            echo "::error::Deployed build-commit '${deployed}' does not match v${VERSION} (${COMMIT_SHA})"
+          if [ "${deployed}" != "${COMMIT_SHA}" ] || [ "${api}" != "${want_api}" ]; then
+            echo "::error::The override reaches www build-commit '${deployed}' and api version '${api}', expected v${VERSION} (${COMMIT_SHA}) and '${want_api}'"
             exit 1
           fi
+          echo "The staged versions answer: www ${deployed::7}, api ${api:-not checked}."
 
           headers=$(fetch -I "${SITE}/" | tr -d '\r')
 
@@ -401,7 +430,7 @@ jobs:
           # mirrors for them. A 403 here is the zone's "Block AI bots" rule
           # (docs/seo.md, "AI crawlers: allowed").
           for bot in ClaudeBot/1.0 GPTBot/1.2 PerplexityBot/1.0 Google-Extended; do
-            code=$(curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' -A "Mozilla/5.0 (compatible; ${bot})" "${SITE}/" || true)
+            code=$(curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' "${OVERRIDE[@]}" -A "Mozilla/5.0 (compatible; ${bot})" "${SITE}/" || true)
             [ "${code}" = "200" ] || { echo "::error::${SITE}/ returned ${code} to ${bot} — the zone is blocking AI crawlers (docs/seo.md)"; fail=1; }
           done
 
@@ -422,6 +451,34 @@ jobs:
             || echo "::warning::no Strict-Transport-Security header — enable HSTS under SSL/TLS -> Edge Certificates"
 
           [ "${fail}" = "0" ] || exit 1
+          echo "The staged versions passed every check."
+
+      # api first: the new site may post to an api change, never the reverse.
+      - name: Promote both versions to all traffic
+        id: promote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          MESSAGE: Release v${{ needs.release.outputs.version }}
+        run: |
+          bunx wrangler versions deploy --cwd services/api --env="" "${API_VERSION_ID}@100%" --message "${MESSAGE}" --yes
+          bunx wrangler versions deploy --cwd services/www --env="" "${WWW_VERSION_ID}@100%" --message "${MESSAGE}" --yes
+
+          # The checks above ran on these versions; this only confirms plain
+          # requests now reach them.
+          want_api="${API_URL:+${API_VERSION_ID}}"
+          for attempt in $(seq 1 12); do
+            deployed=$(curl -sf --max-time 20 "${SITE}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
+            api=""
+            [ -z "${API_URL}" ] || api=$(curl -sf -o /dev/null -D - --max-time 20 "${API_URL}" | tr -d '\r' | grep -i '^worker-version:' | cut -d' ' -f2 || true)
+            [ "${deployed}" = "${COMMIT_SHA}" ] && [ "${api}" = "${want_api}" ] && break
+            echo "Attempt ${attempt}: production serves www '${deployed::7}' and api '${api}'; waiting for ${COMMIT_SHA::7} and '${want_api}'."
+            sleep 5
+          done
+          if [ "${deployed}" != "${COMMIT_SHA}" ] || [ "${api}" != "${want_api}" ]; then
+            echo "::error::After promoting, production serves www build-commit '${deployed}' and api version '${api}', expected v${VERSION} (${COMMIT_SHA}) and '${want_api}'"
+            exit 1
+          fi
 
           {
             echo "## Release v${VERSION}"
@@ -429,29 +486,31 @@ jobs:
             echo "Deployed \`${deployed}\` to ${SITE}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Nothing rolls back on its own: a failed promote leaves at most the api
-      # newer than the site (safe, see the promote step) and re-running go-live
-      # finishes it; most of verify's checks are zone settings a rollback cannot
-      # change. So this only prints the command, www first, so a new site never
-      # meets an old api.
-      - name: Print the command that restores the previous versions
+      # Nothing rolls back on its own, and only a failed or cancelled promote
+      # can leave something to restore: a failed check never promoted. A
+      # part-way promote leaves at most the api newer than the site, which the
+      # api-first order already requires to work, and re-running go-live
+      # finishes it. The restore goes www first, so a new site never meets an
+      # old api.
+      - name: Say what is live and how to restore it
         if: failure() || cancelled()
         env:
           PROMOTE: ${{ steps.promote.outcome }}
-          WWW_PREVIOUS: ${{ needs.upload.outputs.www_previous }}
-          API_PREVIOUS: ${{ needs.upload.outputs.api_previous }}
+          WWW_LIVE: ${{ steps.stage.outputs.www_live }}
+          API_LIVE: ${{ steps.stage.outputs.api_live }}
         run: |
           {
             case "${PROMOTE}" in
-              success) echo "## verify failed — nothing was rolled back"; echo ""
-                       echo "If the new versions are the cause, and no later run has deployed since, put both Workers back on what they served before this release:" ;;
-              failure|cancelled) echo "## promote ${PROMOTE/failure/failed} — nothing was rolled back"; echo ""
-                       echo "Re-running \`go-live\` finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this release:" ;;
-              *) echo "## go-live stopped before promoting — production still serves the previous versions"; exit 0 ;;
+              failure|cancelled)
+                echo "## promote ${PROMOTE/failure/failed} — the new versions may be live, nothing was rolled back"; echo ""
+                echo "They passed every check at 0%. Re-running \`go-live\` finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this release:"
+                echo ""
+                echo '```sh'
+                echo "bunx wrangler versions deploy --cwd services/www --env=\"\" ${WWW_LIVE}@100% --yes"
+                echo "bunx wrangler versions deploy --cwd services/api --env=\"\" ${API_LIVE}@100% --yes"
+                echo '```' ;;
+              *)
+                echo "## go-live stopped before promoting — production still serves what it served before"; echo ""
+                echo "The new versions may be staged at 0%: no visitor reaches them without the override, and the next release replaces them." ;;
             esac
-            echo ""
-            echo '```sh'
-            echo "bunx wrangler versions deploy --cwd services/www --env=\"\" ${WWW_PREVIOUS} --yes"
-            echo "bunx wrangler versions deploy --cwd services/api --env=\"\" ${API_PREVIOUS} --yes"
-            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
