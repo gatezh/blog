@@ -390,38 +390,129 @@
   }
 
   /* -------------------------------------------------------------------------
-     Footer - identity, theme, profiles. Two rows on phones, one from 40rem.
+     Footer - see _partials/footer.html
+
+     A full-width band: the contact call, the site map in columns, the bar
+     with copyright, theme and colophon, and the wordmark along the bottom
+     edge. One column per menu heading, two to a row on phones.
      ------------------------------------------------------------------------- */
   .site-footer {
+    border-top: 1px solid var(--color-terminal-border);
+    background-color: var(--color-terminal-bg-secondary);
+    overflow: hidden;
+  }
+
+  .site-footer-call {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    padding: 2.5rem 0;
+    border-bottom: 1px solid var(--color-terminal-border);
+  }
+
+  .site-footer-call-text {
+    margin: 0;
+    max-width: 32ch;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-wrap: balance;
+  }
+
+  .site-footer-map {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 2rem 1.5rem;
+    padding: 2.5rem 0;
+    border-bottom: 1px solid var(--color-terminal-border);
+  }
+
+  .site-footer-heading {
+    margin: 0 0 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .site-footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+  }
+
+  .site-footer-link {
+    color: var(--color-terminal-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .site-footer-link:hover,
+  .site-footer-link:focus-visible,
+  .site-footer-link.is-current {
+    color: var(--color-terminal-accent);
+  }
+
+  .site-footer-bar {
+    display: grid;
     grid-template-areas:
-      "identity profiles"
-      "theme theme";
+      "identity"
+      "colophon"
+      "theme";
     align-items: center;
     gap: 0.75rem 1.5rem;
+    padding: 1.5rem 0;
 
     @variant sm {
-      grid-template-columns: 1fr auto auto;
-      grid-template-areas: "identity theme profiles";
+      grid-template-columns: auto auto 1fr;
+      grid-template-areas: "identity theme colophon";
     }
   }
 
   .site-footer-identity {
     grid-area: identity;
+    margin: 0;
   }
 
-  .site-footer .theme-toggle {
+  .site-footer-bar .theme-toggle {
     grid-area: theme;
   }
 
-  .site-footer-profiles {
-    grid-area: profiles;
+  .site-footer-colophon {
+    grid-area: colophon;
+    margin: 0;
 
     @variant sm {
-      padding-left: 1.5rem;
-      border-left: 1px solid var(--color-terminal-border);
+      text-align: right;
     }
+  }
+
+  /* The wordmark: the site title's prompt line, set at the width of the
+     column, in the border colour so it stays a backdrop. The block after it
+     is the header's cursor at rest. */
+  .site-footer-mark {
+    margin: 1rem 0 0;
+    padding-bottom: 0.22em;
+    font-size: clamp(3rem, 23vw, 11.75rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--color-terminal-border);
+    user-select: none;
+  }
+
+  .site-footer-cursor {
+    display: inline-block;
+    width: 0.3em;
+    height: 0.56em;
+    margin-left: 0.06em;
+    background-color: var(--color-terminal-accent);
+    vertical-align: baseline;
   }
 
   /* -------------------------------------------------------------------------
