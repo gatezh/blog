@@ -33,7 +33,8 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
 - Both run `preflight → ci → upload → go-live` (release adds `release` after
   `ci`). `preflight` checks the environment's config before CI; in staging it
   also skips CI when a pull request run already passed on the same tree (a
-  `tested-tree-*` artifact from `ci.yml`'s lint job). `upload` puts www and api
+  `tested-tree-*` artifact from `ci.yml`'s lint job, from a same-repo branch
+  only: a fork's PR runs its own `ci.yml`). `upload` puts www and api
   up with `wrangler versions upload`; `go-live` promotes both (`versions
   deploy` + `triggers deploy`, api first), then verifies. Nothing rolls back on
   its own; a failed promote or verify prints the rollback command. CI cannot
