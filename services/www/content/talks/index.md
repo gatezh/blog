@@ -2,7 +2,7 @@
 title: "Talks"
 layout: showcase
 comments: false
-description: "Talks by Serge Gatezh on shipping real apps on zero-cost edge infrastructure and on security-first AI workflows, at Frontend & Beyond."
+description: "Talks by Serge Gatezh: zero-cost edge infrastructure, security-first AI workflows, and simple software for messy business processes. Slides for every talk."
 keywords: [talks, speaking, cloudflare, dev-containers, claude-code, frontend-and-beyond, calgary]
 # Each talk renders three ways from this one list: the HTML cards and the
 # Markdown/llms-full text (layouts/_shortcodes/talks.*) and the Event JSON-LD
