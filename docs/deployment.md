@@ -36,7 +36,9 @@ phases with Cloudflare's
    staging it also skips CI when a pull request run already passed on exactly
    the same tree: `ci.yml`'s lint job uploads a `tested-tree-<tree hash>`
    artifact on every pull request run, and a merge commit with that tree has the
-   same files. The run summary links the pull request run it relied on. In a
+   same files. The run summary links the pull request run it relied on. Only a
+   run from one of this repository's branches counts: a pull request from a
+   fork runs the fork's `ci.yml`, which could upload a marker for any tree. In a
    stack of pull requests only the top one runs the browser tests and leaves a
    marker
    ([stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests)),

@@ -66,6 +66,8 @@ jobs:
 
       # ci.yml's lint job records each pull request run's tree. A merge commit
       # with the same tree has the same files, so it needs no second CI run.
+      # Only runs from this repo's own branches count: a fork's pull request
+      # runs the fork's ci.yml, which can upload a marker for any tree.
       - name: Find a passing pull request run of this tree
         id: find
         env:
@@ -75,7 +77,7 @@ jobs:
           tree=$(gh api "repos/${REPO}/git/commits/${GITHUB_SHA}" --jq .tree.sha)
           runs=$(gh api "repos/${REPO}/actions/artifacts?name=tested-tree-${tree}&per_page=100" --jq '.artifacts[] | select(.expired | not) | .workflow_run.id // empty')
           for id in ${runs}; do
-            run=$(gh api "repos/${REPO}/actions/runs/${id}" --jq 'select(.conclusion == "success" and .event == "pull_request" and .path == ".github/workflows/ci.yml") | .html_url')
+            run=$(gh api "repos/${REPO}/actions/runs/${id}" --jq "select(.conclusion == \"success\" and .event == \"pull_request\" and .path == \".github/workflows/ci.yml\" and .head_repository.full_name == \"${REPO}\") | .html_url")
             if [ -n "${run}" ]; then
               echo "::notice::Skipping CI: tree ${tree::7} passed in ${run}"
               echo "CI skipped: this tree (\`${tree::7}\`) already passed in [its pull request run](${run})." >> "$GITHUB_STEP_SUMMARY"
