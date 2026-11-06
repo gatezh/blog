@@ -10,6 +10,8 @@
     an Article image to represent the article
   - Talks (`talks:` front matter): CollectionPage of Events, see below
   - Projects (`layers:` front matter): CollectionPage of projects by layer
+  - Upstream (`upstream:` front matter): CollectionPage of the issues and pull
+    requests filed on other people's projects
   - Other pages: WebPage schema
   - Every page but the home page and 404: a BreadcrumbList (Home › Section › Page)
 
@@ -199,6 +201,37 @@
 		"description" $description
 		"author" $personRef
 		"mainEntity" (dict "@type" "ItemList" "itemListElement" $layerLists)
+	-}}
+<script type="application/ld+json">
+{{- $collection | jsonify (dict "indent" "  ") | safeJS -}}
+</script>
+
+{{- else if .Params.upstream -}}
+	{{- /* Upstream: a CollectionPage whose ItemList holds one CreativeWork per
+	       issue or pull request (schema.org has no closer type), authored by
+	       Serge and `about` the repository it was filed on. */ -}}
+	{{- $g := partial "upstream-log.html" . -}}
+	{{- $items := slice -}}
+	{{- range $i, $e := $g.entries -}}
+		{{- $work := dict
+			"@type" "CreativeWork"
+			"@id" (print $.Permalink "#" $e.id)
+			"name" (printf "%s #%d: %s" $e.kindName $e.number $e.title)
+			"url" $e.url
+			"dateCreated" ((time.AsTime $e.filed).Format "2006-01-02")
+			"author" $personRef
+			"about" (dict "@type" "SoftwareSourceCode" "name" $e.project "codeRepository" (print "https://github.com/" $e.project))
+		-}}
+		{{- $items = $items | append (dict "@type" "ListItem" "position" (add $i 1) "item" $work) -}}
+	{{- end -}}
+	{{- $collection := dict
+		"@context" "https://schema.org"
+		"@type" "CollectionPage"
+		"name" .Title
+		"url" .Permalink
+		"description" $description
+		"author" $personRef
+		"mainEntity" (dict "@type" "ItemList" "itemListElement" $items)
 	-}}
 <script type="application/ld+json">
 {{- $collection | jsonify (dict "indent" "  ") | safeJS -}}

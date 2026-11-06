@@ -107,6 +107,10 @@ what shipped instead.
 
 {{< projects >}}
 
+When one of these platforms breaks under me, the report goes to its
+maintainers; those issues and pull requests are logged on the
+[upstream](/upstream/) page.
+
 Client work goes through [Just Right Systems](https://justright.systems/), my
 consultancy in Calgary: custom software, automation and security for small
 businesses, from one engineer who owns it end to end. Clients stay off this

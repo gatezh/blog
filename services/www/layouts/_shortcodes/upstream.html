@@ -1,0 +1,38 @@
+{{- /* The Upstream page body from the page's `upstream:` front matter: a
+       shortlog of projects, then the entries grouped by project in the order
+       the projects first appear. Each entry is a diff-style line, `+` fixed
+       or merged, `-` declined, `·` still open, so it reads like the Projects
+       page. The Markdown and llms-full renderings are upstream.*.md/.txt; the
+       JSON-LD is in _partials/seo.html. */ -}}
+{{- $g := partial "upstream-log.html" .Page -}}
+
+<figure class="shortlog" aria-label="Projects, with one mark per entry">
+	<figcaption><span class="terminal-prompt"></span><span class="terminal-command">git shortlog --upstream</span></figcaption>
+	<ol class="shortlog-list">
+		{{- range $g.groups }}
+			<li class="shortlog-row">
+				<span class="shortlog-count">{{ len .entries }}</span>
+				<a class="shortlog-project" href="#{{ .id }}">{{ .project }}</a>
+				<span class="shortlog-bar" aria-hidden="true">
+					{{- range .entries }}<i data-state="{{ .state }}"></i>{{ end -}}
+				</span>
+			</li>
+		{{- end }}
+	</ol>
+	<p class="shortlog-legend"><i data-state="fixed"></i> fixed or merged <i data-state="open"></i> open <i data-state="declined"></i> declined</p>
+</figure>
+
+{{- range $g.groups }}
+	<section id="{{ .id }}" class="upstream-group" aria-labelledby="{{ .id }}-title">
+		<h2 id="{{ .id }}-title" class="upstream-project"><a href="https://github.com/{{ .project }}">{{ .project }}</a></h2>
+		{{- range .entries }}
+			<article id="{{ .id }}" class="upstream-entry" data-state="{{ .state }}">
+				<p class="upstream-head">
+					<a class="upstream-title" href="{{ .url }}"><span class="upstream-number">#{{ .number }}</span> {{ .title }}</a>
+				</p>
+				<p class="upstream-state">{{ .outcome }}</p>
+				<p class="upstream-note">{{ .note | markdownify }}</p>
+			</article>
+		{{- end }}
+	</section>
+{{- end }}

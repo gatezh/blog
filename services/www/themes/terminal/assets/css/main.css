@@ -59,6 +59,7 @@
   --color-terminal-border: #d1d5db;
   --color-terminal-code-bg: #e5e5e0;
   --color-terminal-removed: #b42318; /* diff deletions, ~6:1 on bg */
+  --color-terminal-pending: #b45309; /* still open (upstream), ~4.6:1 on bg */
 
   /* Font family */
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
@@ -79,6 +80,7 @@
   --color-terminal-border: #30363d;
   --color-terminal-code-bg: #161b22;
   --color-terminal-removed: #f87171; /* ~6.5:1 on bg */
+  --color-terminal-pending: #fbbf24; /* ~10:1 on bg */
 }
 
 /* =============================================================================
@@ -721,6 +723,268 @@
     padding-left: 2.25rem;
     font-size: 0.8125rem;
     color: var(--color-terminal-muted);
+  }
+
+  /* -------------------------------------------------------------------------
+     Talks - see _shortcodes/talks.html
+
+     Each talk is its title slide: a 2:1 frame with the deck's accent rule
+     along the bottom edge, the abstract and links beneath it. Two-class
+     selectors so the .prose element rules do not win.
+     ------------------------------------------------------------------------- */
+  .talks .talk + .talk {
+    margin-top: 3rem;
+  }
+
+  .talk .slide {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 2 / 1;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    border: 1px solid var(--color-terminal-border);
+    border-radius: 0.5rem;
+    background-color: var(--color-terminal-bg-secondary);
+    overflow: hidden;
+
+    @variant max-sm {
+      aspect-ratio: auto;
+      min-height: 14rem;
+      border-radius: 0.375rem;
+    }
+  }
+
+  .talk .slide::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 0.25rem;
+    background-color: var(--color-terminal-accent);
+  }
+
+  .talk .slide-title {
+    margin: 0;
+    max-width: 24ch;
+    font-size: clamp(1.375rem, 3.6vw, 2.125rem);
+    font-weight: 700;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .talk .slide-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .talk .slide-title a:hover,
+  .talk .slide-title a:focus-visible {
+    color: var(--color-terminal-accent);
+  }
+
+  .talk .slide-speaker {
+    margin: 0.75rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--color-terminal-muted);
+  }
+
+  .talk .slide-foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-terminal-muted);
+  }
+
+  .talk .slide-foot time {
+    flex-shrink: 0;
+  }
+
+  .talk .talk-abstract {
+    margin: 1rem 0 0.75rem;
+    max-width: 72ch;
+    line-height: 1.65;
+  }
+
+  .talk .talk-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+  }
+
+  /* -------------------------------------------------------------------------
+     Upstream - see _shortcodes/upstream.html
+
+     One mark per entry, in the shortlog bar and before each entry, in the
+     diff vocabulary of the Projects page: `+` fixed or merged, `-` declined,
+     `·` still open. The glyph is a ::before with empty alt text; the state
+     is spelled out in the entry's own line.
+     ------------------------------------------------------------------------- */
+  .shortlog i::before,
+  .upstream-entry::before {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--color-terminal-pending);
+    content: "·" / "";
+  }
+
+  .shortlog i[data-state="fixed"]::before,
+  .shortlog i[data-state="merged"]::before,
+  .upstream-entry[data-state="fixed"]::before,
+  .upstream-entry[data-state="merged"]::before {
+    color: var(--color-terminal-accent);
+    content: "+" / "";
+  }
+
+  .shortlog i[data-state="declined"]::before,
+  .upstream-entry[data-state="declined"]::before {
+    color: var(--color-terminal-removed);
+    content: "-" / "";
+  }
+
+  .shortlog {
+    margin: 0 0 2.5rem;
+    font-size: 0.875rem;
+  }
+
+  figure.shortlog figcaption {
+    margin-bottom: 0.5rem;
+    text-align: left;
+  }
+
+  .shortlog .shortlog-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .shortlog .shortlog-row {
+    display: grid;
+    grid-template-columns: 2ch max-content 1fr;
+    column-gap: 1rem;
+    align-items: baseline;
+    padding: 0.125rem 0;
+  }
+
+  .shortlog .shortlog-count {
+    text-align: right;
+    color: var(--color-terminal-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .shortlog .shortlog-bar,
+  .shortlog .shortlog-legend {
+    letter-spacing: 0.125em;
+  }
+
+  .shortlog .shortlog-legend {
+    margin: 0.75rem 0 0;
+    padding-left: calc(2ch + 1rem);
+    font-size: 0.8125rem;
+    color: var(--color-terminal-muted);
+  }
+
+  .shortlog .shortlog-legend i + i {
+    margin-left: 0.75rem;
+  }
+
+  .upstream-group {
+    margin-bottom: 2.5rem;
+  }
+
+  .upstream-group .upstream-project {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+
+  .upstream-group .upstream-project a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .upstream-group .upstream-project a:hover,
+  .upstream-group .upstream-project a:focus-visible {
+    color: var(--color-terminal-accent);
+  }
+
+  /* The title line is tinted like a diff line; the state and note hang
+     under it on the same left rule. */
+  .upstream-entry {
+    position: relative;
+    padding-bottom: 0.5rem;
+    border-left: 2px solid var(--color-terminal-pending);
+  }
+
+  .upstream-entry[data-state="fixed"],
+  .upstream-entry[data-state="merged"] {
+    border-color: var(--color-terminal-accent);
+  }
+
+  .upstream-entry[data-state="declined"] {
+    border-color: var(--color-terminal-removed);
+  }
+
+  .upstream-entry + .upstream-entry {
+    margin-top: 1rem;
+  }
+
+  .upstream-entry::before {
+    position: absolute;
+    top: 0.25rem;
+    left: 0.75rem;
+  }
+
+  .upstream-entry .upstream-head {
+    margin: 0;
+    padding: 0.25rem 0.75rem 0.25rem 2.25rem;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    background-color: color-mix(in srgb, var(--color-terminal-pending) 8%, transparent);
+  }
+
+  .upstream-entry[data-state="fixed"] .upstream-head,
+  .upstream-entry[data-state="merged"] .upstream-head {
+    background-color: color-mix(in srgb, var(--color-terminal-accent) 8%, transparent);
+  }
+
+  .upstream-entry[data-state="declined"] .upstream-head {
+    background-color: color-mix(in srgb, var(--color-terminal-removed) 8%, transparent);
+  }
+
+  .upstream-entry .upstream-title {
+    color: var(--color-terminal-fg);
+    text-decoration-color: var(--color-terminal-border);
+  }
+
+  .upstream-entry .upstream-title:hover,
+  .upstream-entry .upstream-title:focus-visible {
+    color: var(--color-terminal-accent);
+    text-decoration-color: currentColor;
+  }
+
+  .upstream-entry .upstream-number {
+    color: var(--color-terminal-muted);
+  }
+
+  .upstream-entry .upstream-state {
+    margin: 0.25rem 0 0;
+    padding-left: 2.25rem;
+    font-size: 0.8125rem;
+    color: var(--color-terminal-muted);
+  }
+
+  .upstream-entry .upstream-note {
+    margin: 0.25rem 0 0;
+    padding: 0 0.75rem 0 2.25rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
   }
 
   /* -------------------------------------------------------------------------

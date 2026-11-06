@@ -1,0 +1,45 @@
+{{- /* The Upstream page's `upstream:` front matter, checked and grouped once
+       for the HTML, Markdown and llms-full renderings and the JSON-LD.
+
+       Returns a dict:
+       - entries: every entry with `url` (built from project, kind and
+                  number), `id` (anchor), `kindName`, and `outcome`, the state
+                  line ("Fixed November 4, 2026")
+       - groups:  one dict (project, id, entries) per project, in the order
+                  the projects first appear
+
+       An entry missing project, kind, number, title, filed, state or note
+       fails the build: every entry must link somewhere and say something. */ -}}
+{{- $entries := slice -}}
+{{- $order := slice -}}
+{{- $byProject := dict -}}
+{{- $paths := dict "issue" "issues" "pr" "pull" -}}
+{{- $kinds := dict "issue" "Issue" "pr" "Pull request" -}}
+{{- $verbs := dict "open" "Open since" "fixed" "Fixed" "merged" "Merged" "declined" "Declined" -}}
+{{- range .Params.upstream -}}
+	{{- $e := . -}}
+	{{- range slice "project" "kind" "number" "title" "filed" "state" "note" -}}
+		{{- if not (index $e .) }}{{ errorf "upstream: entry %v is missing %q" ($e.title | default $e.number) . }}{{ end -}}
+	{{- end -}}
+	{{- $path := index $paths .kind -}}
+	{{- if not $path }}{{ errorf "upstream: %q has kind %q; use issue or pr" .title .kind }}{{ end -}}
+	{{- $verb := index $verbs .state -}}
+	{{- if not $verb }}{{ errorf "upstream: %q has state %q; use open, fixed, merged or declined" .title .state }}{{ end -}}
+	{{- if and (ne .state "open") (not .closed) }}{{ errorf "upstream: %q is %s but has no `closed` date" .title .state }}{{ end -}}
+	{{- $when := cond (eq .state "open") .filed .closed -}}
+	{{- $e = merge . (dict
+		"url" (printf "https://github.com/%s/%s/%d" .project $path .number)
+		"id" (printf "%s-%d" (replace .project "/" "-" | urlize) .number)
+		"kindName" (index $kinds .kind)
+		"outcome" (printf "%s %s" $verb ((time.AsTime $when).Format "January 2, 2006"))
+		)
+	-}}
+	{{- $entries = $entries | append $e -}}
+	{{- if not (index $byProject .project) }}{{ $order = $order | append .project }}{{ end -}}
+	{{- $byProject = merge $byProject (dict .project ((index $byProject .project | default slice) | append $e)) -}}
+{{- end -}}
+{{- $groups := slice -}}
+{{- range $order -}}
+	{{- $groups = $groups | append (dict "project" . "id" (replace . "/" "-" | urlize) "entries" (index $byProject .)) -}}
+{{- end -}}
+{{- return dict "entries" $entries "groups" $groups -}}
