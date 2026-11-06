@@ -35,11 +35,15 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
   also skips CI when a pull request run already passed on the same tree (a
   `tested-tree-*` artifact from `ci.yml`'s lint job, from a same-repo branch
   only: a fork's PR runs its own `ci.yml`). `upload` puts www and api
-  up with `wrangler versions upload`; `go-live` promotes both (`versions
-  deploy` + `triggers deploy`, api first), then verifies. Nothing rolls back on
-  its own; a failed promote or verify prints the rollback command. CI cannot
-  create a Worker — create it in the dashboard first (docs/deployment.md,
-  "Upload, then promote").
+  up with `wrangler versions upload`; `go-live` reads what is live, stages both
+  new versions at 0% (`triggers deploy` first, api first), verifies them
+  through a `Cloudflare-Workers-Version-Overrides` header, then promotes both
+  to 100%. The checks first wait for www's `build-commit` and the api's
+  `Worker-Version` header to name the new versions: a missed override falls
+  back to the live version silently. A failed check promotes nothing; only a
+  failed promote prints the restore command. CI cannot create a Worker —
+  create it in the dashboard first (docs/deployment.md, "Upload, then
+  promote").
 - Every job below one that can be skipped needs an explicit
   `if: ${{ !cancelled() && needs.<job>.result == 'success' }}`: the default
   `success()` covers the whole `needs` chain, so a skipped `ci` would skip the
