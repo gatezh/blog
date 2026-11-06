@@ -732,6 +732,10 @@
      along the bottom edge, the abstract and links beneath it. Two-class
      selectors so the .prose element rules do not win.
      ------------------------------------------------------------------------- */
+  .talks {
+    margin: 2.5rem 0;
+  }
+
   .talks .talk + .talk {
     margin-top: 3rem;
   }
@@ -849,8 +853,8 @@
     content: "-" / "";
   }
 
-  .shortlog {
-    margin: 0 0 2.5rem;
+  .prose figure.shortlog {
+    margin: 2.5rem 0;
     font-size: 0.875rem;
   }
 
