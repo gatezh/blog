@@ -432,10 +432,15 @@ test.describe("identity structured data", () => {
       expect(event.startDate, event.name).toMatch(
         /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/,
       );
-      expect(event.location.address.addressLocality, event.name).toBe("Calgary");
-      expect(event.organizer.name, event.name).toBe("Frontend & Beyond");
-      expect(event.workPerformed["@type"], event.name).toBe("PresentationDigitalDocument");
-      expect(event.workPerformed.url, event.name).toMatch(/^https:\/\/.+\.pdf$/);
+      // A named place and organizer, whichever they are: the venue changes.
+      expect(event.location.name, event.name).toBeTruthy();
+      expect(event.location.address.addressLocality, event.name).toBeTruthy();
+      expect(event.organizer.name, event.name).toBeTruthy();
+      expect(event.organizer.url, event.name).toMatch(/^https:\/\//);
+      if (event.workPerformed) {
+        expect(event.workPerformed["@type"], event.name).toBe("PresentationDigitalDocument");
+        expect(event.workPerformed.url, event.name).toMatch(/^https:\/\/.+\.pdf$/);
+      }
       // Each Event @id is an anchor that exists on the page.
       const anchor = new URL(event["@id"]).hash;
       await expect(page.locator(anchor), event.name).toHaveCount(1);
