@@ -1,5 +1,5 @@
 {{/*
-  Footer partial - the site map, an invitation to write, and the colophon
+  Footer partial - the site map, an invitation to write, and the copyright
 
   Top to bottom:
   - Link columns from hugo.yaml menu.footer: each top-level entry is a column
@@ -8,8 +8,8 @@
     it grows with the page. The header holds the main menu only; every other
     page is reachable from here.
   - One line inviting a message, with the button to the contact form
-  - Copyright, the theme switcher (moved here from the header so the header
-    holds navigation only) and the colophon
+  - Copyright and the theme switcher (moved here from the header so the
+    header holds navigation only)
   Layout: .site-footer-* in main.css.
 */}}
 <footer class="site-footer mt-auto">
@@ -55,7 +55,6 @@
 				<span class="text-terminal-accent">$</span> {{ now.Year }} {{ site.Title }}
 			</p>
 			{{- partial "theme-toggle.html" . -}}
-			<p class="site-footer-colophon">Hugo on Cloudflare Workers</p>
 		</div>
 	</div>
 </footer>

@@ -337,6 +337,17 @@
   .theme-toggle-legend {
     float: left;
     margin-right: 0.5rem;
+
+    /* On phones the footer bar has no room for the word: the bracketed
+       option reads as a picker on its own. Screen readers still get it. */
+    @variant max-sm {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 
   /* "theme:" - a key for the values that follow, not a fourth option. */
@@ -394,7 +405,7 @@
 
      A full-width band: the site map in columns, one column per menu heading
      and two to a row on phones; the invitation with its button; and the bar
-     with copyright, theme and colophon.
+     with the copyright and the theme switcher.
      ------------------------------------------------------------------------- */
   .site-footer {
     border-top: 1px solid var(--color-terminal-border);
@@ -455,37 +466,16 @@
   }
 
   .site-footer-bar {
-    display: grid;
-    grid-template-areas:
-      "identity"
-      "colophon"
-      "theme";
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: space-between;
     gap: 0.75rem 1.5rem;
     padding: 1.5rem 0;
-
-    @variant sm {
-      grid-template-columns: auto auto 1fr;
-      grid-template-areas: "identity theme colophon";
-    }
   }
 
   .site-footer-identity {
-    grid-area: identity;
     margin: 0;
-  }
-
-  .site-footer-bar .theme-toggle {
-    grid-area: theme;
-  }
-
-  .site-footer-colophon {
-    grid-area: colophon;
-    margin: 0;
-
-    @variant sm {
-      text-align: right;
-    }
   }
 
   /* -------------------------------------------------------------------------
