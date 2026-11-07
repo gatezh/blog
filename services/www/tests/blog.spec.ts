@@ -348,6 +348,31 @@ test.describe("Homepage", () => {
 
     expect(homepageWidth).toBe(aboutWidth);
   });
+
+  test("shares one fingerprinted portrait file with the About page", async ({ page }) => {
+    // The same srcset on both pages means About is drawn from the browser
+    // cache the home page already filled, instead of a second download.
+    const attributes = async (testId: string) => {
+      const portrait = page.getByTestId(testId);
+      return {
+        src: await portrait.getAttribute("src"),
+        srcset: await portrait.getAttribute("srcset"),
+      };
+    };
+    await page.goto("/");
+    const home = await attributes("homepage-portrait");
+    await page.goto("/about/");
+    expect(await attributes("about-portrait")).toEqual(home);
+
+    // Built by Hugo at 1x, 2x and 3x of the 17rem slot, each a hashed file.
+    const candidates = (home.srcset ?? "").split(",").map((candidate) => candidate.trim());
+    expect(candidates).toHaveLength(3);
+    for (const [index, candidate] of candidates.entries()) {
+      expect(candidate).toMatch(
+        new RegExp(`^/brand/portrait-\\d+\\.[a-f0-9]{64}\\.webp ${index + 1}x$`),
+      );
+    }
+  });
 });
 
 test.describe("About page", () => {
@@ -381,8 +406,8 @@ test.describe("About page", () => {
   });
 
   test("keeps punctuation attached to Markdown links", async ({ page }) => {
-    for (const linkName of ["LinkedIn", "send me a message"]) {
-      const link = page.getByRole("link", { name: linkName, exact: true });
+    for (const linkName of ["LinkedIn", "Just Right Systems"]) {
+      const link = page.locator("#main-content").getByRole("link", { name: linkName, exact: true });
       await expect(link).toBeVisible();
       await expect
         .poll(() => link.evaluate((element) => element.nextSibling?.textContent))
@@ -440,6 +465,40 @@ test.describe("Accessibility", () => {
   });
 });
 
+test.describe("Footer", () => {
+  test("maps the site: every page the header leaves out, each link resolving", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/");
+    const map = page.locator("footer").getByRole("navigation", { name: "Site map" });
+    const hrefs = await map
+      .locator("a")
+      .evaluateAll((links) => links.map((a) => a.getAttribute("href")));
+    for (const href of [
+      "/ever-learning/",
+      "/upstream/",
+      "/early-projects/",
+      "/llms.txt",
+      "/index.xml",
+    ]) {
+      expect(hrefs, href).toContain(href);
+      expect((await request.get(href)).status(), href).toBe(200);
+    }
+    // The Talks column lists the talks themselves; every anchor is a section on the page.
+    const talks = hrefs.filter((h): h is string => !!h && h.startsWith("/talks/#"));
+    expect(talks.length).toBeGreaterThan(0);
+    const talksHtml = await (await request.get("/talks/")).text();
+    for (const href of talks) {
+      expect(talksHtml, href).toContain(`id="${href.slice("/talks/#".length)}"`);
+    }
+    await expect(page.locator("header nav").locator('a[href="/upstream/"]')).toHaveCount(0);
+    await expect(
+      page.locator("footer").getByRole("link", { name: "Send me a message" }),
+    ).toHaveAttribute("href", "/contact/");
+  });
+});
+
 test.describe("Theme switcher", () => {
   test("lives in the footer, defaulting to the system theme", async ({ page, request }) => {
     // The default is in the markup, not only set by the script.
@@ -454,21 +513,27 @@ test.describe("Theme switcher", () => {
     await expect(group.getByRole("radio", { name: "system" })).toBeChecked();
   });
 
+  // color-scheme on <html> picks every colour (light-dark() tokens), so the
+  // tests assert it, not class names. The dark projects run these on a dark OS.
   test("applies a choice and keeps it across page loads", async ({ page }) => {
     await page.goto("/");
     const footer = page.locator("footer");
     const html = page.locator("html");
+    await expect(html).toHaveCSS("color-scheme", "light dark");
 
     // The inputs are visually hidden; their labels take the click.
     await footer.getByText("dark", { exact: true }).click();
-    await expect(html).toHaveClass(/\bdark\b/);
+    await expect(html).toHaveCSS("color-scheme", "dark");
 
     await footer.getByText("light", { exact: true }).click();
-    await expect(html).not.toHaveClass(/\bdark\b/);
+    await expect(html).toHaveCSS("color-scheme", "light");
 
     await page.reload();
     await expect(footer.getByRole("radio", { name: "light" })).toBeChecked();
-    await expect(html).not.toHaveClass(/\bdark\b/);
+    await expect(html).toHaveCSS("color-scheme", "light");
+
+    await footer.getByText("system", { exact: true }).click();
+    await expect(html).toHaveCSS("color-scheme", "light dark");
   });
 
   test("arrow keys move the selection, as in any radio group", async ({ page }) => {
@@ -477,6 +542,6 @@ test.describe("Theme switcher", () => {
     await footer.getByRole("radio", { name: "system" }).focus();
     await page.keyboard.press("ArrowLeft");
     await expect(footer.getByRole("radio", { name: "dark" })).toBeChecked();
-    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   });
 });

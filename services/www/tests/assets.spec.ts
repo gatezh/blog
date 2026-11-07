@@ -171,6 +171,7 @@ test.describe("security headers", () => {
       /\/css\/[A-Za-z0-9._-]+\.css/,
       /\/js\/[A-Za-z0-9._-]+\.js/,
       /\/brand\/favicon\.[a-f0-9]+\.svg/,
+      /\/brand\/portrait-\d+\.[a-f0-9]+\.webp/,
     ]) {
       const href = pattern.exec(html)?.[0];
       expect(href, `no ${pattern} asset on the homepage`).toBeTruthy();

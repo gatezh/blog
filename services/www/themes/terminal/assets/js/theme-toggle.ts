@@ -1,6 +1,6 @@
-// Theme switcher (light, dark, system): theme switching, localStorage
-// persistence and system preference detection. Dispatches a `themechange` event that the
-// Remark42 embed (comments.ts) listens for.
+// Theme switcher (light, dark, system): theme switching and localStorage
+// persistence. Dispatches a `themechange` event that the Remark42 embed
+// (comments.ts) listens for.
 
 type Theme = "light" | "dark" | "system";
 
@@ -21,10 +21,13 @@ function isDarkMode(theme: Theme): boolean {
 }
 
 function applyTheme(theme: Theme): void {
-  const isDark = isDarkMode(theme);
-  document.documentElement.classList.toggle("dark", isDark);
+  // The classes set color-scheme (main.css), as theme-init.ts does on load;
+  // "system" sets neither and the stylesheet follows the OS on its own.
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.classList.toggle("light", theme === "light");
 
   // For other components (e.g., Remark42)
+  const isDark = isDarkMode(theme);
   window.dispatchEvent(new CustomEvent("themechange", { detail: { theme, isDark } }));
 }
 
@@ -47,8 +50,7 @@ for (const input of inputs) {
   input.addEventListener("change", () => setTheme(input.value as Theme));
 }
 
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-  if (getStoredTheme() === "system") applyTheme("system");
-});
+// No listener for OS theme changes: in "system" mode the stylesheet follows
+// the OS itself, and comments.ts tells Remark42.
 
 export {};

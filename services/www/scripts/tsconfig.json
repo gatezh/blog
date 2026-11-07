@@ -1,0 +1,9 @@
+{
+  // Bun scripts run from the command line, so Node types, not the DOM.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts"]
+}
