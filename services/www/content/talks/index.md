@@ -68,7 +68,7 @@ talks:
 
 I speak about the two things I do every day: shipping real products on
 zero-cost edge infrastructure, and AI-assisted engineering with a fence around
-it. Both talks so far were at Frontend & Beyond.
+it. Every talk links to its slides.
 
 {{< talks >}}
 

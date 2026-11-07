@@ -6,7 +6,9 @@
        page to be an article and contradict its JSON-LD (seo.html). The
        entries themselves come from front matter through a shortcode in the
        body, so the HTML, the Markdown mirror and llms-full.txt share one
-       source. */ -}}
+       source. The window shows the title only: `description` is for search
+       results, and the body's first paragraph says it in the page's own
+       voice. */ -}}
 {{- define "main" }}
 <article>
 	<section class="terminal-window mb-10" aria-labelledby="showcase-title">
@@ -20,12 +22,9 @@
 			<p class="mb-4 text-sm text-terminal-muted">
 				<span class="text-terminal-accent">$</span> ls -l ./{{ .Title | urlize }}
 			</p>
-			<h1 id="showcase-title" class="mb-4 text-3xl font-semibold leading-tight">
+			<h1 id="showcase-title" class="m-0 text-3xl font-semibold leading-tight">
 				{{ .Title }}<span class="text-terminal-accent">.</span>
 			</h1>
-			{{- with .Description }}
-				<p class="m-0 text-terminal-muted">{{ . }}</p>
-			{{- end }}
 		</div>
 	</section>
 
