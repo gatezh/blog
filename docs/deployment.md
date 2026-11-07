@@ -36,30 +36,61 @@ phases with Cloudflare's
    staging it also skips CI when a pull request run already passed on exactly
    the same tree: `ci.yml`'s lint job uploads a `tested-tree-<tree hash>`
    artifact on every pull request run, and a merge commit with that tree has the
-   same files. The run summary links the pull request run it relied on. In a
+   same files. The run summary links the pull request run it relied on. Only a
+   run from one of this repository's branches counts: a pull request from a
+   fork runs the fork's `ci.yml`, which could upload a marker for any tree. In a
    stack of pull requests only the top one runs the browser tests and leaves a
    marker
    ([stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests)),
    so merging part of a stack runs CI in full.
 2. `upload` builds www and uploads both services with `wrangler versions
-upload`: new versions that serve no traffic. It first records what each
-   Worker serves now (`wrangler deployments status --json`).
-3. `go-live` runs only when the upload succeeded, and switches both Workers to
-   their new version (`wrangler versions deploy <id>@100%`), api first. A
-   version upload does not apply routes, custom domains or workers.dev, so it
-   also runs `wrangler triggers deploy` (still labelled experimental) for each
-   Worker, as `wrangler deploy` did. It uploads no assets (`versions upload`
-   did), but it fails unless www's `assets.directory` exists, so `go-live`
-   creates an empty `public/` first. Then it verifies the live environment.
-4. If `go-live` fails or is cancelled after promoting started, a step in it
-   prints the exact `wrangler versions deploy` commands that restore both
-   previous versions. Nothing rolls back on its own: a part-way promote leaves
-   at most the api newer than the site, which the api-first order already
-   requires to work, and re-running `go-live` finishes it. A re-run deploys this
-   run's versions over whatever is live, so only re-run (or run the printed
-   commands) while no later run has deployed since. Most of verify's checks
-   are zone settings (Transform Rules, bot blocking, managed robots.txt) that a
-   rollback cannot change.
+upload`: new versions that serve no traffic.
+3. `go-live` runs only when the upload succeeded. It reads which version each
+   Worker serves at 100% (`wrangler deployments status --json`), then deploys
+   each new version at **0%** beside it, api first
+   (`wrangler versions deploy <new>@0% <live>@100%`). A version upload does not
+   apply routes, custom domains or workers.dev, so it first runs
+   `wrangler triggers deploy` (still labelled experimental) for each Worker, as
+   `wrangler deploy` did. That uploads no assets (`versions upload` did), but it
+   fails unless www's `assets.directory` exists, so `go-live` creates an empty
+   `public/` first.
+4. It then checks the staged versions on the real hostnames. Every request
+   carries a
+   [`Cloudflare-Workers-Version-Overrides`](https://developers.cloudflare.com/workers/versions-and-deployments/version-overrides/)
+   header naming both Workers, which reaches a version at 0%. An override that
+   is not applied falls back to the live version without any error, so the
+   checks first wait until www's `build-id` meta (the run id and attempt that
+   built it) and the api's `Worker-Version` header (its `version_metadata`
+   binding) both name the new versions. Not the commit: a redeploy of the live
+   commit would let the live version pass for the new one. Only
+   when every check passes does it promote both to 100%, api first, and confirm
+   that plain requests reach them.
+5. A failed check promotes nothing: visitors stay on what they had, and the
+   staged versions sit at 0% until the next deploy replaces them. Only a failed
+   or cancelled promote can leave something to restore, and then a step prints
+   the exact `wrangler versions deploy` commands that put back what was live. A
+   part-way promote leaves at most the api newer than the site, which the
+   api-first order already requires to work, and re-running `go-live` finishes
+   it.
+
+Both workflows run steps 3 to 5 through one composite action,
+`.github/actions/go-live`. Only the checks themselves stay in each workflow,
+because they differ (staging must be noindex, production indexable). The
+action's script, `go-live.sh`, is tested by `go-live.test.ts`
+(`bun run test:deploy`) against stubbed wrangler and curl. The stubbed
+Cloudflare applies an override only for the Worker names that
+`wrangler.jsonc` deploys, so a wrong name in a workflow fails the test.
+
+`go-live` reads what is live itself, so re-running it on any run (including an
+older one, to roll back) stages beside what is live now.
+
+While the checks run, anyone who sends the override with the staged versions'
+ids reaches them, on production too. The ids are not secret: this repository's
+Actions logs are public, and `upload` (wrangler's `Worker Version ID:`) and
+`go-live` print them. That exposure is accepted. The staged versions are the
+ones about to be promoted, built from a public commit, and the window lasts as
+long as the checks, about a minute. Nothing Cloudflare offers restricts who
+may send an override.
 
 So a failed upload, for example a Cloudflare API error during the asset upload,
 leaves the environment untouched: re-run the failed jobs, unless a later run
@@ -84,23 +115,57 @@ Two consequences:
 
 ### Rolling back
 
-A failed promote or verify prints the rollback command in the run summary (see
-above). It restores what was live when `upload` ran, so after a failed
-verify use **Re-run failed jobs**, not **Re-run all jobs**: re-running
-`upload` records the new versions as "previous". To roll back by hand:
+A failed check promotes nothing, so it needs no rollback. A failed promote
+prints the restore command in the run summary (see above). To go back from a
+version that passed its checks:
 
-- **Instantly:** Workers & Pages → the Worker → **Deployments** → the version
-  tagged with the previous release → **Rollback**, or
-  `bunx wrangler rollback <version-id>` from `services/www` or `services/api`.
-  No rebuild; Cloudflare keeps the last 100 versions. Roll back both Workers,
-  www first, so a new site never meets an old api.
-  The next release replaces the rollback.
-- **Through a release:** the same workflow with `action: redeploy` and an
-  earlier version (e.g. `1.4.2`). It rebuilds and redeploys that tag and
-  verifies it, without re-running CI — a rollback must not wait on, or be
-  blocked by, today's checks against an old tree. It accepts any `vX.Y.Z` tag
-  whose commit is on `master`, including one pushed by hand with no GitHub
-  release behind it.
+- **Staging, by re-run:** re-run `go-live` on the newest successful run that
+  is older than the run of the commit staging serves now. It stages that run's
+  versions at 0% beside today's, checks them and promotes them; no Cloudflare
+  token is needed. Read the live commit from the site itself: runs are listed
+  by creation and a re-run keeps its place, so the newest successful run is
+  not always the live one. GitHub re-runs only runs under 30 days old.
+
+  ```bash
+  # Add the CF-Access-Client-Id/-Secret headers once staging-www sits behind Access.
+  live=$(curl -sf https://staging-www.gatezh.com/ | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1)
+  # Errors when no recent run deployed that commit: roll back by hand (below).
+  gh run list --workflow deploy-staging.yml -L 30 --json databaseId,headSha,conclusion,createdAt --jq "
+    (map(.headSha) | index(\"${live:?no build-commit}\")) as \$i
+    | if \$i == null then error(\"no recent run deployed ${live}\") else .[\$i+1:] end
+    | map(select(.conclusion == \"success\" and .headSha != \"${live}\")) | first"
+  gh run rerun <run-id> --job <go-live job id>   # job ids: gh run view <run-id> --json jobs
+  ```
+
+  If `go-live`'s log says "already serves" for both Workers, that run was the
+  live one and nothing changed.
+
+  A re-run uses the workflow file from that run's own commit. A run from
+  before staged deploys promotes first and verifies after, and its restore
+  summary names the versions live at its own upload. You can tell such a run
+  because its `go-live` has no "Stage both versions at 0% of traffic" step:
+
+  ```bash
+  gh run view <run-id> --json jobs --jq '.jobs[] | select(.name == "go-live") | .steps[].name'
+  ```
+
+  For those runs, use the instant rollback below.
+
+- **Production, through a release:** the Release workflow with
+  `action: redeploy` and an earlier version (e.g. `1.4.2`). It rebuilds that
+  tag, stages and checks it at 0%, then promotes it, without re-running CI — a
+  rollback must not wait on, or be blocked by, today's checks against an old
+  tree. It accepts any `vX.Y.Z` tag whose commit is on `master`, including one
+  pushed by hand with no GitHub release behind it. To see which release is
+  live: `git tag --points-at <build-commit of https://gatezh.com/>`.
+- **Instantly, either environment:** Workers & Pages → the Worker →
+  **Deployments** → the version tagged with the previous release →
+  **Rollback**, or `bunx wrangler rollback <version-id>` from `services/www` or
+  `services/api`. No rebuild and no checks; Cloudflare keeps the last 100
+  versions. Always name the version: after a run that stopped before
+  promoting, a bare `wrangler rollback` picks the live one again. Roll back
+  both Workers, www first, so a new site never meets an old api. The next
+  deploy replaces the rollback.
 
 ### Why release-anchored production
 

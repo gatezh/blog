@@ -1,0 +1,31 @@
+name: Go live
+description: >-
+  The steps go-live shares between deploy-staging.yml and release.yml: stage
+  both new versions at 0%, wait until a version override reaches them, promote
+  them, and say how to restore. The logic and the environment it reads are in
+  go-live.sh; go-live.test.ts tests it.
+
+inputs:
+  command:
+    description: stage, wait, promote or restore (see go-live.sh)
+    required: true
+
+outputs:
+  api-live:
+    description: The api version at 100% before this run (stage)
+    value: ${{ steps.run.outputs.api_live }}
+  www-live:
+    description: The www version at 100% before this run (stage)
+    value: ${{ steps.run.outputs.www_live }}
+  headers:
+    description: A `curl -H @file` with the headers that reached the staged versions (wait)
+    value: ${{ steps.run.outputs.headers }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      env:
+        COMMAND: ${{ inputs.command }}
+      run: bash "${GITHUB_ACTION_PATH}/go-live.sh" "${COMMAND}"

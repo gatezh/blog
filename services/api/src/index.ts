@@ -19,6 +19,8 @@ type Env = {
     FROM_EMAIL?: string;
     // Bot gate (optional: unset means submissions are accepted uncaptcha'd)
     TURNSTILE_SECRET_KEY?: string;
+    // wrangler.jsonc's version_metadata binding: which version is answering.
+    CF_VERSION_METADATA?: WorkerVersionMetadata;
   };
 };
 
@@ -350,9 +352,13 @@ app.onError((err, c) => {
 // Googlebot crawls this host and issues GET, not POST. Answering 405 put the
 // API origin in Search Console's "Blocked due to other 4xx issue" bucket, so a
 // bare GET returns a 200 that explicitly asks not to be indexed instead.
+// Worker-Version lets the deploy prove its version override reached the
+// version staged at 0%, rather than silently the live one.
 app.get("/", (c) => {
+  const version = c.env.CF_VERSION_METADATA?.id;
   return c.json({ service: "gatezh.com contact API", endpoint: "POST /" }, 200, {
     "X-Robots-Tag": "noindex",
+    ...(version ? { "Worker-Version": version } : {}),
   });
 });
 

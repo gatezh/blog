@@ -1,0 +1,9 @@
+{
+  // Types the composite actions' tests (`bun run typecheck`), which no
+  // workspace covers.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun", "node"]
+  },
+  "include": ["**/*.ts"]
+}

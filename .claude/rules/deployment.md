@@ -33,12 +33,18 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
 - Both run `preflight → ci → upload → go-live` (release adds `release` after
   `ci`). `preflight` checks the environment's config before CI; in staging it
   also skips CI when a pull request run already passed on the same tree (a
-  `tested-tree-*` artifact from `ci.yml`'s lint job). `upload` puts www and api
-  up with `wrangler versions upload`; `go-live` promotes both (`versions
-  deploy` + `triggers deploy`, api first), then verifies. Nothing rolls back on
-  its own; a failed promote or verify prints the rollback command. CI cannot
-  create a Worker — create it in the dashboard first (docs/deployment.md,
-  "Upload, then promote").
+  `tested-tree-*` artifact from `ci.yml`'s lint job, from a same-repo branch
+  only: a fork's PR runs its own `ci.yml`). `upload` puts www and api
+  up with `wrangler versions upload`; `go-live` reads what is live, stages both
+  new versions at 0% (`triggers deploy` first, api first), verifies them
+  through a `Cloudflare-Workers-Version-Overrides` header, then promotes both
+  to 100%. The checks first wait for www's `build-id` meta (run id and
+  attempt, not the commit, which a redeploy of the live commit shares) and the
+  api's `Worker-Version` header to name the new versions: a missed override falls
+  back to the live version silently. A failed check promotes nothing; only a
+  failed promote prints the restore command. CI cannot create a Worker —
+  create it in the dashboard first (docs/deployment.md, "Upload, then
+  promote").
 - Every job below one that can be skipped needs an explicit
   `if: ${{ !cancelled() && needs.<job>.result == 'success' }}`: the default
   `success()` covers the whole `needs` chain, so a skipped `ci` would skip the
@@ -46,9 +52,12 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
 - Both run the whole of `ci.yml` (`workflow_call`) before deploying, unless
   staging's `preflight` finds a passing run of the same tree.
 - Shared steps live in composite actions under `.github/actions/` (`setup`,
-  `check-deploy-config`), referenced as `uses: $/...` — GitHub's
+  `check-deploy-config`, `go-live`), referenced as `uses: $/...` — GitHub's
   self-repository syntax, which loads them from the workflow's own commit even
-  when a job has checked out an older tag.
+  when a job has checked out an older tag. `go-live`'s logic is
+  `go-live/go-live.sh`, tested by `go-live.test.ts` (`bun run test:deploy`,
+  part of `bun run test`) against stubbed wrangler and curl; change the
+  shared deploy steps there, not in the workflows.
 - Only the Release workflow's tagging job gets `contents: write`; every
   checkout sets `persist-credentials: false`.
 
