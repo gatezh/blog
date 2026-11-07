@@ -277,6 +277,21 @@ describe("crawlability", () => {
     expect(res.headers.get("X-Robots-Tag")).toBe("noindex");
   });
 
+  // The deploy checks a version staged at 0% through a version override; a
+  // missed override silently reaches the live version, so it must be visible.
+  test("GET / names the Worker version that answered", async () => {
+    const CF_VERSION_METADATA = { id: "0b5c2e3a-version", tag: "v1.2.3", timestamp: "" };
+    const res = await app.request("/", { method: "GET" }, { ...ENV, CF_VERSION_METADATA });
+
+    expect(res.headers.get("Worker-Version")).toBe("0b5c2e3a-version");
+  });
+
+  test("GET / without version metadata sends no Worker-Version", async () => {
+    const res = await app.request("/", { method: "GET" }, ENV);
+
+    expect(res.headers.has("Worker-Version")).toBe(false);
+  });
+
   test("other methods on / are still rejected", async () => {
     const res = await app.request("/", { method: "DELETE" }, ENV);
 

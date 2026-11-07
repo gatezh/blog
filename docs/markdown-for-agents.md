@@ -98,8 +98,8 @@ curl -sI localhost:8799/posts/<slug>/index.md
 curl -s localhost:8799/posts/<slug>/ | grep -o '<link rel=alternate type=text/markdown[^>]*>'
 ```
 
-The post-deploy verify step (`go-live`) in `.github/workflows/release.yml` asserts the same
-invariants against production.
+The verify step in `go-live` (`.github/workflows/release.yml`) asserts the same
+invariants against production, on the new version before it is promoted.
 
 ## Future: Hugo native llms.txt
 

@@ -34,7 +34,9 @@ jobs:
       # Names the tree this pull request run tests, so deploy-staging.yml's
       # preflight can skip CI for a merge commit with the same tree. Not on a
       # lower PR in a stack: test-browser skips those, and merging one alone
-      # must not deploy a tree whose browser tests never ran.
+      # must not deploy a tree whose browser tests never ran. A PR that edits
+      # this file can name any tree, so preflight trusts only same-repo
+      # branches: writers, who can push to master anyway. A fork's are ignored.
       - name: Record the tested tree
         if: >-
           github.event_name == 'pull_request'
@@ -61,8 +63,8 @@ jobs:
       # `check` is lint + actionlint + format + hugo-format + typecheck +
       # build. The production build runs here, which is why there is no
       # separate build job — adding one back would build the site twice per
-      # PR. actionlint also runs shellcheck (preinstalled on the runner) on
-      # every `run:` block.
+      # PR. actionlint also runs shellcheck (pinned in .mise.toml) on every
+      # `run:` block.
       - name: Check
         run: bun run check
 

@@ -46,7 +46,7 @@ globs: services/www/**
   meta-refresh stubs that would otherwise shadow those rules — it is a different
   setting from `pagination.disableAliases`, and both are needed.
 - Indexability rules are pinned by `services/www/tests/seo.spec.ts`,
-  `services/www/tests/assets.spec.ts` and the post-deploy verify step. See
+  `services/www/tests/assets.spec.ts` and the deploys' pre-promote verify step. See
   `docs/seo.md` before changing any of them.
 - Share image and favicons are **generated**: edit `services/www/brand/share-image.html`
   or `services/www/assets/brand/favicon.svg`, then run `bun run brand` from
