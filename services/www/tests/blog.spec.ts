@@ -488,21 +488,27 @@ test.describe("Theme switcher", () => {
     await expect(group.getByRole("radio", { name: "system" })).toBeChecked();
   });
 
+  // color-scheme on <html> picks every colour (light-dark() tokens), so the
+  // tests assert it, not class names. The dark projects run these on a dark OS.
   test("applies a choice and keeps it across page loads", async ({ page }) => {
     await page.goto("/");
     const footer = page.locator("footer");
     const html = page.locator("html");
+    await expect(html).toHaveCSS("color-scheme", "light dark");
 
     // The inputs are visually hidden; their labels take the click.
     await footer.getByText("dark", { exact: true }).click();
-    await expect(html).toHaveClass(/\bdark\b/);
+    await expect(html).toHaveCSS("color-scheme", "dark");
 
     await footer.getByText("light", { exact: true }).click();
-    await expect(html).not.toHaveClass(/\bdark\b/);
+    await expect(html).toHaveCSS("color-scheme", "light");
 
     await page.reload();
     await expect(footer.getByRole("radio", { name: "light" })).toBeChecked();
-    await expect(html).not.toHaveClass(/\bdark\b/);
+    await expect(html).toHaveCSS("color-scheme", "light");
+
+    await footer.getByText("system", { exact: true }).click();
+    await expect(html).toHaveCSS("color-scheme", "light dark");
   });
 
   test("arrow keys move the selection, as in any radio group", async ({ page }) => {
@@ -511,6 +517,6 @@ test.describe("Theme switcher", () => {
     await footer.getByRole("radio", { name: "system" }).focus();
     await page.keyboard.press("ArrowLeft");
     await expect(footer.getByRole("radio", { name: "dark" })).toBeChecked();
-    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   });
 });

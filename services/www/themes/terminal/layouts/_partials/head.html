@@ -165,8 +165,8 @@
 
 {{/*
   Theme initialization script - runs immediately to prevent flash of wrong theme.
-  Render-blocking on purpose (no defer or async): it must set the `dark` class
-  before the body paints. See js/theme-init.ts.
+  Render-blocking on purpose (no defer or async): it must set an explicit
+  choice's `light` or `dark` class before the body paints. See js/theme-init.ts.
 */}}
 {{ with partial "js.html" "js/theme-init.ts" }}
 	<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
