@@ -9,30 +9,26 @@
        draws it from the cache the home page filled. Each file is fingerprinted
        under /brand/, which _headers caches for a year as immutable.
 
-       Widths are 1x, 2x and 3x of the 17rem (272px) cap on .profile-portrait,
-       skipping any wider than the source. Call it with partialCached: the
-       result does not depend on the page. */ -}}
+       Widths are 1x, 2x and 3x of the 17rem (272px) cap on .profile-portrait;
+       a source narrower than the 3x width fails the build. Call it with
+       partialCached: the result does not depend on the page. */ -}}
 {{- $portrait := false -}}
 {{- with site.GetPage "/about" -}}
 	{{- with .Resources.GetMatch .Params.portrait -}}
 		{{- $source := . -}}
+		{{- if lt $source.Width 816 }}{{ errorf "portrait: %s is %dpx wide; the 3x candidate needs 816px" $source.Name $source.Width }}{{ end -}}
 		{{- $candidates := slice -}}
-		{{- $largest := false -}}
+		{{- $image := false -}}
 		{{- range $i, $width := slice 272 544 816 -}}
-			{{- if le $width $source.Width -}}
-				{{- $image := $source.Process (printf "resize %dx webp" $width) | resources.Copy (printf "brand/portrait-%d.webp" $width) | fingerprint -}}
-				{{- $candidates = $candidates | append (printf "%s %dx" $image.RelPermalink (add $i 1)) -}}
-				{{- $largest = $image -}}
-			{{- end -}}
+			{{- $image = $source.Process (printf "resize %dx webp" $width) | resources.Copy (printf "brand/portrait-%d.webp" $width) | fingerprint -}}
+			{{- $candidates = $candidates | append (printf "%s %dx" $image.RelPermalink (add $i 1)) -}}
 		{{- end -}}
-		{{- with $largest -}}
-			{{- $portrait = dict
-				"src" .RelPermalink
-				"srcset" (delimit $candidates ", ")
-				"width" $source.Width
-				"height" $source.Height
-			-}}
-		{{- end -}}
+		{{- $portrait = dict
+			"src" $image.RelPermalink
+			"srcset" (delimit $candidates ", ")
+			"width" $source.Width
+			"height" $source.Height
+		-}}
 	{{- end -}}
 {{- end -}}
 {{- return $portrait -}}
