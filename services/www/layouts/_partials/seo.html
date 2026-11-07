@@ -57,12 +57,8 @@
 	{{- end }}
 	{{- $person = merge $person (dict "hasCredential" $creds) }}
 {{- end }}
-{{- with site.GetPage "/about" }}
-	{{- with .Resources.GetMatch .Params.portrait }}
-		{{- $src := .RelPermalink }}
-		{{- if eq hugo.Environment "production" }}{{ $src = print "/cdn-cgi/image/format=auto,width=900" $src }}{{ end }}
-		{{- $person = merge $person (dict "image" ($src | absURL)) }}
-	{{- end }}
+{{- with partialCached "portrait.html" . }}
+	{{- $person = merge $person (dict "image" (.src | absURL)) }}
 {{- end }}
 
 {{ if .IsHome -}}

@@ -1,12 +1,5 @@
 {{- define "main" }}
-{{- $portrait := .Resources.GetMatch .Params.portrait -}}
-{{- $portraitSrc := "" -}}
-{{- with $portrait -}}
-	{{- $portraitSrc = .RelPermalink -}}
-	{{- if eq hugo.Environment "production" -}}
-		{{- $portraitSrc = print "/cdn-cgi/image/format=auto,width=900" $portraitSrc -}}
-	{{- end -}}
-{{- end -}}
+{{- $portrait := partialCached "portrait.html" . -}}
 
 <article>
 	<section class="terminal-window mb-10" aria-labelledby="about-title">
@@ -38,10 +31,11 @@
 					<figure class="m-0 self-end sm:col-span-2">
 						<img
 							data-testid="about-portrait"
-							src="{{ $portraitSrc }}"
+							src="{{ .src }}"
+							srcset="{{ .srcset }}"
 							alt="Portrait of Serge Gatezh"
-							width="{{ .Width }}"
-							height="{{ .Height }}"
+							width="{{ .width }}"
+							height="{{ .height }}"
 							class="profile-portrait"
 							loading="eager"
 							fetchpriority="high"
