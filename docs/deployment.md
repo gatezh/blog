@@ -82,9 +82,15 @@ Cloudflare applies an override only for the Worker names that
 `wrangler.jsonc` deploys, so a wrong name in a workflow fails the test.
 
 `go-live` reads what is live itself, so re-running it on any run (including an
-older one, to roll back) stages beside what is live now. On production, anyone
-who sends the override with the staged version's id reaches it while the
-checks run; the id is not published anywhere.
+older one, to roll back) stages beside what is live now.
+
+While the checks run, anyone who sends the override with the staged versions'
+ids reaches them, on production too. The ids are not secret: this repository's
+Actions logs are public, and `upload` (wrangler's `Worker Version ID:`) and
+`go-live` print them. That exposure is accepted. The staged versions are the
+ones about to be promoted, built from a public commit, and the window lasts as
+long as the checks, about a minute. Nothing Cloudflare offers restricts who
+may send an override.
 
 So a failed upload, for example a Cloudflare API error during the asset upload,
 leaves the environment untouched: re-run the failed jobs, unless a later run
@@ -133,6 +139,17 @@ version that passed its checks:
 
   If `go-live`'s log says "already serves" for both Workers, that run was the
   live one and nothing changed.
+
+  A re-run uses the workflow file from that run's own commit. A run from
+  before staged deploys promotes first and verifies after, and its restore
+  summary names the versions live at its own upload. You can tell such a run
+  because its `go-live` has no "Stage both versions at 0% of traffic" step:
+
+  ```bash
+  gh run view <run-id> --json jobs --jq '.jobs[] | select(.name == "go-live") | .steps[].name'
+  ```
+
+  For those runs, use the instant rollback below.
 
 - **Production, through a release:** the Release workflow with
   `action: redeploy` and an earlier version (e.g. `1.4.2`). It rebuilds that

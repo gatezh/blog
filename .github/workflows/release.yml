@@ -321,7 +321,9 @@ jobs:
 
       # Every request carries the headers that reached the staged versions,
       # the bot User-Agent checks included. While the checks run, anyone who
-      # sends the override with the staged versions' ids reaches them.
+      # sends the override reaches the staged versions: their ids are in this
+      # public run's log. They are what is about to be promoted
+      # (docs/deployment.md).
       - name: Verify the staged versions
         env:
           HEADERS: ${{ steps.reach.outputs.headers }}
