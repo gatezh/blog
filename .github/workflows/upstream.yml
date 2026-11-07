@@ -1,0 +1,54 @@
+name: Upstream
+
+# Once a month, brings /upstream/ up to date with GitHub: a pull request with
+# a stub for each issue or pull request filed on someone else's repository
+# since, and the close date of each entry closed since. A stub has an empty
+# `note`, which fails the Hugo build until the line is written, so a stub
+# cannot ship unread. See services/www/scripts/upstream-sync.ts.
+#
+# 09:00 UTC is 03:00 in Alberta (UTC-6 all year). The job's token sees only
+# public repositories, so nothing private can reach a stub. A pull request
+# opened with it does not trigger ci.yml; CI runs on the commit that writes
+# the notes. GitHub pauses a schedule after 60 days without a push.
+on:
+  schedule:
+    - cron: "0 9 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: Sync
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: $/.github/actions/setup
+
+      - name: Update the page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun run --cwd services/www upstream:sync | tee "$RUNNER_TEMP/summary.md"
+
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            echo "Nothing to add."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c upstream-sync
+          git commit -qam "content: upstream entries, $(date -u +'%B %Y')"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" upstream-sync
+          if [ -z "$(gh pr list --head upstream-sync --json number --jq '.[].number')" ]; then
+            gh pr create --head upstream-sync --title "content: upstream entries, $(date -u +'%B %Y')" --body-file "$RUNNER_TEMP/summary.md"
+          fi

@@ -10,7 +10,11 @@ keywords: [open-source, upstream, cloudflare, bun, playwright, better-auth, devc
 # them missing fails the build (layouts/_partials/upstream-log.html). `state`
 # is open, fixed (closed as completed), merged, or declined (closed as not
 # planned); `closed` is the date that happened. `note` is one line on what the
-# report was about; the state line says what came of it.
+# report was about; the state line says what came of it. Once a month
+# .github/workflows/upstream.yml opens a pull request with a stub for each
+# item filed since the oldest entry here and the close date of each closed
+# one (scripts/upstream-sync.ts); to reach further back, add the older entry
+# by hand.
 upstream:
   - project: cloudflare/cloudflare-docs
     kind: issue
