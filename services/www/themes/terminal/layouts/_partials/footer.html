@@ -2,18 +2,24 @@
   Footer partial - the site map, an invitation to write, and the copyright
 
   Top to bottom:
+  - One line inviting a message, with the button to the contact form: the
+    one action, first, where the page's content ends
   - Link columns from hugo.yaml menu.footer: each top-level entry is a column
     named by what its links are, its children the links. The `talks` column
     has no children in the config: it lists the talks page's own entries, so
     it grows with the page. The header holds the main menu only; every other
     page is reachable from here.
-  - One line inviting a message, with the button to the contact form
   - Copyright and the theme switcher (moved here from the header so the
     header holds navigation only)
   Layout: .site-footer-* in main.css.
 */}}
 <footer class="site-footer mt-auto">
 	<div class="max-w-3xl mx-auto px-4">
+		<div class="site-footer-invite">
+			<p class="site-footer-invite-text">Got a question, a correction, or a project to think through?</p>
+			<a href="{{ "/contact/" | relURL }}" class="btn btn-primary no-underline">Send me a message</a>
+		</div>
+
 		<nav class="site-footer-map" aria-label="Site map">
 			{{ range site.Menus.footer }}
 				<section class="site-footer-column">
@@ -45,10 +51,6 @@
 			{{ end }}
 		</nav>
 
-		<div class="site-footer-invite">
-			<p class="site-footer-invite-text">Got a question, a correction, or a project to think through?</p>
-			<a href="{{ "/contact/" | relURL }}" class="btn btn-primary no-underline">Send me a message</a>
-		</div>
 
 		<div class="site-footer-bar text-sm text-terminal-muted">
 			<p class="site-footer-identity">

@@ -45,11 +45,11 @@ directory = page path" rule applies to *directories*; do not "fix" these into
 
 - Theme switcher (light/dark/system, default system) in the footer: native
   radio inputs, text labels, no icons (`_partials/theme-toggle.html`)
-- Footer (`_partials/footer.html`): a site map from `menu.footer` in
-  `hugo.yaml` (top-level entries are columns named by what their links are,
-  children the links; the `talks` column lists the talks page's entries; the
-  header shows `menu.main` only), an invitation with the contact button, and the
-  theme switcher
+- Footer (`_partials/footer.html`): the invitation with the contact button
+  first, then a site map from `menu.footer` in `hugo.yaml` (top-level entries
+  are columns named by what their links are, children the links; the `talks`
+  column lists the talks page's entries; the header shows `menu.main` only),
+  then the copyright and the theme switcher
 - Terminal-inspired aesthetic with monospace typography
 - Remark42 comments integration with theme synchronization
 - JSON-LD structured data via `layouts/_partials/seo.html` (site-level override:
