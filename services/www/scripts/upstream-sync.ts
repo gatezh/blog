@@ -20,6 +20,8 @@ const AUTHOR = "gatezh";
 // organization or a collaborator is the author's own, not upstream. GitHub
 // says which per result, so no list of accounts lives here.
 const OWN_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+// Page dates are the author's local days, not UTC.
+const TIME_ZONE = "America/Edmonton";
 const FILE = fileURLToPath(new URL("../content/upstream/index.md", import.meta.url));
 
 type State = "open" | "fixed" | "merged" | "declined";
@@ -48,8 +50,10 @@ interface SearchItem {
   is_pr: boolean;
 }
 
-function fromGitHub(): Entry[] {
-  const q = `author:${AUTHOR} -user:${AUTHOR}`;
+// Public items since the oldest entry only: a local token would otherwise page
+// through private repos too, towards search's 1,000-result cap.
+function fromGitHub(since: string): Entry[] {
+  const q = `author:${AUTHOR} -user:${AUTHOR} is:public${since ? ` created:>=${since}` : ""}`;
   const fields =
     "{repository_url, number, title, state, state_reason, author_association, created_at, closed_at, merged_at: .pull_request.merged_at, is_pr: (.pull_request != null)}";
   const out = execFileSync(
@@ -75,7 +79,8 @@ function fromGitHub(): Entry[] {
     .map((line) => JSON.parse(line) as SearchItem)
     .filter((item) => !OWN_ASSOCIATIONS.has(item.author_association))
     .map((item) => {
-      const day = (iso: string | null) => iso?.slice(0, 10);
+      const day = (iso: string | null) =>
+        iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: TIME_ZONE }) : undefined;
       let state: State = "open";
       if (item.state === "closed") {
         if (item.is_pr) state = item.merged_at ? "merged" : "declined";
@@ -119,7 +124,8 @@ function stub(e: Entry): string {
 const source = readFileSync(FILE, "utf8");
 const start = source.indexOf("\nupstream:\n") + "\nupstream:\n".length;
 const rest = source.slice(start);
-const end = rest.search(/^(?! )/m); // first line that is not indented: the next key or `---`
+// The list ends at the first line not starting with a space or `#`.
+const end = rest.search(/^(?=[^\s#])/m);
 const head = source.slice(0, start);
 const tail = rest.slice(end);
 const blocks = rest
@@ -134,9 +140,13 @@ const added: Entry[] = [];
 const closed: Entry[] = [];
 const review: string[] = [];
 
-const horizon = [...onPage.values()].map((b) => field(b, "filed")).sort()[0] ?? "";
+const horizon =
+  [...onPage.values()]
+    .map((b) => field(b, "filed"))
+    .filter(Boolean)
+    .sort()[0] ?? "";
 
-for (const e of fromGitHub()) {
+for (const e of fromGitHub(horizon)) {
   const block = onPage.get(key(e));
   if (!block) {
     if (e.filed >= horizon) added.push(e);
