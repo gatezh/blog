@@ -227,8 +227,10 @@ jobs:
           live() { bunx wrangler deployments status --cwd "$1" --env staging --json | jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty'; }
           api_live=$(live services/api)
           www_live=$(live services/www)
-          [ -n "${api_live}" ] && [ -n "${www_live}" ] \
-            || { echo "::error::a Worker has no version at 100% (api '${api_live}', www '${www_live}'); finish or roll back that deployment first"; exit 1; }
+          if [ -z "${api_live}" ] || [ -z "${www_live}" ]; then
+            echo "::error::a Worker has no version at 100% (api '${api_live}', www '${www_live}'); finish or roll back that deployment first"
+            exit 1
+          fi
           echo "api_live=${api_live}" >> "$GITHUB_OUTPUT"
           echo "www_live=${www_live}" >> "$GITHUB_OUTPUT"
 

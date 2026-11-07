@@ -14,3 +14,7 @@ go = "1.26.10"
 # deprecated in favour of a fork. .github/actionlint.yaml lists what this
 # version does not know yet.
 "aqua:rhysd/actionlint" = "1.7.12"
+# actionlint runs the first shellcheck on PATH over every `run:` block. Pinned
+# so CI and the devcontainer lint alike: the runner image's own copy (0.9.0
+# on ubuntu-24.04) reported SC2015 where the devcontainer's 0.11.0 did not.
+"aqua:koalaman/shellcheck" = "0.11.0"
