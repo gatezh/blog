@@ -19,8 +19,10 @@ import { join } from "node:path";
 const ROOT = join(import.meta.dir, "../../..");
 const SCRIPT = join(import.meta.dir, "go-live.sh");
 
-const OLD_COMMIT = "a".repeat(40);
-const NEW_COMMIT = "b".repeat(40);
+const COMMIT = "b".repeat(40);
+// upload's build_id: `<run id>-<run attempt>`.
+const OLD_BUILD = "41964656268-1";
+const NEW_BUILD = "42320493291-2";
 
 // The deployed name of a Worker: wrangler.jsonc's `name`, plus "-<env>".
 function deployedName(service: "api" | "www", wranglerEnv: string): string {
@@ -103,7 +105,7 @@ if [ -n "$override" ]; then
 fi
 echo "$w $version \${override:+override}" >> "$STATE/served.log"
 if [ "$w" = www ]; then
-  printf '<meta name=build-commit content="%s">' "$(cat "$STATE/commit-$version")"
+  printf '<meta name=build-commit content="%s"><meta name=build-id content="%s">' "$COMMIT" "$(cat "$STATE/build-$version")"
 else
   [ "$dump" = - ] && printf 'HTTP/2 200\\r\\nworker-version: %s\\r\\n\\r\\n' "$version"
   [ "$out" = /dev/null ] || printf '{}'
@@ -151,9 +153,8 @@ function harness(workflow: string, overrides: Record<string, string> = {}): Harn
     writeFileSync(join(bin, name), body);
     chmodSync(join(bin, name), 0o755);
   }
-  writeFileSync(join(state, `commit-api-old`), OLD_COMMIT);
-  writeFileSync(join(state, `commit-www-old`), OLD_COMMIT);
-  writeFileSync(join(state, `commit-www-new`), NEW_COMMIT);
+  writeFileSync(join(state, "build-www-old"), OLD_BUILD);
+  writeFileSync(join(state, "build-www-new"), NEW_BUILD);
   writeFileSync(
     join(state, "www.json"),
     JSON.stringify([{ version_id: "www-old", percentage: 100 }]),
@@ -170,7 +171,10 @@ function harness(workflow: string, overrides: Record<string, string> = {}): Harn
     API_VERSION_ID: "api-new",
     WWW_VERSION_ID: "www-new",
     API_URL: "https://api.example.test",
-    EXPECT_COMMIT: NEW_COMMIT,
+    EXPECT_BUILD: NEW_BUILD,
+    // Both versions come from one commit (a redeploy of the live one): only
+    // the build id tells them apart.
+    COMMIT,
     DEPLOY_MESSAGE: "deploy message",
     CLOUDFLARE_ZERO_CLIENT_ID: "",
     CLOUDFLARE_ZERO_CLIENT_SECRET: "",
@@ -326,8 +330,19 @@ for (const [workflow, envArg] of [
 
       expect(code).not.toBe(0);
       expect(sleeps(h)).toBe(12);
-      expect(out).toContain("::error::the override reaches www build-commit");
+      expect(out).toContain("::error::the override reaches www build-id");
       expect(h.output().headers).toBeUndefined();
+    });
+
+    test("wait does not take the live version for the staged one when both come from the same commit", () => {
+      const h = harness(workflow);
+      h.run("stage");
+      writeFileSync(join(h.state, "misses"), "1000");
+
+      const { code, out } = h.run("wait");
+
+      expect(code).not.toBe(0);
+      expect(out).toContain(`www build '${OLD_BUILD}'`);
     });
 
     test("wait fails when the override names a Worker that is not deployed under that name", () => {

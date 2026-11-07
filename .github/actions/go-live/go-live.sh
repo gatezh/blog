@@ -9,7 +9,7 @@
 #   stage    Read the version each Worker serves at 100%, apply triggers, then
 #            deploy each new version at 0% beside it, api first. Outputs
 #            api_live and www_live.
-#   wait     Send the version override until www's build-commit and the api's
+#   wait     Send the version override until www's build-id and the api's
 #            Worker-Version name the new versions: an override that is not
 #            applied falls back to the live version without an error. Outputs
 #            headers, a `curl -H @file` with what it sent, for the checks.
@@ -24,7 +24,9 @@
 #   API_VERSION_ID, WWW_VERSION_ID  the versions `upload` made
 #   WWW_URL                 the site, without a trailing slash
 #   API_URL                 the api; empty skips the api's identity check
-#   EXPECT_COMMIT           the commit www's build-commit must name
+#   EXPECT_BUILD            the build www's build-id must name: upload's
+#                           build_id. Not the commit: a redeploy of the live
+#                           commit would match the live version too.
 #   DEPLOY_LABEL            "staging" or "production", for messages
 #   DEPLOY_MESSAGE          the deployment message
 #   CLOUDFLARE_ZERO_CLIENT_ID, CLOUDFLARE_ZERO_CLIENT_SECRET  optional Access
@@ -103,18 +105,18 @@ wait_for() {
   [ "$1" = override ] && what="the override reaches"
   headers=$(headers_file "$1")
   for attempt in $(seq 1 12); do
-    www=$(curl -sf --max-time 20 -H @"${headers}" "${WWW_URL}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
+    www=$(curl -sf --max-time 20 -H @"${headers}" "${WWW_URL}/" | grep -o 'build-id[^>]*' | grep -oE '[0-9]+-[0-9]+' | head -1 || true)
     api=""
     [ -z "${API_URL}" ] || api=$(curl -sf -o /dev/null -D - --max-time 20 -H @"${headers}" "${API_URL}" | tr -d '\r' | grep -i '^worker-version:' | cut -d' ' -f2 || true)
-    if [ "${www}" = "${EXPECT_COMMIT}" ] && [ "${api}" = "${want_api}" ]; then
+    if [ "${www}" = "${EXPECT_BUILD}" ] && [ "${api}" = "${want_api}" ]; then
       echo "headers=${headers}" >> "$GITHUB_OUTPUT"
-      echo "Now ${what} www ${www::7} and api ${api:-(not checked)}."
+      echo "Now ${what} www build ${www} and api ${api:-(not checked)}."
       return 0
     fi
-    echo "Attempt ${attempt}: ${what} www '${www::7}' and api '${api}'; waiting for ${EXPECT_COMMIT::7} and '${want_api}'."
+    echo "Attempt ${attempt}: ${what} www build '${www}' and api '${api}'; waiting for ${EXPECT_BUILD} and '${want_api}'."
     sleep 5
   done
-  echo "::error::${what} www build-commit '${www}' and api version '${api}', expected ${EXPECT_COMMIT} and '${want_api}'"
+  echo "::error::${what} www build-id '${www}' and api version '${api}', expected ${EXPECT_BUILD} and '${want_api}'"
   return 1
 }
 
