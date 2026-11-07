@@ -41,5 +41,3 @@ This site is my working notebook: a place for solutions worth remembering, exper
 I give [talks](/talks/) at Frontend & Beyond, Calgary's web developer meetup, on shipping real apps on zero-cost edge infrastructure and on security-first AI workflows. The slides are public. Anthropic certified me as a [Claude Certified Architect, Foundations](https://www.credly.com/badges/9ce5ccf8-7ea5-40d4-9f65-3e0a8a66094a) in September 2026.
 
 Everything I've shipped in public, from open-source dev containers to live products, is on the [projects](/projects/) page. I also curate [UX Cringe](https://uxcringe.com/), a collection of real interfaces that failed the people using them, written up step by step. And I build websites for small businesses at [Just Right Systems](https://justright.systems/).
-
-Got a question, a correction, or a project to think through? Then [send me a message](/contact/).
