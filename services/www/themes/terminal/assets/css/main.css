@@ -387,9 +387,9 @@
   /* -------------------------------------------------------------------------
      Footer - see _partials/footer.html
 
-     A full-width band: the site map in columns, one column per menu heading
-     and two to a row on phones; the invitation with its button; and the bar
-     with the copyright and the theme switcher.
+     A full-width band: the invitation with its button; the site map in
+     columns, one column per menu heading and two to a row on phones; and
+     the bar with the copyright and the theme switcher.
      ------------------------------------------------------------------------- */
   .site-footer {
     border-top: 1px solid var(--color-terminal-border);
