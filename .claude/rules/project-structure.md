@@ -59,7 +59,7 @@ This is a Bun monorepo for gatezh.com:
 │   ├── init-plugins.sh         # Claude Code marketplaces + plugins (run once after sign-in)
 │   └── claude-sandbox/         # Sandbox variant (image firewall + allowed-domains.txt)
 ├── docs/                       # Documentation and ADRs
-├── .mise.toml                  # Tool versions (bun, hugo, actionlint)
+├── .mise.toml                  # Tool versions (bun, hugo, actionlint, shellcheck)
 ├── oxlint.json                 # OXC linter configuration
 ├── tsconfig.json               # Root TypeScript configuration
 └── package.json                # Root workspace config
