@@ -42,4 +42,4 @@ I give [talks](/talks/) at Frontend & Beyond, Calgary's web developer meetup, on
 
 Everything I've shipped in public, from open-source dev containers to live products, is on the [projects](/projects/) page. I also curate [UX Cringe](https://uxcringe.com/), a collection of real interfaces that failed the people using them, written up step by step. And I build websites for small businesses at [Just Right Systems](https://justright.systems/).
 
-If you'd like to compare notes or work together, [send me a message](/contact/).
+Got a question, a correction, or a project to think through? Then [send me a message](/contact/).
