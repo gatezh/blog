@@ -23,7 +23,7 @@ upstream:
     filed: 2026-11-06
     state: fixed
     closed: 2026-11-06
-    note: "At quit, agterm gave the session listing 0.1 s to answer. When it ran over, no pane's running command was saved, so after a reboot every pane came back as a bare shell."
+    note: "At quit, agterm gave the session listing 0.1 s to answer. When it ran over, no pane's running command was saved, so after a reboot the panes came back as bare shells."
   - project: cloudflare/cloudflare-docs
     kind: issue
     number: 34799
