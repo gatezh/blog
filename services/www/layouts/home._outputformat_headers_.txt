@@ -128,7 +128,8 @@
        js.html fingerprints every script in every build; css.html fingerprints
        the stylesheet only in production, so staging's /css/main.css keeps the
        default revalidation. /brand/ holds the favicons and share image, which
-       head.html always fingerprints. /fonts/ and /favicon.ico are plain static/
+       head.html always fingerprints, and the resized portraits, which
+       portrait.html always fingerprints. /fonts/ and /favicon.ico are plain static/
        files and are left alone. */ -}}
 {{- $immutable := slice "/js/*" "/brand/*" -}}
 {{- if hugo.IsProduction }}{{ $immutable = $immutable | append "/css/*" }}{{ end -}}

@@ -1,0 +1,38 @@
+{{- /* portrait.html — the About page's portrait, resized for .profile-portrait.
+       Returns a dict (src, srcset, width, height) for the home page, the
+       About page and the Person JSON-LD, or false when there is no portrait.
+
+       Hugo resizes and encodes it at build time, so it ships with the site
+       as a static asset rather than an on-demand Cloudflare transformation:
+       no transform on the first request at each edge, the same file in dev,
+       staging and production, and one URL on every page, so the About page
+       draws it from the cache the home page filled. Each file is fingerprinted
+       under /brand/, which _headers caches for a year as immutable.
+
+       Widths are 1x, 2x and 3x of the 17rem (272px) cap on .profile-portrait,
+       skipping any wider than the source. Call it with partialCached: the
+       result does not depend on the page. */ -}}
+{{- $portrait := false -}}
+{{- with site.GetPage "/about" -}}
+	{{- with .Resources.GetMatch .Params.portrait -}}
+		{{- $source := . -}}
+		{{- $candidates := slice -}}
+		{{- $largest := false -}}
+		{{- range $i, $width := slice 272 544 816 -}}
+			{{- if le $width $source.Width -}}
+				{{- $image := $source.Process (printf "resize %dx webp" $width) | resources.Copy (printf "brand/portrait-%d.webp" $width) | fingerprint -}}
+				{{- $candidates = $candidates | append (printf "%s %dx" $image.RelPermalink (add $i 1)) -}}
+				{{- $largest = $image -}}
+			{{- end -}}
+		{{- end -}}
+		{{- with $largest -}}
+			{{- $portrait = dict
+				"src" .RelPermalink
+				"srcset" (delimit $candidates ", ")
+				"width" $source.Width
+				"height" $source.Height
+			-}}
+		{{- end -}}
+	{{- end -}}
+{{- end -}}
+{{- return $portrait -}}

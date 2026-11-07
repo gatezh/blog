@@ -348,6 +348,31 @@ test.describe("Homepage", () => {
 
     expect(homepageWidth).toBe(aboutWidth);
   });
+
+  test("shares one fingerprinted portrait file with the About page", async ({ page }) => {
+    // The same srcset on both pages means About is drawn from the browser
+    // cache the home page already filled, instead of a second download.
+    const attributes = async (testId: string) => {
+      const portrait = page.getByTestId(testId);
+      return {
+        src: await portrait.getAttribute("src"),
+        srcset: await portrait.getAttribute("srcset"),
+      };
+    };
+    await page.goto("/");
+    const home = await attributes("homepage-portrait");
+    await page.goto("/about/");
+    expect(await attributes("about-portrait")).toEqual(home);
+
+    // Built by Hugo at 1x, 2x and 3x of the 17rem slot, each a hashed file.
+    const candidates = (home.srcset ?? "").split(",").map((candidate) => candidate.trim());
+    expect(candidates).toHaveLength(3);
+    for (const [index, candidate] of candidates.entries()) {
+      expect(candidate).toMatch(
+        new RegExp(`^/brand/portrait-\\d+\\.[a-f0-9]{64}\\.webp ${index + 1}x$`),
+      );
+    }
+  });
 });
 
 test.describe("About page", () => {
