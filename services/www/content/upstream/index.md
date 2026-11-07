@@ -16,6 +16,14 @@ keywords: [open-source, upstream, cloudflare, bun, playwright, better-auth, devc
 # one (scripts/upstream-sync.ts); to reach further back, add the older entry
 # by hand.
 upstream:
+  - project: umputun/agterm
+    kind: issue
+    number: 915
+    title: "Live sessions: quit-time capture keeps no command for any pane when the single 0.1 s zmx list times out, so a reboot restores bare shells"
+    filed: 2026-11-06
+    state: fixed
+    closed: 2026-11-06
+    note: "At quit, agterm gave the session listing 0.1 s to answer. When it ran over, no pane's running command was saved, so after a reboot every pane came back as a bare shell."
   - project: cloudflare/cloudflare-docs
     kind: issue
     number: 34799
