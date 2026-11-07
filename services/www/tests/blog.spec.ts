@@ -382,7 +382,7 @@ test.describe("About page", () => {
 
   test("keeps punctuation attached to Markdown links", async ({ page }) => {
     for (const linkName of ["LinkedIn", "send me a message"]) {
-      const link = page.getByRole("link", { name: linkName, exact: true });
+      const link = page.locator("#main-content").getByRole("link", { name: linkName, exact: true });
       await expect(link).toBeVisible();
       await expect
         .poll(() => link.evaluate((element) => element.nextSibling?.textContent))
@@ -460,9 +460,16 @@ test.describe("Footer", () => {
       expect(hrefs, href).toContain(href);
       expect((await request.get(href)).status(), href).toBe(200);
     }
+    // The Talks column lists the talks themselves; every anchor is a section on the page.
+    const talks = hrefs.filter((h): h is string => !!h && h.startsWith("/talks/#"));
+    expect(talks.length).toBeGreaterThan(0);
+    const talksHtml = await (await request.get("/talks/")).text();
+    for (const href of talks) {
+      expect(talksHtml, href).toContain(`id="${href.slice("/talks/#".length)}"`);
+    }
     await expect(page.locator("header nav").locator('a[href="/upstream/"]')).toHaveCount(0);
     await expect(
-      page.locator("footer").getByRole("link", { name: "Get in touch" }),
+      page.locator("footer").getByRole("link", { name: "Send me a message" }),
     ).toHaveAttribute("href", "/contact/");
   });
 });

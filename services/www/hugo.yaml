@@ -181,35 +181,14 @@ menu:
       name: Contact
       url: /contact/
       weight: 40
-  # The footer's site map: each top-level entry is a column, its children the
-  # links. `rel: me` marks the profiles that are this site's owner.
+  # The footer's site map: each top-level entry is a column named by what its
+  # links are, its children the links. `talks` has no children here; the
+  # footer lists the talks page's own entries. `rel: me` marks the profiles
+  # that are this site's owner.
   footer:
-    - identifier: work
-      name: Work
-      weight: 10
-    - identifier: projects-footer
-      name: Projects
-      pageRef: /projects
-      parent: work
-      weight: 10
-    - identifier: talks-footer
-      name: Talks
-      pageRef: /talks
-      parent: work
-      weight: 20
-    - identifier: upstream
-      name: Upstream
-      pageRef: /upstream
-      parent: work
-      weight: 30
-    - identifier: early-projects
-      name: Early projects
-      pageRef: /early-projects
-      parent: work
-      weight: 40
     - identifier: writing
       name: Writing
-      weight: 20
+      weight: 10
     - identifier: posts-footer
       name: Posts
       pageRef: /posts
@@ -230,30 +209,56 @@ menu:
       url: /llms.txt
       parent: writing
       weight: 40
-    - identifier: elsewhere
-      name: Elsewhere
+    - identifier: code
+      name: Code
+      weight: 20
+    - identifier: projects-footer
+      name: Projects
+      pageRef: /projects
+      parent: code
+      weight: 10
+    - identifier: upstream
+      name: Upstream
+      pageRef: /upstream
+      parent: code
+      weight: 20
+    - identifier: early-projects
+      name: Early projects
+      pageRef: /early-projects
+      parent: code
       weight: 30
+    - identifier: source
+      name: This site's source
+      url: https://github.com/gatezh/blog
+      parent: code
+      weight: 40
+    - identifier: talks
+      name: Talks
+      weight: 30
+    - identifier: me
+      name: Me
+      weight: 40
     - identifier: about-footer
       name: About
       pageRef: /about
-      parent: elsewhere
+      parent: me
       weight: 10
     - identifier: contact-footer
       name: Contact
       pageRef: /contact
-      parent: elsewhere
+      parent: me
       weight: 20
     - identifier: github
       name: GitHub
       url: https://github.com/gatezh
-      parent: elsewhere
+      parent: me
       weight: 30
       params:
         rel: me
     - identifier: linkedin
       name: LinkedIn
       url: https://linkedin.com/in/gatezh
-      parent: elsewhere
+      parent: me
       weight: 40
       params:
         rel: me
