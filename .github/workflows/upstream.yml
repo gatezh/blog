@@ -9,36 +9,53 @@ name: Upstream
 # 09:00 UTC is 03:00 in Alberta (UTC-6 all year). The job's token sees only
 # public repositories, so nothing private can reach a stub. A pull request
 # opened with it does not trigger ci.yml; CI runs on the commit that writes
-# the notes. GitHub pauses a schedule after 60 days without a push; the last
-# step re-enables this workflow on every run, which resets that clock.
+# the notes.
 on:
   schedule:
     - cron: "0 9 1 * *"
   workflow_dispatch:
 
-permissions:
-  actions: write
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   sync:
     name: Sync
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
+      # Pushing over an open sync PR would discard notes written on it; the
+      # first run after it merges picks up anything skipped.
+      - name: Check for last month's pull request
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head upstream-sync --json url --jq '.[].url')
+          if [ -n "$pr" ]; then
+            echo "Last month's pull request is still open: $pr. Merge or close it, and the next run picks up from there." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.previous.outputs.pr == ''
         with:
           persist-credentials: false
 
       - uses: $/.github/actions/setup
+        if: steps.previous.outputs.pr == ''
 
       - name: Update the page
+        if: steps.previous.outputs.pr == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: bun run --cwd services/www upstream:sync | tee "$RUNNER_TEMP/summary.md"
 
+      # No PR is open, so a leftover upstream-sync branch is safe to overwrite.
       - name: Open a pull request
+        if: steps.previous.outputs.pr == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -46,17 +63,26 @@ jobs:
             echo "Nothing to add."
             exit 0
           fi
+          gh auth setup-git
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c upstream-sync
           git commit -qam "content: upstream entries, $(date -u +'%B %Y')"
-          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" upstream-sync
-          if [ -z "$(gh pr list --head upstream-sync --json number --jq '.[].number')" ]; then
-            gh pr create --head upstream-sync --title "content: upstream entries, $(date -u +'%B %Y')" --body-file "$RUNNER_TEMP/summary.md"
-          fi
+          git push -qf origin upstream-sync
+          gh pr create --head upstream-sync --title "content: upstream entries, $(date -u +'%B %Y')" --body-file "$RUNNER_TEMP/summary.md"
 
-      - name: Keep the schedule alive
-        if: always()
+  # Community keepalive against the 60-day schedule disable (not documented
+  # by GitHub). A separate job so only it holds `actions: write`.
+  keepalive:
+    name: Keep the schedule alive
+    needs: sync
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Re-enable this workflow
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/upstream.yml/enable"
