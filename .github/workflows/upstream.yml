@@ -9,13 +9,15 @@ name: Upstream
 # 09:00 UTC is 03:00 in Alberta (UTC-6 all year). The job's token sees only
 # public repositories, so nothing private can reach a stub. A pull request
 # opened with it does not trigger ci.yml; CI runs on the commit that writes
-# the notes. GitHub pauses a schedule after 60 days without a push.
+# the notes. GitHub pauses a schedule after 60 days without a push; the last
+# step re-enables this workflow on every run, which resets that clock.
 on:
   schedule:
     - cron: "0 9 1 * *"
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -52,3 +54,9 @@ jobs:
           if [ -z "$(gh pr list --head upstream-sync --json number --jq '.[].number')" ]; then
             gh pr create --head upstream-sync --title "content: upstream entries, $(date -u +'%B %Y')" --body-file "$RUNNER_TEMP/summary.md"
           fi
+
+      - name: Keep the schedule alive
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/upstream.yml/enable"
