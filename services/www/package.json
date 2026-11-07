@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "export HUGO_PARAMS_APIURL=http://localhost:${API_PORT:-8787} && test -n \"$CODESPACE_NAME\" && bun --env-file=../../.env.local x hugo server --buildDrafts --appendPort=false --baseURL / --bind 0.0.0.0 --port ${WWW_PORT:-1313} || bun --env-file=../../.env.local x hugo server --buildDrafts --bind 0.0.0.0 --port ${WWW_PORT:-1313}",
-    "preview": "bun --env-file=../../.env.local x hugo server --appendPort=false --baseURL / --bind 0.0.0.0",
+    "dev": "export HUGO_PARAMS_APIURL=http://localhost:${API_PORT:-8787} && test -n \"$CODESPACE_NAME\" && bun --env-file=../../.env.local x hugo server --renderToMemory --buildDrafts --appendPort=false --baseURL / --bind 0.0.0.0 --port ${WWW_PORT:-1313} || bun --env-file=../../.env.local x hugo server --renderToMemory --buildDrafts --bind 0.0.0.0 --port ${WWW_PORT:-1313}",
+    "preview": "bun --env-file=../../.env.local x hugo server --renderToMemory --appendPort=false --baseURL / --bind 0.0.0.0",
     "build": "bun --env-file=../../.env.local x hugo --minify --cleanDestinationDir",
     "brand": "bun brand/render.ts",
     "upstream:sync": "bun scripts/upstream-sync.ts",

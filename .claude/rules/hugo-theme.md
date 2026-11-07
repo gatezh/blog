@@ -45,6 +45,8 @@ directory = page path" rule applies to *directories*; do not "fix" these into
 
 - Theme switcher (light/dark/system, default system) in the footer: native
   radio inputs, text labels, no icons (`_partials/theme-toggle.html`)
+- `bun run dev` serves Hugo from memory (`--renderToMemory`): a build or a
+  test run writing `public/` must never change what the dev server serves.
 - Footer (`_partials/footer.html`): the question with its contact link
   first, then a site map from `menu.footer` in `hugo.yaml` (top-level entries
   are columns named by what their links are, children the links; the `talks`
