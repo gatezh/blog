@@ -77,7 +77,7 @@ jobs:
           tree=$(gh api "repos/${REPO}/git/commits/${GITHUB_SHA}" --jq .tree.sha)
           runs=$(gh api "repos/${REPO}/actions/artifacts?name=tested-tree-${tree}&per_page=100" --jq '.artifacts[] | select(.expired | not) | .workflow_run.id // empty')
           for id in ${runs}; do
-            run=$(gh api "repos/${REPO}/actions/runs/${id}" --jq "select(.conclusion == \"success\" and .event == \"pull_request\" and .path == \".github/workflows/ci.yml\" and .head_repository.full_name == \"${REPO}\") | .html_url")
+            run=$(gh api "repos/${REPO}/actions/runs/${id}" --jq 'select(.conclusion == "success" and .event == "pull_request" and .path == ".github/workflows/ci.yml" and .head_repository.id == .repository.id) | .html_url')
             if [ -n "${run}" ]; then
               echo "::notice::Skipping CI: tree ${tree::7} passed in ${run}"
               echo "CI skipped: this tree (\`${tree::7}\`) already passed in [its pull request run](${run})." >> "$GITHUB_STEP_SUMMARY"
