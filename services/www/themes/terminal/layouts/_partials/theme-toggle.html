@@ -7,8 +7,11 @@
 
   Native radio inputs in a fieldset: the browser supplies the arrow-key
   behaviour and the screen-reader semantics of a radio group, with no ARIA to
-  keep in sync. The selected option is wrapped in brackets, like a CLI picker;
-  every option reserves the bracket space, so switching never shifts the row.
+  keep in sync. The legend names the group for assistive tech only; the
+  visible "theme:" is a plain span in the row, because browsers lay a legend
+  out on its own line (WebKit always, whatever the CSS). The selected option
+  is wrapped in brackets, like a CLI picker; every option reserves the
+  bracket space, so switching never shifts the row.
 
   System, the default, is checked in the markup, so the group shows a
   selection before (or without) the script; js/theme-toggle.ts then checks
@@ -16,7 +19,8 @@
   Tailwind's sr-only, and their labels take the click.
 */}}
 <fieldset class="theme-toggle">
-	<legend class="theme-toggle-legend">theme</legend>
+	<legend class="sr-only">theme</legend>
+	<span class="theme-toggle-label" aria-hidden="true">theme:</span>
 	{{- range slice "light" "dark" "system" }}
 		<label class="theme-toggle-option">
 			<input type="radio" name="theme" value="{{ . }}" class="theme-toggle-input sr-only"{{ if eq . "system" }} checked{{ end }}>

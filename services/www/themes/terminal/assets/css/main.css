@@ -45,40 +45,42 @@
    Theme Configuration - CSS Custom Properties
    ============================================================================= */
 @theme {
-  /* Light mode colors (default)
-     Contrast ratios verified for WCAG AA compliance:
-     - fg (#1a1a1a) on bg (#f5f5f0): ~12:1 (excellent)
-     - muted (#595e66) on bg (#f5f5f0): ~5.5:1 (passes AA)
-     - accent (#16a34a) on bg (#f5f5f0): ~4.5:1 (passes AA for text) */
-  --color-terminal-bg: #f5f5f0;
-  --color-terminal-bg-secondary: #eaeae5;
-  --color-terminal-fg: #1a1a1a;
-  --color-terminal-accent: #16a34a; /* Darker green for better contrast */
-  --color-terminal-accent-hover: #15803d;
-  --color-terminal-muted: #595e66; /* Darker muted for better contrast */
-  --color-terminal-border: #d1d5db;
-  --color-terminal-code-bg: #e5e5e0;
-  --color-terminal-removed: #b42318; /* diff deletions, ~6:1 on bg */
+  /* Each colour is its light and dark value in one place: light-dark() picks
+     by the element's color-scheme, set on <html> below. The system theme
+     therefore renders before any script runs, with no flash on reload.
+     light-dark() ships as is (Safari 17.5, Chrome 123, Firefox 120): older
+     browsers get default black on white, readable, by choice.
+     Light: fg (#1a1a1a) on bg (#f5f5f0) ~12:1, muted (#595e66) ~5.5:1,
+     accent (#16a34a) ~4.5:1. Dark: fg (#e6edf3) on bg (#0d1117) ~10:1,
+     muted (#9ca3af) ~6:1, accent (#4ade80) ~8:1. All pass WCAG AA. */
+  --color-terminal-bg: light-dark(#f5f5f0, #0d1117);
+  --color-terminal-bg-secondary: light-dark(#eaeae5, #161b22);
+  --color-terminal-fg: light-dark(#1a1a1a, #e6edf3);
+  --color-terminal-accent: light-dark(#16a34a, #4ade80);
+  --color-terminal-accent-hover: light-dark(#15803d, #86efac);
+  --color-terminal-muted: light-dark(#595e66, #9ca3af);
+  --color-terminal-border: light-dark(#d1d5db, #30363d);
+  --color-terminal-code-bg: light-dark(#e5e5e0, #161b22);
+  --color-terminal-removed: light-dark(#b42318, #f87171); /* diff deletions */
+  --color-terminal-pending: light-dark(#b45309, #fbbf24); /* still open (upstream) */
 
   /* Font family */
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
-/* Dark mode color overrides
-   Contrast ratios verified for WCAG AA compliance:
-   - fg (#e6edf3) on bg (#0d1117): ~10:1 (excellent)
-   - muted (#9ca3af) on bg (#0d1117): ~6:1 (passes AA)
-   - accent (#4ade80) on bg (#0d1117): ~8:1 (passes AA) */
+/* The theme: the system's by default; `light` or `dark` on <html> is the
+   visitor's explicit choice (js/theme-toggle.ts), which also tells the
+   browser which scheme to use for its own UI, such as scrollbars. */
+:root {
+  color-scheme: light dark;
+}
+
+.light {
+  color-scheme: light;
+}
+
 .dark {
-  --color-terminal-bg: #0d1117;
-  --color-terminal-bg-secondary: #161b22;
-  --color-terminal-fg: #e6edf3;
-  --color-terminal-accent: #4ade80; /* Lighter green for better contrast on dark */
-  --color-terminal-accent-hover: #86efac;
-  --color-terminal-muted: #9ca3af; /* Lighter muted for better contrast */
-  --color-terminal-border: #30363d;
-  --color-terminal-code-bg: #161b22;
-  --color-terminal-removed: #f87171; /* ~6.5:1 on bg */
+  color-scheme: dark;
 }
 
 /* =============================================================================
@@ -322,24 +324,19 @@
   /* -------------------------------------------------------------------------
      Theme Switcher (footer) - see _partials/theme-toggle.html
      ------------------------------------------------------------------------- */
+  /* One row that never breaks inside itself: where the footer bar is too
+     narrow, the whole control moves below the copyright. */
   .theme-toggle {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 0 0.375rem;
     min-width: 0;
   }
 
-  /* A floated legend is laid out as an ordinary child, so it sits inline with
-     the options instead of on the fieldset's top edge. */
-  .theme-toggle-legend {
-    float: left;
-    margin-right: 0.5rem;
-  }
-
   /* "theme:" - a key for the values that follow, not a fourth option. */
-  .theme-toggle-legend::after {
-    content: ":";
+  .theme-toggle-label {
+    margin-right: 0.5rem;
   }
 
   .theme-toggle-option {
@@ -388,38 +385,94 @@
   }
 
   /* -------------------------------------------------------------------------
-     Footer - identity, theme, profiles. Two rows on phones, one from 40rem.
+     Footer - see _partials/footer.html
+
+     A full-width band: the question and its link; the site map in
+     columns, one column per menu heading and two to a row on phones; and
+     the bar with the copyright and the theme switcher.
      ------------------------------------------------------------------------- */
   .site-footer {
+    border-top: 1px solid var(--color-terminal-border);
+    background-color: var(--color-terminal-bg-secondary);
+  }
+
+  /* Two equal columns on phones. From sm, each column is as wide as its
+     links and the columns spread across the full width, so the first starts
+     at the left edge and the last ends at the right one, like the rules,
+     the question and the bar around them. No column count is assumed. */
+  .site-footer-map {
     display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "identity profiles"
-      "theme theme";
-    align-items: center;
-    gap: 0.75rem 1.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem 1.5rem;
+    padding: 2.5rem 0;
+    border-bottom: 1px solid var(--color-terminal-border);
 
     @variant sm {
-      grid-template-columns: 1fr auto auto;
-      grid-template-areas: "identity theme profiles";
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 2rem 2.5rem;
     }
+  }
+
+  .site-footer-heading {
+    margin: 0 0 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .site-footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+  }
+
+  /* Padding, not gap, between links: each one is a 28px target. */
+  .site-footer-link {
+    display: inline-block;
+    padding: 0.25rem 0;
+    color: var(--color-terminal-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .site-footer-link:hover,
+  .site-footer-link:focus-visible,
+  .site-footer-link.is-current {
+    color: var(--color-terminal-accent);
+  }
+
+  .site-footer-invite {
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--color-terminal-border);
+  }
+
+  .site-footer-invite-text {
+    margin: 0 0 0.5rem;
+    max-width: 72ch;
+    line-height: 1.5;
+  }
+
+  .site-footer-invite-action {
+    margin: 0;
+  }
+
+  .site-footer-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding: 1.5rem 0;
   }
 
   .site-footer-identity {
-    grid-area: identity;
-  }
-
-  .site-footer .theme-toggle {
-    grid-area: theme;
-  }
-
-  .site-footer-profiles {
-    grid-area: profiles;
-
-    @variant sm {
-      padding-left: 1.5rem;
-      border-left: 1px solid var(--color-terminal-border);
-    }
+    margin: 0;
   }
 
   /* -------------------------------------------------------------------------
@@ -721,6 +774,266 @@
     padding-left: 2.25rem;
     font-size: 0.8125rem;
     color: var(--color-terminal-muted);
+  }
+
+  /* -------------------------------------------------------------------------
+     Talks - see _shortcodes/talks.html
+
+     Each talk is its title slide: a 2:1 frame with the deck's accent rule
+     along the bottom edge, the abstract and links beneath it. Two-class
+     selectors so the .prose element rules do not win.
+     ------------------------------------------------------------------------- */
+  .talks {
+    margin: 2.5rem 0;
+  }
+
+  .talks .talk + .talk {
+    margin-top: 3rem;
+  }
+
+  .talk .slide {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 2 / 1;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    border: 1px solid var(--color-terminal-border);
+    border-radius: 0.5rem;
+    background-color: var(--color-terminal-bg-secondary);
+    overflow: hidden;
+
+    @variant max-sm {
+      aspect-ratio: auto;
+      min-height: 14rem;
+      border-radius: 0.375rem;
+    }
+  }
+
+  .talk .slide::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 0.25rem;
+    background-color: var(--color-terminal-accent);
+  }
+
+  .talk .slide-title {
+    margin: 0;
+    max-width: 24ch;
+    font-size: clamp(1.375rem, 3.6vw, 2.125rem);
+    font-weight: 700;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .talk .slide-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .talk .slide-title a:hover,
+  .talk .slide-title a:focus-visible {
+    color: var(--color-terminal-accent);
+  }
+
+  .talk .slide-foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-terminal-muted);
+  }
+
+  .talk .slide-foot time {
+    flex-shrink: 0;
+  }
+
+  .talk .talk-abstract {
+    margin: 1rem 0 0.75rem;
+    max-width: 72ch;
+    line-height: 1.65;
+  }
+
+  .talk .talk-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+  }
+
+  /* -------------------------------------------------------------------------
+     Upstream - see _shortcodes/upstream.html
+
+     One mark per entry, in the shortlog bar and before each entry, in the
+     diff vocabulary of the Projects page: `+` fixed or merged, `-` declined,
+     `·` still open. The glyph is a ::before with empty alt text; the state
+     is spelled out in the entry's own line.
+     ------------------------------------------------------------------------- */
+  .shortlog i::before,
+  .upstream-entry::before {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--color-terminal-pending);
+    content: "·" / "";
+  }
+
+  .shortlog i[data-state="fixed"]::before,
+  .shortlog i[data-state="merged"]::before,
+  .upstream-entry[data-state="fixed"]::before,
+  .upstream-entry[data-state="merged"]::before {
+    color: var(--color-terminal-accent);
+    content: "+" / "";
+  }
+
+  .shortlog i[data-state="declined"]::before,
+  .upstream-entry[data-state="declined"]::before {
+    color: var(--color-terminal-removed);
+    content: "-" / "";
+  }
+
+  .prose figure.shortlog {
+    margin: 2.5rem 0;
+    font-size: 0.875rem;
+  }
+
+  figure.shortlog figcaption {
+    margin-bottom: 0.5rem;
+    text-align: left;
+  }
+
+  .shortlog .shortlog-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .shortlog .shortlog-row {
+    display: grid;
+    grid-template-columns: 2ch max-content 1fr;
+    column-gap: 1rem;
+    align-items: baseline;
+    padding: 0.125rem 0;
+  }
+
+  .shortlog .shortlog-count {
+    text-align: right;
+    color: var(--color-terminal-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .shortlog .shortlog-bar,
+  .shortlog .shortlog-legend {
+    letter-spacing: 0.125em;
+  }
+
+  .shortlog .shortlog-legend {
+    margin: 0.75rem 0 0;
+    padding-left: calc(2ch + 1rem);
+    font-size: 0.8125rem;
+    color: var(--color-terminal-muted);
+  }
+
+  .shortlog .shortlog-legend i + i {
+    margin-left: 0.75rem;
+  }
+
+  .upstream-group {
+    margin-bottom: 2.5rem;
+  }
+
+  .upstream-group .upstream-project {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+
+  .upstream-group .upstream-project a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .upstream-group .upstream-project a:hover,
+  .upstream-group .upstream-project a:focus-visible {
+    color: var(--color-terminal-accent);
+  }
+
+  /* The title line is tinted like a diff line; the state and note hang
+     under it on the same left rule. */
+  .upstream-entry {
+    position: relative;
+    padding-bottom: 0.5rem;
+    border-left: 2px solid var(--color-terminal-pending);
+  }
+
+  .upstream-entry[data-state="fixed"],
+  .upstream-entry[data-state="merged"] {
+    border-color: var(--color-terminal-accent);
+  }
+
+  .upstream-entry[data-state="declined"] {
+    border-color: var(--color-terminal-removed);
+  }
+
+  .upstream-entry + .upstream-entry {
+    margin-top: 1rem;
+  }
+
+  .upstream-entry::before {
+    position: absolute;
+    top: 0.25rem;
+    left: 0.75rem;
+  }
+
+  .upstream-entry .upstream-head {
+    margin: 0;
+    padding: 0.25rem 0.75rem 0.25rem 2.25rem;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    background-color: color-mix(in srgb, var(--color-terminal-pending) 8%, transparent);
+  }
+
+  .upstream-entry[data-state="fixed"] .upstream-head,
+  .upstream-entry[data-state="merged"] .upstream-head {
+    background-color: color-mix(in srgb, var(--color-terminal-accent) 8%, transparent);
+  }
+
+  .upstream-entry[data-state="declined"] .upstream-head {
+    background-color: color-mix(in srgb, var(--color-terminal-removed) 8%, transparent);
+  }
+
+  .upstream-entry .upstream-title {
+    color: var(--color-terminal-fg);
+    text-decoration-color: var(--color-terminal-border);
+  }
+
+  .upstream-entry .upstream-title:hover,
+  .upstream-entry .upstream-title:focus-visible {
+    color: var(--color-terminal-accent);
+    text-decoration-color: currentColor;
+  }
+
+  .upstream-entry .upstream-number {
+    color: var(--color-terminal-muted);
+  }
+
+  .upstream-entry .upstream-state {
+    margin: 0.25rem 0 0;
+    padding-left: 2.25rem;
+    font-size: 0.8125rem;
+    color: var(--color-terminal-muted);
+  }
+
+  .upstream-entry .upstream-note {
+    margin: 0.25rem 0 0;
+    padding: 0 0.75rem 0 2.25rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
   }
 
   /* -------------------------------------------------------------------------

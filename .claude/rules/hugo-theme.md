@@ -44,7 +44,18 @@ directory = page path" rule applies to *directories*; do not "fix" these into
 ## Theme features
 
 - Theme switcher (light/dark/system, default system) in the footer: native
-  radio inputs, text labels, no icons (`_partials/theme-toggle.html`)
+  radio inputs, text labels, no icons (`_partials/theme-toggle.html`). Colours
+  are `light-dark()` tokens picked by `color-scheme` on `<html>`, so the
+  system theme renders before any script; `theme-init.ts` (on load) and
+  `theme-toggle.ts` (on change) add `light` or `dark` only for an explicit
+  choice, never for "system".
+- `bun run dev` serves Hugo from memory (`--renderToMemory`): a build or a
+  test run writing `public/` must never change what the dev server serves.
+- Footer (`_partials/footer.html`): the question with its contact link
+  first, then a site map from `menu.footer` in `hugo.yaml` (top-level entries
+  are columns named by what their links are, children the links; the `talks`
+  column lists the talks page's entries; the header shows `menu.main` only),
+  then the copyright and the theme switcher
 - Terminal-inspired aesthetic with monospace typography
 - Remark42 comments integration with theme synchronization
 - JSON-LD structured data via `layouts/_partials/seo.html` (site-level override:

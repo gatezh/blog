@@ -158,8 +158,7 @@ services:
 permalinks:
   posts: "/posts/:contentbasename/"
 
-# /ever-learning/ is not a menu item: linked from /about/, listed in the
-# sitemap, llms.txt and the home feed.
+# `main` is the header; `footer` holds the pages kept out of it (footer.html).
 menu:
   main:
     - identifier: posts
@@ -182,6 +181,65 @@ menu:
       name: Contact
       url: /contact/
       weight: 40
+  # The footer's site map (footer.html): top-level entries are columns, their
+  # children the links. Talks lists its page's talks; `profiles: true`
+  # appends params.socialIcons.
+  footer:
+    - identifier: writing
+      name: Writing
+      weight: 10
+    - name: Posts
+      pageRef: /posts
+      parent: writing
+      weight: 10
+    - name: Ever Learning
+      pageRef: /ever-learning
+      parent: writing
+      weight: 20
+    - name: RSS feed
+      url: /index.xml
+      parent: writing
+      weight: 30
+    - name: llms.txt
+      url: /llms.txt
+      parent: writing
+      weight: 40
+    - identifier: code
+      name: Code
+      weight: 20
+    - name: Projects
+      pageRef: /projects
+      parent: code
+      weight: 10
+    - name: Upstream
+      pageRef: /upstream
+      parent: code
+      weight: 20
+    - name: Early projects
+      pageRef: /early-projects
+      parent: code
+      weight: 30
+    - name: This site's source
+      url: https://github.com/gatezh/blog
+      parent: code
+      weight: 40
+    - identifier: talks
+      name: Talks
+      pageRef: /talks
+      weight: 30
+    - identifier: me
+      name: Me
+      weight: 40
+      params:
+        profiles: true
+    - name: About
+      pageRef: /about
+      parent: me
+      weight: 10
+    - name: Contact
+      pageRef: /contact
+      parent: me
+      weight: 20
 
 params:
   # Identity copy. One positioning statement is the source for every surface
@@ -239,8 +297,9 @@ params:
     title: "Serge Gatezh"
     subtitle: "Product Engineer"
 
+  # The only list of profile URLs: home page, llms.txt, footer, JSON-LD sameAs.
   socialIcons:
     - name: "GitHub"
       url: "https://github.com/gatezh"
-    - name: "Linkedin"
+    - name: "LinkedIn"
       url: "https://linkedin.com/in/gatezh"

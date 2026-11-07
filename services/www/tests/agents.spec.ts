@@ -65,7 +65,9 @@ test.describe("top-level pages", () => {
     const pages = sitemapPaths(await text(request, "/sitemap.xml")).filter(
       (p) => /^\/[^/]+\/$/.test(p) && !TOP_LEVEL_SECTIONS.includes(p),
     );
-    expect(pages).toEqual(expect.arrayContaining(["/about/", "/projects/", "/talks/"]));
+    expect(pages).toEqual(
+      expect.arrayContaining(["/about/", "/projects/", "/talks/", "/upstream/"]),
+    );
 
     const index = await text(request, "/llms.txt");
     const full = await text(request, "/llms-full.txt");
@@ -88,6 +90,15 @@ test.describe("top-level pages", () => {
     expect(md).toMatch(/^- Before: .+$/m);
     expect(md).toMatch(/^- After: .+$/m);
     expect(md).toContain("- Runs on SurgeGate");
+  });
+
+  test("the upstream mirror links every entry to GitHub", async ({ request }) => {
+    const md = await (await request.get("/upstream/index.md")).text();
+    expect(md).toContain("## [cloudflare/cf](https://github.com/cloudflare/cf)");
+    const entries = md.match(
+      /^- \[(Issue|Pull request) #\d+: .+\]\(https:\/\/github\.com\/\S+\/(issues|pull)\/\d+\)\. /gm,
+    );
+    expect(entries?.length).toBeGreaterThanOrEqual(10);
   });
 
   test("the talks mirror carries every talk with its slides", async ({ request }) => {
@@ -154,7 +165,15 @@ test.describe("llms-full.txt structure", () => {
 });
 
 test.describe("markdown mirrors", () => {
-  for (const path of ["/", "/posts/", "/ever-learning/", "/about/", "/projects/", "/talks/"]) {
+  for (const path of [
+    "/",
+    "/posts/",
+    "/ever-learning/",
+    "/about/",
+    "/projects/",
+    "/talks/",
+    "/upstream/",
+  ]) {
     test(`${path} has a Markdown mirror`, async ({ request }) => {
       const res = await request.get(`${path}index.md`);
       expect(res.status(), `${path}index.md should exist`).toBe(200);

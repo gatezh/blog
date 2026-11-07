@@ -1,10 +1,7 @@
-// Applies the stored theme before first paint, to prevent a flash of the wrong
-// theme. Loaded render-blocking from <head> (no defer or async) for that reason.
-//
-// Three theme modes:
-// - light: Always light theme
-// - dark: Always dark theme
-// - system: Follow system preference (default)
+// Applies an explicit theme choice before first paint, to prevent a flash of
+// the wrong theme. Loaded render-blocking from <head> (no defer or async) for
+// that reason. `light` or `dark` on <html> sets color-scheme (main.css); with
+// neither, the default "system" theme follows the OS in CSS alone.
 
 let stored: string | null;
 try {
@@ -12,11 +9,7 @@ try {
 } catch {
   stored = null;
 }
-const theme = stored || "system";
 
-const isDark =
-  theme === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : theme === "dark";
-
-if (isDark) document.documentElement.classList.add("dark");
+if (stored === "light" || stored === "dark") document.documentElement.classList.add(stored);
 
 export {};

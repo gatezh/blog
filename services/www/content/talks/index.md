@@ -2,13 +2,13 @@
 title: "Talks"
 layout: showcase
 comments: false
-description: "Talks by Serge Gatezh on shipping real apps on zero-cost edge infrastructure and on security-first AI workflows, at Frontend & Beyond."
-keywords: [talks, speaking, cloudflare, dev-containers, claude-code, frontend-and-beyond, calgary]
-# Each talk renders three ways from this one list: the HTML cards and the
+description: "Talks by Serge Gatezh: zero-cost edge infrastructure, security-first AI workflows, and simple software for messy business processes. Slides for every talk."
+keywords: [talks, speaking, cloudflare, dev-containers, claude-code]
+# Each talk renders three ways from this one list: the HTML slides and the
 # Markdown/llms-full text (layouts/_shortcodes/talks.*) and the Event JSON-LD
-# (layouts/_partials/seo.html). Link only public material: the decks below are
-# the PDFs the meetup itself publishes. `short` names the talk where /projects/
-# links to it.
+# (layouts/_partials/seo.html). Link only public material: a deck as the
+# event published it. `short` names the talk where the footer and /projects/
+# link to it.
 talks:
   - title: "Zero Servers, Zero Dollars: Shipping Real Apps on Cloudflare"
     id: zero-servers-zero-dollars
@@ -66,17 +66,4 @@ talks:
       images are open source.
 ---
 
-I speak about the two things I do every day: shipping real products on
-zero-cost edge infrastructure, and AI-assisted engineering with a fence around
-it. Both talks so far were at Frontend & Beyond.
-
 {{< talks >}}
-
-## Frontend & Beyond
-
-[Frontend & Beyond](https://frontend-yyc.github.io/) is a meetup for web
-developers in Calgary. I've spoken there twice in 2026, and I help maintain the
-meetup's website ([source](https://github.com/frontend-yyc/frontend-yyc.github.io)).
-
-Want me to give one of these talks at your event, or something new on the same
-themes? [Send me a message](/contact/).
