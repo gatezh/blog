@@ -324,24 +324,19 @@
   /* -------------------------------------------------------------------------
      Theme Switcher (footer) - see _partials/theme-toggle.html
      ------------------------------------------------------------------------- */
+  /* One row that never breaks inside itself: where the footer bar is too
+     narrow, the whole control moves below the copyright. */
   .theme-toggle {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 0 0.375rem;
     min-width: 0;
   }
 
-  /* A floated legend is laid out as an ordinary child, so it sits inline with
-     the options instead of on the fieldset's top edge. */
-  .theme-toggle-legend {
-    float: left;
-    margin-right: 0.5rem;
-  }
-
   /* "theme:" - a key for the values that follow, not a fourth option. */
-  .theme-toggle-legend::after {
-    content: ":";
+  .theme-toggle-label {
+    margin-right: 0.5rem;
   }
 
   .theme-toggle-option {
