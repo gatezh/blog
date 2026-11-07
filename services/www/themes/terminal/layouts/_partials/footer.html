@@ -2,55 +2,57 @@
   Footer partial - the site map, an invitation to write, and the copyright
 
   Top to bottom:
-  - One line inviting a message, with the button to the contact form: the
-    one action, first, where the page's content ends
-  - Link columns from hugo.yaml menu.footer: each top-level entry is a column
-    named by what its links are, its children the links. The `talks` column
-    has no children in the config: it lists the talks page's own entries, so
-    it grows with the page. The header holds the main menu only; every other
-    page is reachable from here.
-  - Copyright and the theme switcher (moved here from the header so the
-    header holds navigation only)
+  - The invitation and contact button (not on /contact/ itself)
+  - Columns from menu.footer: a column's children are its links; a column
+    with a `pageRef` (Talks) lists that page's talks; `profiles: true` (Me)
+    appends params.socialIcons with rel=me
+  - Copyright and the theme switcher
   Layout: .site-footer-* in main.css.
 */}}
 <footer class="site-footer mt-auto">
 	<div class="max-w-3xl mx-auto px-4">
-		<div class="site-footer-invite">
-			<p class="site-footer-invite-text">Got a question, a correction, or a project to think through?</p>
-			<a href="{{ "/contact/" | relURL }}" class="btn btn-primary no-underline">Send me a message</a>
-		</div>
+		{{ with site.GetPage "/contact" }}
+			{{ if not (.Eq $) }}
+				<div class="site-footer-invite">
+					<p class="site-footer-invite-text">Got a question, a correction, or a project to think through?</p>
+					<a href="{{ .RelPermalink }}" class="btn btn-primary no-underline">Send me a message</a>
+				</div>
+			{{ end }}
+		{{ end }}
 
 		<nav class="site-footer-map" aria-label="Site map">
 			{{ range site.Menus.footer }}
 				<section class="site-footer-column">
 					<h2 class="site-footer-heading">{{ .Name }}</h2>
 					<ul class="site-footer-links">
-						{{ if eq .Identifier "talks" }}
-							{{ with site.GetPage "/talks" }}
-								{{ range .Params.talks }}
-									<li><a href="{{ "/talks/" | relURL }}#{{ .id }}" class="site-footer-link">{{ .short }}</a></li>
-								{{ end }}
-								<li><a href="{{ .RelPermalink }}" class="site-footer-link">All talks</a></li>
+						{{ with .Page }}
+							{{ $talks := . }}
+							{{ range .Params.talks }}
+								<li><a href="{{ $talks.RelPermalink }}#{{ .id }}" class="site-footer-link">{{ .short }}</a></li>
 							{{ end }}
+							<li><a href="{{ .RelPermalink }}" class="site-footer-link">All talks</a></li>
 						{{ else }}
 							{{ range .Children }}
 								<li>
 									<a
 										href="{{ .URL | relURL }}"
 										class="site-footer-link{{ if $.IsMenuCurrent "footer" . }} is-current{{ end }}"
-										{{- with .Params.rel }} rel="{{ . }}"{{ end }}
 										{{- if $.IsMenuCurrent "footer" . }} aria-current="page"{{ end }}
 									>
 										{{ .Name }}
 									</a>
 								</li>
 							{{ end }}
+							{{ if .Params.profiles }}
+								{{ range site.Params.socialIcons }}
+									<li><a href="{{ .url }}" class="site-footer-link" rel="me">{{ .name }}</a></li>
+								{{ end }}
+							{{ end }}
 						{{ end }}
 					</ul>
 				</section>
 			{{ end }}
 		</nav>
-
 
 		<div class="site-footer-bar text-sm text-terminal-muted">
 			<p class="site-footer-identity">

@@ -181,87 +181,65 @@ menu:
       name: Contact
       url: /contact/
       weight: 40
-  # The footer's site map: each top-level entry is a column named by what its
-  # links are, its children the links. `talks` has no children here; the
-  # footer lists the talks page's own entries. `rel: me` marks the profiles
-  # that are this site's owner.
+  # The footer's site map (footer.html): top-level entries are columns, their
+  # children the links. Talks lists its page's talks; `profiles: true`
+  # appends params.socialIcons.
   footer:
     - identifier: writing
       name: Writing
       weight: 10
-    - identifier: posts-footer
-      name: Posts
+    - name: Posts
       pageRef: /posts
       parent: writing
       weight: 10
-    - identifier: ever-learning
-      name: Ever Learning
+    - name: Ever Learning
       pageRef: /ever-learning
       parent: writing
       weight: 20
-    - identifier: rss
-      name: RSS feed
+    - name: RSS feed
       url: /index.xml
       parent: writing
       weight: 30
-    - identifier: llms
-      name: llms.txt
+    - name: llms.txt
       url: /llms.txt
       parent: writing
       weight: 40
     - identifier: code
       name: Code
       weight: 20
-    - identifier: projects-footer
-      name: Projects
+    - name: Projects
       pageRef: /projects
       parent: code
       weight: 10
-    - identifier: upstream
-      name: Upstream
+    - name: Upstream
       pageRef: /upstream
       parent: code
       weight: 20
-    - identifier: early-projects
-      name: Early projects
+    - name: Early projects
       pageRef: /early-projects
       parent: code
       weight: 30
-    - identifier: source
-      name: This site's source
+    - name: This site's source
       url: https://github.com/gatezh/blog
       parent: code
       weight: 40
     - identifier: talks
       name: Talks
+      pageRef: /talks
       weight: 30
     - identifier: me
       name: Me
       weight: 40
-    - identifier: about-footer
-      name: About
+      params:
+        profiles: true
+    - name: About
       pageRef: /about
       parent: me
       weight: 10
-    - identifier: contact-footer
-      name: Contact
+    - name: Contact
       pageRef: /contact
       parent: me
       weight: 20
-    - identifier: github
-      name: GitHub
-      url: https://github.com/gatezh
-      parent: me
-      weight: 30
-      params:
-        rel: me
-    - identifier: linkedin
-      name: LinkedIn
-      url: https://linkedin.com/in/gatezh
-      parent: me
-      weight: 40
-      params:
-        rel: me
 
 params:
   # Identity copy. One positioning statement is the source for every surface
@@ -319,8 +297,9 @@ params:
     title: "Serge Gatezh"
     subtitle: "Product Engineer"
 
+  # The only list of profile URLs: home page, llms.txt, footer, JSON-LD sameAs.
   socialIcons:
     - name: "GitHub"
       url: "https://github.com/gatezh"
-    - name: "Linkedin"
+    - name: "LinkedIn"
       url: "https://linkedin.com/in/gatezh"

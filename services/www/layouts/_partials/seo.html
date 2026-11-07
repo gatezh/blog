@@ -27,6 +27,8 @@
 {{- $author := site.Params.author -}}
 
 {{- $personRef := dict "@type" "Person" "@id" (print site.Home.Permalink "#person") "name" $author "url" site.Home.Permalink -}}
+{{- $sameAs := slice -}}
+{{- range site.Params.socialIcons }}{{ $sameAs = $sameAs | append .url }}{{ end -}}
 {{- $person := merge $personRef (dict
 	"jobTitle" site.Params.jobTitle
 	"description" site.Params.bio
@@ -38,7 +40,7 @@
 	"addressCountry" "Canada"
 	)
 	"worksFor" (dict "@type" "Organization" "name" "Just Right Systems" "url" "https://justright.systems/")
-	"sameAs" (slice "https://github.com/gatezh" "https://linkedin.com/in/gatezh")
+	"sameAs" $sameAs
 	)
 -}}
 {{- with site.Params.credentials }}
