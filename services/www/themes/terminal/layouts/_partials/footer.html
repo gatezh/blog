@@ -2,7 +2,8 @@
   Footer partial - the site map, an invitation to write, and the copyright
 
   Top to bottom:
-  - The invitation and contact button (not on /contact/ itself)
+  - The question and, under it, the prompt-style link to the contact form,
+    in the form of the links under each talk (not on /contact/ itself)
   - Columns from menu.footer: a column's children are its links; a column
     with a `pageRef` (Talks) lists that page's talks; `profiles: true` (Me)
     appends params.socialIcons with rel=me
@@ -15,7 +16,9 @@
 			{{ if not (.Eq $) }}
 				<div class="site-footer-invite">
 					<p class="site-footer-invite-text">Got a question, a correction, or a project to think through?</p>
-					<a href="{{ .RelPermalink }}" class="btn btn-primary no-underline">Send me a message</a>
+					<p class="site-footer-invite-action">
+						<span class="text-terminal-accent">></span> <a href="{{ .RelPermalink }}">Send me a message</a>
+					</p>
 				</div>
 			{{ end }}
 		{{ end }}
