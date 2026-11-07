@@ -51,9 +51,12 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
 - Both run the whole of `ci.yml` (`workflow_call`) before deploying, unless
   staging's `preflight` finds a passing run of the same tree.
 - Shared steps live in composite actions under `.github/actions/` (`setup`,
-  `check-deploy-config`), referenced as `uses: $/...` — GitHub's
+  `check-deploy-config`, `go-live`), referenced as `uses: $/...` — GitHub's
   self-repository syntax, which loads them from the workflow's own commit even
-  when a job has checked out an older tag.
+  when a job has checked out an older tag. `go-live`'s logic is
+  `go-live/go-live.sh`, tested by `go-live.test.ts` (`bun run test:deploy`,
+  part of `bun run test`) against stubbed wrangler and curl; change the
+  shared deploy steps there, not in the workflows.
 - Only the Release workflow's tagging job gets `contents: write`; every
   checkout sets `persist-credentials: false`.
 
