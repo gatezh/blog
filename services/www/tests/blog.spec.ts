@@ -381,7 +381,7 @@ test.describe("About page", () => {
   });
 
   test("keeps punctuation attached to Markdown links", async ({ page }) => {
-    for (const linkName of ["LinkedIn", "send me a message"]) {
+    for (const linkName of ["LinkedIn", "Just Right Systems"]) {
       const link = page.locator("#main-content").getByRole("link", { name: linkName, exact: true });
       await expect(link).toBeVisible();
       await expect
