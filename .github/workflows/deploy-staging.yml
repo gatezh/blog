@@ -108,6 +108,9 @@ jobs:
     outputs:
       www_version: ${{ steps.www.outputs.version_id }}
       api_version: ${{ steps.api.outputs.version_id }}
+      # Names this build of www; go-live waits for it. A re-run of go-live
+      # alone keeps this output, so it still names the build it deploys.
+      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -131,6 +134,7 @@ jobs:
           HUGO_PARAMS_APIURL: ${{ vars.HUGO_PARAMS_APIURL }}
           HUGO_PARAMS_TURNSTILESITEKEY: ${{ vars.HUGO_PARAMS_TURNSTILESITEKEY }}
           HUGO_PARAMS_BUILDCOMMIT: ${{ github.sha }}
+          HUGO_PARAMS_BUILDID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           # hugo.yaml's baseURL is localhost on purpose; a deploy without the
           # override would ship every canonical, sitemap and JSON-LD URL wrong.
@@ -211,7 +215,7 @@ jobs:
       WWW_VERSION_ID: ${{ needs.upload.outputs.www_version }}
       WWW_URL: https://staging-www.gatezh.com
       API_URL: https://staging-api.gatezh.com
-      EXPECT_COMMIT: ${{ github.sha }}
+      EXPECT_BUILD: ${{ needs.upload.outputs.build_id }}
       DEPLOY_LABEL: staging
       DEPLOY_MESSAGE: ${{ github.sha }}
       # Optional: only needed once staging-www sits behind Cloudflare Access.

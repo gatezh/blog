@@ -14,11 +14,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-{{/* Build provenance - emitted when HUGO_PARAMS_BUILDCOMMIT is set (CI). The
-     deploy verify job greps for this SHA to confirm the deployed artifact is
-     the build it expects. Unset locally, so no tag. */}}
+{{/* Build provenance, set by CI only (unset locally, so no tags).
+     build-commit says which commit is live. build-id names this one build
+     (run id and attempt): go-live waits for it to know a version override
+     reached the staged version, which a commit cannot show when the live
+     version was built from the same commit. */}}
 {{- with site.Params.buildcommit }}
 	<meta name="build-commit" content="{{ . }}">
+{{- end }}
+{{- with site.Params.buildid }}
+	<meta name="build-id" content="{{ . }}">
 {{- end }}
 
 {{/* Page title */}}

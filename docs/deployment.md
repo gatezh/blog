@@ -59,8 +59,10 @@ upload`: new versions that serve no traffic.
    [`Cloudflare-Workers-Version-Overrides`](https://developers.cloudflare.com/workers/versions-and-deployments/version-overrides/)
    header naming both Workers, which reaches a version at 0%. An override that
    is not applied falls back to the live version without any error, so the
-   checks first wait until www's `build-commit` and the api's `Worker-Version`
-   header (its `version_metadata` binding) both name the new versions. Only
+   checks first wait until www's `build-id` meta (the run id and attempt that
+   built it) and the api's `Worker-Version` header (its `version_metadata`
+   binding) both name the new versions. Not the commit: a redeploy of the live
+   commit would let the live version pass for the new one. Only
    when every check passes does it promote both to 100%, api first, and confirm
    that plain requests reach them.
 5. A failed check promotes nothing: visitors stay on what they had, and the

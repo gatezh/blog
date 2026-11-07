@@ -38,8 +38,9 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
   up with `wrangler versions upload`; `go-live` reads what is live, stages both
   new versions at 0% (`triggers deploy` first, api first), verifies them
   through a `Cloudflare-Workers-Version-Overrides` header, then promotes both
-  to 100%. The checks first wait for www's `build-commit` and the api's
-  `Worker-Version` header to name the new versions: a missed override falls
+  to 100%. The checks first wait for www's `build-id` meta (run id and
+  attempt, not the commit, which a redeploy of the live commit shares) and the
+  api's `Worker-Version` header to name the new versions: a missed override falls
   back to the live version silently. A failed check promotes nothing; only a
   failed promote prints the restore command. CI cannot create a Worker —
   create it in the dashboard first (docs/deployment.md, "Upload, then

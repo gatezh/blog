@@ -182,6 +182,10 @@ jobs:
     outputs:
       www_version: ${{ steps.www.outputs.version_id }}
       api_version: ${{ steps.api.outputs.version_id }}
+      # Names this build of www; go-live waits for it. A redeploy of the live
+      # tag builds the same commit, so the commit cannot tell the staged
+      # version from the live one; this can.
+      build_id: ${{ github.run_id }}-${{ github.run_attempt }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -209,6 +213,7 @@ jobs:
           # The tag's commit, not github.sha: on a redeploy those differ, and
           # go-live's verify step must confirm the tag is what is live.
           HUGO_PARAMS_BUILDCOMMIT: ${{ needs.release.outputs.commit_sha }}
+          HUGO_PARAMS_BUILDID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           : "${HUGO_BASEURL:?Set HUGO_BASEURL on the production environment}"
           bun run --cwd services/www build
@@ -284,8 +289,7 @@ jobs:
       # The api's workers.dev URL. Optional (preflight only warns): unset, the
       # site posts nowhere and the api's version is not checked.
       API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
-      # The tag's commit, not github.sha: on a redeploy those differ.
-      EXPECT_COMMIT: ${{ needs.release.outputs.commit_sha }}
+      EXPECT_BUILD: ${{ needs.upload.outputs.build_id }}
       DEPLOY_LABEL: production
       DEPLOY_MESSAGE: Release v${{ needs.release.outputs.version }}
     steps:
@@ -436,11 +440,13 @@ jobs:
       - name: Summarize the release
         env:
           VERSION: ${{ needs.release.outputs.version }}
+          # The tag's commit, not github.sha: on a redeploy those differ.
+          COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
         run: |
           {
             echo "## Release v${VERSION}"
             echo ""
-            echo "Deployed \`${EXPECT_COMMIT}\` to ${WWW_URL}"
+            echo "Deployed \`${COMMIT_SHA}\` to ${WWW_URL}"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # A part-way promote leaves at most the api newer than the site, which

@@ -224,7 +224,8 @@ params:
 
   # Contact form Worker URL. The local default keeps `bun run dev` working
   # without extra setup; every deploy overrides it via HUGO_PARAMS_APIURL on its
-  # GitHub Environment. Other env-driven params (turnstileSiteKey, buildCommit)
+  # GitHub Environment. Other env-driven params (turnstileSiteKey, buildCommit,
+  # buildId)
   # are intentionally NOT declared here — Hugo creates them from HUGO_PARAMS_*
   # env vars at build time, and unset means falsy in `{{ with }}` guards.
   apiUrl: "http://localhost:8787"
