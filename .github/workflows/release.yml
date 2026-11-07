@@ -261,9 +261,8 @@ jobs:
   # Stages both new versions at 0% beside the live ones, checks them through a
   # version override on the real hostnames, then promotes them (api first).
   # The only job that changes what production serves, and visitors see no
-  # change before the promote. While the checks run, anyone who sends the
-  # override with the staged version's id reaches it; the id is never
-  # published, and the live site never names it.
+  # change before the promote. The shared steps are the go-live action
+  # (.github/actions/go-live/go-live.sh).
   # https://developers.cloudflare.com/workers/versions-and-deployments/version-overrides/
   go-live:
     needs: [release, upload]
@@ -273,16 +272,22 @@ jobs:
     environment:
       name: production
       url: https://gatezh.com
+    # What the go-live action reads (go-live.sh lists it).
     env:
+      # Production has no env block: the top-level names in wrangler.jsonc.
+      WRANGLER_ENV: ""
+      API_WORKER: gatezh-com-email-worker
+      WWW_WORKER: gatezh-com
       API_VERSION_ID: ${{ needs.upload.outputs.api_version }}
       WWW_VERSION_ID: ${{ needs.upload.outputs.www_version }}
-      # The tag's commit, not github.sha: on a redeploy those differ.
-      COMMIT_SHA: ${{ needs.release.outputs.commit_sha }}
-      VERSION: ${{ needs.release.outputs.version }}
-      SITE: https://gatezh.com
+      WWW_URL: https://gatezh.com
       # The api's workers.dev URL. Optional (preflight only warns): unset, the
       # site posts nowhere and the api's version is not checked.
       API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
+      # The tag's commit, not github.sha: on a redeploy those differ.
+      EXPECT_COMMIT: ${{ needs.release.outputs.commit_sha }}
+      DEPLOY_LABEL: production
+      DEPLOY_MESSAGE: Release v${{ needs.release.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -291,52 +296,33 @@ jobs:
       - uses: $/.github/actions/setup
 
       # Reads what is live here, not in upload: re-running go-live on an older
-      # release (a rollback) must stage beside today's versions. A version
-      # upload skips triggers (routes, custom domains, workers.dev); `triggers
-      # deploy` (experimental) applies them as `wrangler deploy` did, first, so
-      # the hostnames the checks use exist.
+      # release (a rollback) must stage beside today's versions. The action
+      # comes from this workflow's commit, not the tag checked out above.
       - name: Stage both versions at 0% of traffic
         id: stage
+        uses: $/.github/actions/go-live
+        with:
+          command: stage
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          # Only the version at 100% is live: a failed earlier run can leave its own at 0%.
-          live() { bunx wrangler deployments status --cwd "$1" --env="" --json | jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty'; }
-          api_live=$(live services/api)
-          www_live=$(live services/www)
-          if [ -z "${api_live}" ] || [ -z "${www_live}" ]; then
-            echo "::error::a Worker has no version at 100% (api '${api_live}', www '${www_live}'); finish or roll back that deployment first"
-            exit 1
-          fi
-          echo "api_live=${api_live}" >> "$GITHUB_OUTPUT"
-          echo "www_live=${www_live}" >> "$GITHUB_OUTPUT"
 
-          bunx wrangler triggers deploy --cwd services/api --env=""
-          # It uploads no assets (upload did), but fails unless assets.directory exists.
-          mkdir -p services/www/public
-          bunx wrangler triggers deploy --cwd services/www --env=""
+      # A missed override reaches the live versions without an error, so
+      # nothing is checked until both staged versions answer.
+      - name: Wait until the override reaches both staged versions
+        id: reach
+        uses: $/.github/actions/go-live
+        with:
+          command: wait
 
-          stage() {
-            if [ "$2" = "$3" ]; then echo "$1 already serves $2."; return; fi
-            bunx wrangler versions deploy --cwd "services/$1" --env="" "$2@0%" "$3@100%" --message "Release v${VERSION} (staged)" --yes
-            echo "Staged $1 $2 at 0%; $3 still serves all traffic."
-          }
-          stage api "${API_VERSION_ID}" "${api_live}"
-          stage www "${WWW_VERSION_ID}" "${www_live}"
-
-      # Every request carries the override, so each check reaches the staged
-      # versions. One that does not apply reaches the live versions, and the
-      # identity check below fails before anything is promoted.
+      # Every request carries the headers that reached the staged versions,
+      # the bot User-Agent checks included. While the checks run, anyone who
+      # sends the override with the staged versions' ids reaches them.
       - name: Verify the staged versions
         env:
-          # The top-level names in wrangler.jsonc: production has no env block.
-          API_WORKER: gatezh-com-email-worker
-          WWW_WORKER: gatezh-com
+          HEADERS: ${{ steps.reach.outputs.headers }}
           ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
         run: |
-          OVERRIDE=(-H "Cloudflare-Workers-Version-Overrides: ${API_WORKER}=\"${API_VERSION_ID}\", ${WWW_WORKER}=\"${WWW_VERSION_ID}\"")
-
           # A failed fetch fails the step (`-eo pipefail`), so no assertion
           # below can pass on an empty response. Assertions read with `<<<`,
           # not a pipe: under pipefail, `printf | grep -q` can fail on SIGPIPE
@@ -344,48 +330,31 @@ jobs:
           # or a 5xx a few times, so one network blip after a good deploy
           # does not fail the run; status() never retries a 4xx it reports.
           fetch() {
-            curl -sf --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 "${OVERRIDE[@]}" "$@" || { echo "::error::fetch failed: $*"; return 1; }
+            curl -sf --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -H @"${HEADERS}" "$@" || { echo "::error::fetch failed: $*"; return 1; }
           }
           status() {
-            curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' "${OVERRIDE[@]}" "$1" || true
+            curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' -H @"${HEADERS}" "$1" || true
           }
 
           fail=0
 
-          # An override takes a few seconds to reach every edge location.
-          # Plain curl, not fetch: an early miss here is expected, not an error.
-          want_api="${API_URL:+${API_VERSION_ID}}"
-          for attempt in $(seq 1 12); do
-            deployed=$(curl -sf --max-time 20 "${OVERRIDE[@]}" "${SITE}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
-            api=""
-            [ -z "${API_URL}" ] || api=$(curl -sf -o /dev/null -D - --max-time 20 "${OVERRIDE[@]}" "${API_URL}" | tr -d '\r' | grep -i '^worker-version:' | cut -d' ' -f2 || true)
-            [ "${deployed}" = "${COMMIT_SHA}" ] && [ "${api}" = "${want_api}" ] && break
-            echo "Attempt ${attempt}: the override reaches www '${deployed::7}' and api '${api}'; waiting for ${COMMIT_SHA::7} and '${want_api}'."
-            sleep 5
-          done
-          if [ "${deployed}" != "${COMMIT_SHA}" ] || [ "${api}" != "${want_api}" ]; then
-            echo "::error::The override reaches www build-commit '${deployed}' and api version '${api}', expected v${VERSION} (${COMMIT_SHA}) and '${want_api}'"
-            exit 1
-          fi
-          echo "The staged versions answer: www ${deployed::7}, api ${api:-not checked}."
-
-          headers=$(fetch -I "${SITE}/" | tr -d '\r')
+          headers=$(fetch -I "${WWW_URL}/" | tr -d '\r')
 
           # Production must be indexable — the inverse of staging.
           if grep -qi '^x-robots-tag:' <<< "${headers}"; then
-            echo "::error::${SITE}/ sends X-Robots-Tag — production would drop out of search"
+            echo "::error::${WWW_URL}/ sends X-Robots-Tag — production would drop out of search"
             fail=1
           fi
 
           grep -qi '^x-content-type-options: nosniff' <<< "${headers}" \
-            || { echo "::error::${SITE}/ is missing X-Content-Type-Options: nosniff"; fail=1; }
+            || { echo "::error::${WWW_URL}/ is missing X-Content-Type-Options: nosniff"; fail=1; }
 
           # The CSP comes from the generated _headers. A Transform Rule on the
           # zone that sets the same header would replace it wholesale — see
           # docs/CSP.md. connect-src must allow what the contact form POSTs to.
           csp=$(grep -i '^content-security-policy:' <<< "${headers}" || true)
           if ! grep -q "frame-ancestors 'none'" <<< "${csp}"; then
-            echo "::error::${SITE}/ is not serving the site's CSP — a zone Transform Rule may be overriding it (docs/CSP.md)"
+            echo "::error::${WWW_URL}/ is not serving the site's CSP — a zone Transform Rule may be overriding it (docs/CSP.md)"
             fail=1
           elif [ -n "${API_URL}" ]; then
             api_origin=$(grep -oE '^https?://[^/]+' <<< "${API_URL}")
@@ -402,18 +371,18 @@ jobs:
           # Unknown paths must return a real 404 (not_found_handling: 404-page),
           # never a 200 that Google files as a soft 404. /404 itself answers
           # 200; that page carries robots noindex (tests/seo.spec.ts).
-          code=$(status "${SITE}/no-such-page-${GITHUB_RUN_ID}/")
+          code=$(status "${WWW_URL}/no-such-page-${GITHUB_RUN_ID}/")
           [ "${code}" = "404" ] || { echo "::error::an unknown path returned ${code}, expected 404"; fail=1; }
 
           # Taxonomy listings must stay out of the index.
           for path in /tags/ /categories/; do
-            body=$(fetch "${SITE}${path}")
+            body=$(fetch "${WWW_URL}${path}")
             grep -qE 'name="?robots"?[^>]*noindex' <<< "${body}" \
               || { echo "::error::${path} is missing its noindex robots meta"; fail=1; }
           done
 
           # A sitemap that advertises a taxonomy URL contradicts the above.
-          sitemap=$(fetch "${SITE}/sitemap.xml")
+          sitemap=$(fetch "${WWW_URL}/sitemap.xml")
           if grep -qE '<loc>[^<]*/(tags|categories)/' <<< "${sitemap}"; then
             echo "::error::sitemap.xml advertises taxonomy URLs"
             fail=1
@@ -423,7 +392,7 @@ jobs:
           # otherwise every page ships a full-text duplicate at a second URL.
           # Set by their own rules in the generated _headers.
           for path in /llms.txt /llms-full.txt /index.md /about/index.md; do
-            agent_headers=$(fetch -I "${SITE}${path}")
+            agent_headers=$(fetch -I "${WWW_URL}${path}")
             grep -qi 'x-robots-tag: *noindex' <<< "${agent_headers}" \
               || { echo "::error::${path} is missing X-Robots-Tag: noindex"; fail=1; }
           done
@@ -432,13 +401,13 @@ jobs:
           # mirrors for them. A 403 here is the zone's "Block AI bots" rule
           # (docs/seo.md, "AI crawlers: allowed").
           for bot in ClaudeBot/1.0 GPTBot/1.2 PerplexityBot/1.0 Google-Extended; do
-            code=$(curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' "${OVERRIDE[@]}" -A "Mozilla/5.0 (compatible; ${bot})" "${SITE}/" || true)
-            [ "${code}" = "200" ] || { echo "::error::${SITE}/ returned ${code} to ${bot} — the zone is blocking AI crawlers (docs/seo.md)"; fail=1; }
+            code=$(curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' -H @"${HEADERS}" -A "Mozilla/5.0 (compatible; ${bot})" "${WWW_URL}/" || true)
+            [ "${code}" = "200" ] || { echo "::error::${WWW_URL}/ returned ${code} to ${bot} — the zone is blocking AI crawlers (docs/seo.md)"; fail=1; }
           done
 
           # robots.txt is Hugo's, granting every content signal. Cloudflare's
           # managed robots.txt would prepend Disallow rules for AI bots.
-          robots=$(fetch "${SITE}/robots.txt")
+          robots=$(fetch "${WWW_URL}/robots.txt")
           grep -q '^Content-Signal: search=yes, ai-input=yes, ai-train=yes$' <<< "${robots}" \
             || { echo "::error::robots.txt does not grant every content signal (docs/seo.md)"; fail=1; }
           if grep -qi '^Disallow:' <<< "${robots}"; then
@@ -455,64 +424,34 @@ jobs:
           [ "${fail}" = "0" ] || exit 1
           echo "The staged versions passed every check."
 
-      # api first: the new site may post to an api change, never the reverse.
       - name: Promote both versions to all traffic
         id: promote
+        uses: $/.github/actions/go-live
+        with:
+          command: promote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          MESSAGE: Release v${{ needs.release.outputs.version }}
+
+      - name: Summarize the release
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
         run: |
-          bunx wrangler versions deploy --cwd services/api --env="" "${API_VERSION_ID}@100%" --message "${MESSAGE}" --yes
-          bunx wrangler versions deploy --cwd services/www --env="" "${WWW_VERSION_ID}@100%" --message "${MESSAGE}" --yes
-
-          # The checks above ran on these versions; this only confirms plain
-          # requests now reach them.
-          want_api="${API_URL:+${API_VERSION_ID}}"
-          for attempt in $(seq 1 12); do
-            deployed=$(curl -sf --max-time 20 "${SITE}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
-            api=""
-            [ -z "${API_URL}" ] || api=$(curl -sf -o /dev/null -D - --max-time 20 "${API_URL}" | tr -d '\r' | grep -i '^worker-version:' | cut -d' ' -f2 || true)
-            [ "${deployed}" = "${COMMIT_SHA}" ] && [ "${api}" = "${want_api}" ] && break
-            echo "Attempt ${attempt}: production serves www '${deployed::7}' and api '${api}'; waiting for ${COMMIT_SHA::7} and '${want_api}'."
-            sleep 5
-          done
-          if [ "${deployed}" != "${COMMIT_SHA}" ] || [ "${api}" != "${want_api}" ]; then
-            echo "::error::After promoting, production serves www build-commit '${deployed}' and api version '${api}', expected v${VERSION} (${COMMIT_SHA}) and '${want_api}'"
-            exit 1
-          fi
-
           {
             echo "## Release v${VERSION}"
             echo ""
-            echo "Deployed \`${deployed}\` to ${SITE}"
+            echo "Deployed \`${EXPECT_COMMIT}\` to ${WWW_URL}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Nothing rolls back on its own, and only a failed or cancelled promote
-      # can leave something to restore: a failed check never promoted. A
-      # part-way promote leaves at most the api newer than the site, which the
-      # api-first order already requires to work, and re-running go-live
-      # finishes it. The restore goes www first, so a new site never meets an
-      # old api.
+      # A part-way promote leaves at most the api newer than the site, which
+      # the api-first order already requires to work, and re-running go-live
+      # finishes it.
       - name: Say what is live and how to restore it
         if: failure() || cancelled()
+        uses: $/.github/actions/go-live
+        with:
+          command: restore
         env:
           PROMOTE: ${{ steps.promote.outcome }}
-          WWW_LIVE: ${{ steps.stage.outputs.www_live }}
-          API_LIVE: ${{ steps.stage.outputs.api_live }}
-        run: |
-          {
-            case "${PROMOTE}" in
-              failure|cancelled)
-                echo "## promote ${PROMOTE/failure/failed} — the new versions may be live, nothing was rolled back"; echo ""
-                echo "They passed every check at 0%. Re-running \`go-live\` finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this release:"
-                echo ""
-                echo '```sh'
-                echo "bunx wrangler versions deploy --cwd services/www --env=\"\" ${WWW_LIVE}@100% --yes"
-                echo "bunx wrangler versions deploy --cwd services/api --env=\"\" ${API_LIVE}@100% --yes"
-                echo '```' ;;
-              *)
-                echo "## go-live stopped before promoting — production still serves what it served before"; echo ""
-                echo "The new versions may be staged at 0%: no visitor reaches them without the override, and the next release replaces them." ;;
-            esac
-          } >> "$GITHUB_STEP_SUMMARY"
+          WWW_LIVE: ${{ steps.stage.outputs.www-live }}
+          API_LIVE: ${{ steps.stage.outputs.api-live }}

@@ -189,7 +189,8 @@ jobs:
   # Stages both new versions at 0% beside the live ones, checks them through a
   # version override on the real hostnames, then promotes them (api first).
   # The only job that changes what staging serves, and visitors see no change
-  # before the promote. Same design as release.yml.
+  # before the promote. Same design as release.yml; the shared steps are the
+  # go-live action (.github/actions/go-live/go-live.sh).
   # https://developers.cloudflare.com/workers/versions-and-deployments/version-overrides/
   go-live:
     needs: upload
@@ -200,11 +201,19 @@ jobs:
     environment:
       name: staging
       url: https://staging-www.gatezh.com
+    # What the go-live action reads (go-live.sh lists it).
     env:
+      WRANGLER_ENV: staging
+      # wrangler.jsonc's names plus "-staging": an env block appends its name.
+      API_WORKER: gatezh-com-email-worker-staging
+      WWW_WORKER: gatezh-com-staging
       API_VERSION_ID: ${{ needs.upload.outputs.api_version }}
       WWW_VERSION_ID: ${{ needs.upload.outputs.www_version }}
       WWW_URL: https://staging-www.gatezh.com
       API_URL: https://staging-api.gatezh.com
+      EXPECT_COMMIT: ${{ github.sha }}
+      DEPLOY_LABEL: staging
+      DEPLOY_MESSAGE: ${{ github.sha }}
       # Optional: only needed once staging-www sits behind Cloudflare Access.
       CLOUDFLARE_ZERO_CLIENT_ID: ${{ vars.CLOUDFLARE_ZERO_CLIENT_ID }}
       CLOUDFLARE_ZERO_CLIENT_SECRET: ${{ secrets.CLOUDFLARE_ZERO_CLIENT_SECRET }}
@@ -215,56 +224,32 @@ jobs:
       - uses: $/.github/actions/setup
 
       # Reads what is live here, not in upload: re-running go-live on an older
-      # run (the rollback) must stage beside today's versions. `triggers
-      # deploy` first (see release.yml), so the hostnames the checks use exist.
+      # run (the rollback) must stage beside today's versions.
       - name: Stage both versions at 0% of traffic
         id: stage
+        uses: $/.github/actions/go-live
+        with:
+          command: stage
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          # Only the version at 100% is live: a failed earlier run can leave its own at 0%.
-          live() { bunx wrangler deployments status --cwd "$1" --env staging --json | jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty'; }
-          api_live=$(live services/api)
-          www_live=$(live services/www)
-          if [ -z "${api_live}" ] || [ -z "${www_live}" ]; then
-            echo "::error::a Worker has no version at 100% (api '${api_live}', www '${www_live}'); finish or roll back that deployment first"
-            exit 1
-          fi
-          echo "api_live=${api_live}" >> "$GITHUB_OUTPUT"
-          echo "www_live=${www_live}" >> "$GITHUB_OUTPUT"
 
-          bunx wrangler triggers deploy --cwd services/api --env staging
-          # It uploads no assets (upload did), but fails unless assets.directory exists.
-          mkdir -p services/www/public
-          bunx wrangler triggers deploy --cwd services/www --env staging
+      # A missed override reaches the live versions without an error, so
+      # nothing is checked until both staged versions answer.
+      - name: Wait until the override reaches both staged versions
+        id: reach
+        uses: $/.github/actions/go-live
+        with:
+          command: wait
 
-          stage() {
-            if [ "$2" = "$3" ]; then echo "$1 already serves $2."; return; fi
-            bunx wrangler versions deploy --cwd "services/$1" --env staging "$2@0%" "$3@100%" --message "${GITHUB_SHA} (staged)" --yes
-            echo "Staged $1 $2 at 0%; $3 still serves all traffic."
-          }
-          stage api "${API_VERSION_ID}" "${api_live}"
-          stage www "${WWW_VERSION_ID}" "${www_live}"
-
-      # Every request carries the override, so each check reaches the staged
-      # versions. One that does not apply reaches the live versions, and the
-      # identity check below fails before anything is promoted.
+      # Every request carries the headers that reached the staged versions.
       - name: Verify the staged versions
         env:
-          # wrangler.jsonc's names plus "-staging": an env block appends its name.
-          API_WORKER: gatezh-com-email-worker-staging
-          WWW_WORKER: gatezh-com-staging
+          HEADERS: ${{ steps.reach.outputs.headers }}
           # What the contact form was built to POST to; the CSP's connect-src
           # must allow its origin.
           FORM_API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
         run: |
-          AUTH_ARGS=()
-          if [ -n "${CLOUDFLARE_ZERO_CLIENT_ID}" ] && [ -n "${CLOUDFLARE_ZERO_CLIENT_SECRET}" ]; then
-            AUTH_ARGS=(-H "CF-Access-Client-Id: ${CLOUDFLARE_ZERO_CLIENT_ID}" -H "CF-Access-Client-Secret: ${CLOUDFLARE_ZERO_CLIENT_SECRET}")
-          fi
-          AUTH_ARGS+=(-H "Cloudflare-Workers-Version-Overrides: ${API_WORKER}=\"${API_VERSION_ID}\", ${WWW_WORKER}=\"${WWW_VERSION_ID}\"")
-
           # A failed fetch fails the step (`-eo pipefail`), so no assertion
           # below can pass on an empty response. Assertions read with `<<<`,
           # not a pipe: under pipefail, `printf | grep -q` can fail on SIGPIPE
@@ -272,28 +257,13 @@ jobs:
           # or a 5xx a few times, so one network blip after a good deploy
           # does not fail the run; status() never retries a 4xx it reports.
           fetch() {
-            curl -sf --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 "${AUTH_ARGS[@]}" "$@" || { echo "::error::fetch failed: $*"; return 1; }
+            curl -sf --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -H @"${HEADERS}" "$@" || { echo "::error::fetch failed: $*"; return 1; }
           }
           status() {
-            curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' "${AUTH_ARGS[@]}" "$1" || true
+            curl -s -o /dev/null --max-time 20 --retry 3 --retry-all-errors --retry-delay 2 -w '%{http_code}' -H @"${HEADERS}" "$1" || true
           }
 
           fail=0
-
-          # An override takes a few seconds to reach every edge location.
-          # Plain curl, not fetch: an early miss here is expected, not an error.
-          for attempt in $(seq 1 12); do
-            deployed=$(curl -sf --max-time 20 "${AUTH_ARGS[@]}" "${WWW_URL}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
-            api=$(curl -sf -o /dev/null -D - --max-time 20 "${AUTH_ARGS[@]}" "${API_URL}/" | tr -d '\r' | grep -i '^worker-version:' | cut -d' ' -f2 || true)
-            [ "${deployed}" = "${GITHUB_SHA}" ] && [ "${api}" = "${API_VERSION_ID}" ] && break
-            echo "Attempt ${attempt}: the override reaches www '${deployed::7}' and api '${api}'; waiting for ${GITHUB_SHA::7} and ${API_VERSION_ID}."
-            sleep 5
-          done
-          if [ "${deployed}" != "${GITHUB_SHA}" ] || [ "${api}" != "${API_VERSION_ID}" ]; then
-            echo "::error::The override reaches www build-commit '${deployed}' and api version '${api}', expected ${GITHUB_SHA} and ${API_VERSION_ID}"
-            exit 1
-          fi
-          echo "The staged versions answer: www ${deployed::7}, api ${api}."
 
           headers=$(fetch -I "${WWW_URL}/" | tr -d '\r')
 
@@ -343,56 +313,21 @@ jobs:
           [ "${fail}" = "0" ] || exit 1
           echo "The staged versions passed every check."
 
-      # api first: the new site may post to an api change, never the reverse.
       - name: Promote both versions to all traffic
         id: promote
+        uses: $/.github/actions/go-live
+        with:
+          command: promote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          bunx wrangler versions deploy --cwd services/api --env staging "${API_VERSION_ID}@100%" --message "${GITHUB_SHA}" --yes
-          bunx wrangler versions deploy --cwd services/www --env staging "${WWW_VERSION_ID}@100%" --message "${GITHUB_SHA}" --yes
 
-          # The checks above ran on these versions; this only confirms plain
-          # requests now reach them.
-          AUTH_ARGS=()
-          if [ -n "${CLOUDFLARE_ZERO_CLIENT_ID}" ] && [ -n "${CLOUDFLARE_ZERO_CLIENT_SECRET}" ]; then
-            AUTH_ARGS=(-H "CF-Access-Client-Id: ${CLOUDFLARE_ZERO_CLIENT_ID}" -H "CF-Access-Client-Secret: ${CLOUDFLARE_ZERO_CLIENT_SECRET}")
-          fi
-          for attempt in $(seq 1 12); do
-            deployed=$(curl -sf --max-time 20 "${AUTH_ARGS[@]}" "${WWW_URL}/" | grep -o 'build-commit[^>]*' | grep -oE '[0-9a-f]{40}' | head -1 || true)
-            api=$(curl -sf -o /dev/null -D - --max-time 20 "${AUTH_ARGS[@]}" "${API_URL}/" | tr -d '\r' | grep -i '^worker-version:' | cut -d' ' -f2 || true)
-            [ "${deployed}" = "${GITHUB_SHA}" ] && [ "${api}" = "${API_VERSION_ID}" ] && break
-            echo "Attempt ${attempt}: staging serves www '${deployed::7}' and api '${api}'; waiting for ${GITHUB_SHA::7} and ${API_VERSION_ID}."
-            sleep 5
-          done
-          if [ "${deployed}" != "${GITHUB_SHA}" ] || [ "${api}" != "${API_VERSION_ID}" ]; then
-            echo "::error::After promoting, staging serves www build-commit '${deployed}' and api version '${api}', expected ${GITHUB_SHA} and ${API_VERSION_ID}"
-            exit 1
-          fi
-          echo "Staging serves www ${deployed::7} and api ${api}."
-
-      # Nothing rolls back on its own, and only a failed or cancelled promote
-      # can leave something to restore: a failed check never promoted.
       - name: Say what is live and how to restore it
         if: failure() || cancelled()
+        uses: $/.github/actions/go-live
+        with:
+          command: restore
         env:
           PROMOTE: ${{ steps.promote.outcome }}
-          WWW_LIVE: ${{ steps.stage.outputs.www_live }}
-          API_LIVE: ${{ steps.stage.outputs.api_live }}
-        run: |
-          {
-            case "${PROMOTE}" in
-              failure|cancelled)
-                echo "## promote ${PROMOTE/failure/failed} — the new versions may be live, nothing was rolled back"; echo ""
-                echo "They passed every check at 0%. Re-running \`go-live\` finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this run, www first so a new site never meets an old api:"
-                echo ""
-                echo '```sh'
-                echo "bunx wrangler versions deploy --cwd services/www --env staging ${WWW_LIVE}@100% --yes"
-                echo "bunx wrangler versions deploy --cwd services/api --env staging ${API_LIVE}@100% --yes"
-                echo '```' ;;
-              *)
-                echo "## go-live stopped before promoting — staging still serves what it served before"; echo ""
-                echo "The new versions may be staged at 0%: no visitor reaches them, and the next deploy replaces them." ;;
-            esac
-          } >> "$GITHUB_STEP_SUMMARY"
+          WWW_LIVE: ${{ steps.stage.outputs.www-live }}
+          API_LIVE: ${{ steps.stage.outputs.api-live }}

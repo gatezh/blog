@@ -42,7 +42,8 @@ This is a Bun monorepo for gatezh.com:
 │   │   └── release.yml         # dispatch → v* tag → production
 │   ├── actions/
 │   │   ├── setup/              # mise tools + bun install (composite)
-│   │   └── check-deploy-config/ # api deploy config gate (composite)
+│   │   ├── check-deploy-config/ # api deploy config gate (composite)
+│   │   └── go-live/            # stage at 0%, wait, promote, restore (composite + tested script)
 │   ├── dependabot.yml          # keeps action SHA pins current (7-day cooldown)
 │   ├── actionlint.yaml         # actionlint config (runs in `bun run check`)
 │   └── release.yml             # release-notes categories

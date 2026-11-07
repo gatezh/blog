@@ -71,6 +71,14 @@ upload`: new versions that serve no traffic.
    api-first order already requires to work, and re-running `go-live` finishes
    it.
 
+Both workflows run steps 3 to 5 through one composite action,
+`.github/actions/go-live`. Only the checks themselves stay in each workflow,
+because they differ (staging must be noindex, production indexable). The
+action's script, `go-live.sh`, is tested by `go-live.test.ts`
+(`bun run test:deploy`) against stubbed wrangler and curl. The stubbed
+Cloudflare applies an override only for the Worker names that
+`wrangler.jsonc` deploys, so a wrong name in a workflow fails the test.
+
 `go-live` reads what is live itself, so re-running it on any run (including an
 older one, to roll back) stages beside what is live now. On production, anyone
 who sends the override with the staged version's id reaches it while the
