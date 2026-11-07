@@ -1,7 +1,7 @@
 {{- /* The talks listed in the page's `talks:` front matter, newest first as
        authored. Each one is its title slide, the deck's first frame: the
-       title, the speaker, and the event and date in the slide footer. The
-       title links to the deck when there is one. The Markdown and llms-full
+       title, and the event, venue and date in the slide footer. The title
+       links to the deck when there is one. The Markdown and llms-full
        renderings are talks.*.md/.txt; the Event JSON-LD is in
        _partials/seo.html. */ -}}
 <div class="talks">
@@ -14,7 +14,6 @@
 					{{ .title }}
 					{{- with .slides }}</a>{{ end -}}
 				</h2>
-				<p class="slide-speaker">{{ site.Params.author }}</p>
 				<footer class="slide-foot">
 					<span class="slide-event">{{ .event }}<br>{{ .venue }}</span>
 					<time datetime="{{ $start.Format "2006-01-02T15:04:05-07:00" }}">{{ $start.Format "January 2, 2006" }}</time>

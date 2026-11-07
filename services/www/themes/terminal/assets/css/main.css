@@ -828,12 +828,6 @@
     color: var(--color-terminal-accent);
   }
 
-  .talk .slide-speaker {
-    margin: 0.75rem 0 0;
-    font-size: 0.9375rem;
-    color: var(--color-terminal-muted);
-  }
-
   .talk .slide-foot {
     display: flex;
     align-items: flex-end;
