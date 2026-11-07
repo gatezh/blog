@@ -563,8 +563,8 @@ test.describe("identity structured data", () => {
   test("footer profile links declare rel=me", async ({ page }) => {
     await page.goto("/");
     const map = page.locator("footer").getByRole("navigation", { name: "Site map" });
-    for (const host of ["github.com", "linkedin.com"]) {
-      await expect(map.locator(`a[href*="${host}"]`)).toHaveAttribute("rel", /\bme\b/);
+    for (const href of ["https://github.com/gatezh", "https://linkedin.com/in/gatezh"]) {
+      await expect(map.locator(`a[href="${href}"]`)).toHaveAttribute("rel", /\bme\b/);
     }
   });
 });

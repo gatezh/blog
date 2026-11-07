@@ -1,56 +1,61 @@
 {{/*
-  Footer partial - the site map, a contact call, the colophon and the wordmark
+  Footer partial - the site map, an invitation to write, and the colophon
 
   Top to bottom:
-  - A one-line invitation with the contact button
   - Link columns from hugo.yaml menu.footer: each top-level entry is a column
-    heading, its children the links. The header holds the main menu only;
-    every other page is reachable from here.
+    named by what its links are, its children the links. The `talks` column
+    has no children in the config: it lists the talks page's own entries, so
+    it grows with the page. The header holds the main menu only; every other
+    page is reachable from here.
+  - One line inviting a message, with the button to the contact form
   - Copyright, the theme switcher (moved here from the header so the header
     holds navigation only) and the colophon
-  - The wordmark, set large along the bottom edge
   Layout: .site-footer-* in main.css.
 */}}
 <footer class="site-footer mt-auto">
 	<div class="max-w-3xl mx-auto px-4">
-		<div class="site-footer-call">
-			<p class="site-footer-call-text">Have a messy business process that should be simple software?</p>
-			<a href="{{ "/contact/" | relURL }}" class="btn btn-primary no-underline">Get in touch</a>
-		</div>
-
 		<nav class="site-footer-map" aria-label="Site map">
 			{{ range site.Menus.footer }}
 				<section class="site-footer-column">
 					<h2 class="site-footer-heading">{{ .Name }}</h2>
 					<ul class="site-footer-links">
-						{{ range .Children }}
-							<li>
-								<a
-									href="{{ .URL | relURL }}"
-									class="site-footer-link{{ if $.IsMenuCurrent "footer" . }} is-current{{ end }}"
-									{{- with .Params.rel }} rel="{{ . }}"{{ end }}
-									{{- if $.IsMenuCurrent "footer" . }} aria-current="page"{{ end }}
-								>
-									{{ .Name }}
-								</a>
-							</li>
+						{{ if eq .Identifier "talks" }}
+							{{ with site.GetPage "/talks" }}
+								{{ range .Params.talks }}
+									<li><a href="{{ "/talks/" | relURL }}#{{ .id }}" class="site-footer-link">{{ .short }}</a></li>
+								{{ end }}
+								<li><a href="{{ .RelPermalink }}" class="site-footer-link">All talks</a></li>
+							{{ end }}
+						{{ else }}
+							{{ range .Children }}
+								<li>
+									<a
+										href="{{ .URL | relURL }}"
+										class="site-footer-link{{ if $.IsMenuCurrent "footer" . }} is-current{{ end }}"
+										{{- with .Params.rel }} rel="{{ . }}"{{ end }}
+										{{- if $.IsMenuCurrent "footer" . }} aria-current="page"{{ end }}
+									>
+										{{ .Name }}
+									</a>
+								</li>
+							{{ end }}
 						{{ end }}
 					</ul>
 				</section>
 			{{ end }}
 		</nav>
 
+		<div class="site-footer-invite">
+			<p class="site-footer-invite-text">If you'd like to compare notes or work together, I'd like to hear from you.</p>
+			<a href="{{ "/contact/" | relURL }}" class="btn btn-primary no-underline">Send me a message</a>
+		</div>
+
 		<div class="site-footer-bar text-sm text-terminal-muted">
 			<p class="site-footer-identity">
 				<span class="text-terminal-accent">$</span> {{ now.Year }} {{ site.Title }}
 			</p>
 			{{- partial "theme-toggle.html" . -}}
-			<p class="site-footer-colophon">
-				Hugo on Cloudflare Workers,
-				<a href="https://github.com/gatezh/blog" class="site-footer-link">source on GitHub</a>
-			</p>
+			<p class="site-footer-colophon">Hugo on Cloudflare Workers</p>
 		</div>
-
-		<p class="site-footer-mark" aria-hidden="true">gatezh<span class="site-footer-cursor"></span></p>
 	</div>
 </footer>
