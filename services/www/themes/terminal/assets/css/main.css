@@ -396,16 +396,27 @@
     background-color: var(--color-terminal-bg-secondary);
   }
 
+  /* Two equal columns on phones. From sm, each column is as wide as its
+     links and the columns spread across the full width, so the first starts
+     at the left edge and the last ends at the right one, like the rules,
+     the question and the bar around them. No column count is assumed. */
   .site-footer-map {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 2rem 1.5rem;
     padding: 2.5rem 0;
     border-bottom: 1px solid var(--color-terminal-border);
+
+    @variant sm {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 2rem 2.5rem;
+    }
   }
 
   .site-footer-heading {
-    margin: 0 0 0.75rem;
+    margin: 0 0 0.5rem;
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1.4;
@@ -414,14 +425,17 @@
   .site-footer-links {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.125rem;
     margin: 0;
     padding: 0;
     list-style: none;
     font-size: 0.875rem;
   }
 
+  /* Padding, not gap, between links: each one is a 28px target. */
   .site-footer-link {
+    display: inline-block;
+    padding: 0.25rem 0;
     color: var(--color-terminal-muted);
     text-decoration: none;
     transition: color 0.15s;
