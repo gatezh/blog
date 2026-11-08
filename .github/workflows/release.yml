@@ -459,7 +459,10 @@ jobs:
       # A part-way promote leaves at most the api newer than the site, which
       # the api-first order already requires to work, and re-running go-live
       # finishes it.
-      - name: Say what is live and how to restore it
+      # After a failed check, takes the staged versions out so the override no
+      # longer reaches them (their ids are in this public log). After a failed
+      # promote, only prints the restore commands.
+      - name: Take the staged versions out, or say how to restore
         if: failure() || cancelled()
         uses: $/.github/actions/go-live
         with:
@@ -468,3 +471,5 @@ jobs:
           PROMOTE: ${{ steps.promote.outcome }}
           WWW_LIVE: ${{ steps.stage.outputs.www-live }}
           API_LIVE: ${{ steps.stage.outputs.api-live }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

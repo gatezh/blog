@@ -413,15 +413,86 @@ for (const [workflow, envArg] of [
       expect(api).toBeGreaterThan(www);
     });
 
-    test("restore after a failed check says nothing was promoted, and prints no commands", () => {
+    test("restore after a failed check takes the staged versions out, www first", () => {
       for (const outcome of ["skipped", ""]) {
         const h = harness(workflow);
+        h.run("stage");
+        expect(h.run("wait").code).toBe(0);
+        writeFileSync(join(h.state, "calls.log"), "");
 
-        h.run("restore", { PROMOTE: outcome, WWW_LIVE: "www-old", API_LIVE: "api-old" });
+        const restore = h.run("restore", {
+          PROMOTE: outcome,
+          WWW_LIVE: "www-old",
+          API_LIVE: "api-old",
+        });
 
+        expect(restore.code).toBe(0);
+        expect(h.deployment("www")).toEqual([{ version_id: "www-old", percentage: 100 }]);
+        expect(h.deployment("api")).toEqual([{ version_id: "api-old", percentage: 100 }]);
+        const deploys = wranglerCalls(h).filter((c) => c.startsWith("wrangler versions deploy"));
+        expect(deploys.map((c) => c.split(" ")[4])).toEqual(["services/www", "services/api"]);
         expect(h.summary()).toContain("go-live stopped before promoting");
-        expect(h.summary()).not.toContain("versions deploy");
+        expect(h.summary()).toContain("taken out again");
+        // The override that reached them a moment ago now falls back to the live versions.
+        expect(h.run("wait").code).not.toBe(0);
       }
+    });
+
+    test("restore after a failed stage takes out only what was staged", () => {
+      const h = harness(workflow);
+      h.setDeployment("api", [
+        { version_id: "api-new", percentage: 0 },
+        { version_id: "api-old", percentage: 100 },
+      ]);
+
+      expect(h.run("restore", { PROMOTE: "", WWW_LIVE: "www-old", API_LIVE: "api-old" }).code).toBe(
+        0,
+      );
+      const deploys = wranglerCalls(h).filter((c) => c.startsWith("wrangler versions deploy"));
+      expect(deploys.map((c) => c.split(" ")[4])).toEqual(["services/api"]);
+      expect(h.deployment("api")).toEqual([{ version_id: "api-old", percentage: 100 }]);
+    });
+
+    test("restore changes nothing when stage never read what was live", () => {
+      const h = harness(workflow);
+
+      expect(h.run("restore", { PROMOTE: "", WWW_LIVE: "", API_LIVE: "" }).code).toBe(0);
+      expect(wranglerCalls(h)).toEqual([]);
+      expect(h.summary()).toContain("go-live stopped before promoting");
+    });
+
+    test("restore leaves a Worker alone that a later deploy moved on", () => {
+      const h = harness(workflow);
+      h.setDeployment("www", [
+        { version_id: "www-new", percentage: 0 },
+        { version_id: "www-later", percentage: 100 },
+      ]);
+
+      expect(h.run("restore", { PROMOTE: "", WWW_LIVE: "www-old", API_LIVE: "api-old" }).code).toBe(
+        0,
+      );
+      expect(wranglerCalls(h).filter((c) => c.startsWith("wrangler versions deploy"))).toEqual([]);
+      expect(h.deployment("www")).toEqual([
+        { version_id: "www-new", percentage: 0 },
+        { version_id: "www-later", percentage: 100 },
+      ]);
+    });
+
+    test("restore fails, and prints the command, when taking a staged version out fails", () => {
+      const h = harness(workflow);
+      h.run("stage");
+      writeFileSync(join(h.state, "fail-promote-www"), "");
+
+      const restore = h.run("restore", { PROMOTE: "", WWW_LIVE: "www-old", API_LIVE: "api-old" });
+
+      expect(restore.code).not.toBe(0);
+      expect(restore.out).toContain("::error::could not take the staged versions out of: www");
+      // api is still taken out.
+      expect(h.deployment("api")).toEqual([{ version_id: "api-old", percentage: 100 }]);
+      expect(h.summary()).toContain(
+        `--cwd services/www ${envArg.replace("=", '="')}" www-old@100% --yes`,
+      );
+      expect(h.summary()).not.toContain("services/api");
     });
   });
 }
