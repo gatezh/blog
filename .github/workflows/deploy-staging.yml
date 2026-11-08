@@ -111,9 +111,9 @@ jobs:
       # Names this build of www; go-live waits for it. A re-run of go-live
       # alone keeps this output, so it still names the build it deploys.
       build_id: ${{ github.run_id }}-${{ github.run_attempt }}
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    # The Cloudflare token is on the two upload steps only, not the job:
+    # setup (bun ci) and the Hugo build run third-party npm code, which has
+    # no reason to see it.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -162,6 +162,8 @@ jobs:
         id: api
         working-directory: services/api
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-api.json
           ALLOWED_ORIGIN: ${{ vars.ALLOWED_ORIGIN }}
         run: |
@@ -181,6 +183,8 @@ jobs:
         id: www
         working-directory: services/www
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-www.json
         run: |
           # The commit, on the Worker version, so the dashboard's Deployments

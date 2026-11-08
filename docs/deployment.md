@@ -353,6 +353,11 @@ permissions.
    repository GitHub enforces this on every plan, so a pushed branch cannot
    reach the token.
 
+Within a job, the token is set only on the steps that call the Cloudflare API
+(the two `versions upload` steps, and `go-live`'s stage and promote), never on
+the job: `bun ci` and the Hugo build run third-party npm code, and a job-level
+`env` would hand it the token.
+
 **Blast radius.** Workers Admin at account scope reaches every Worker in this
 shared account, not only this project's. Narrowing it to **Specified Workers**
 with **Editor** is possible once every Worker the workflows deploy exists, but
