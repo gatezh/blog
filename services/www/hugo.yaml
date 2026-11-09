@@ -292,6 +292,12 @@ params:
   # layouts/home._outputformat_headers_.txt, so the two cannot disagree.
   remark42Host: "https://comments.gatezh.com"
 
+  # Cloudflare Web Analytics. No template loads it: the zone's automatic setup
+  # injects its beacon into every HTML response, staging included. This only
+  # lets the CSP in layouts/home._outputformat_headers_.txt allow it; set it to
+  # false if the zone's automatic setup is turned off.
+  cloudflareWebAnalytics: true
+
   profileMode:
     enabled: true
     title: "Serge Gatezh"
