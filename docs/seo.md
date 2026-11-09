@@ -241,13 +241,17 @@ id, which is worth retiring along with the site — a shared analytics id is a
 standard way to correlate separately-hosted sites back to one owner, so it is
 deliberately not repeated here.
 
-- [ ] **Decide the old site's fate.** Disabling Pages on
-      `gatezh/gatezh.github.io` (Settings → Pages → Source: None) removes all
-      eight URLs at once and is the clean fix; inbound links to the old
-      `.html` paths already 301 correctly on `gatezh.com`. The alternative —
-      keeping it and adding `robots.txt` plus a canonical on `/portfolio/` —
-      leaves a second site to maintain. Nothing was lost in the migration: the
-      only unmigrated post is `published: false`, a draft index page.
+- [ ] **Merge the old site's redirect pages.** Decided 2026-11-08: replace
+      the site rather than disable Pages, so links to it keep working. Branch
+      `redirect-to-gatezh-com` on `gatezh/gatezh.github.io` swaps the Jekyll
+      sources for one page per URL above, each with a canonical and a
+      0-second meta refresh to the final `gatezh.com` address (Google treats
+      that as a permanent redirect), including `/portfolio/` →
+      `/early-projects/`. `feed.xml` becomes a single "moved" item, `404.html`
+      links home, and the old analytics ids go with the templates. Pages
+      publishes from `master`, so merging is the switch. Nothing was lost in
+      the migration: the only unmigrated post is `published: false`, a draft
+      index page.
 - [ ] **Separately**, `angular2-reddit`, `ng-shop`, `inventory-app` and
       `Auction-app` also serve live Pages demos, with their repo `homepage`
       field still pointing at dead `http://gatezh.com/<project>` URLs. Those
