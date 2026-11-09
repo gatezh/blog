@@ -8,7 +8,10 @@ keywords: [talks, speaking, cloudflare, dev-containers, claude-code]
 # Markdown/llms-full text (layouts/_shortcodes/talks.*) and the Event JSON-LD
 # (layouts/_partials/seo.html). Link only public material: a deck as the
 # event published it. `short` names the talk where the footer and /projects/
-# link to it.
+# link to it. `admission` (where to register, and the price) and `images`
+# (the event's own artwork, 16x9, 4x3 and 1x1, as Google asks) feed the
+# Event's `offers` and `image`, copied from the organizer's own event page;
+# a talk without either fails the build.
 talks:
   - title: "Zero Servers, Zero Dollars: Shipping Real Apps on Cloudflare"
     id: zero-servers-zero-dollars
@@ -25,6 +28,14 @@ talks:
       region: "AB"
       postalCode: "T2R 0W5"
       country: "CA"
+    admission:
+      url: "https://www.eventbrite.ca/e/zero-servers-zero-dollars-shipping-real-apps-on-cloudflare-tickets-2003265290410"
+      price: 0
+      currency: "CAD"
+    images:
+      - "https://frontend-yyc.github.io/og/events/zero-servers-zero-dollars-shipping-real-apps-on-cloudflare-16x9.png"
+      - "https://frontend-yyc.github.io/og/events/zero-servers-zero-dollars-shipping-real-apps-on-cloudflare-4x3.png"
+      - "https://frontend-yyc.github.io/og/events/zero-servers-zero-dollars-shipping-real-apps-on-cloudflare-1x1.png"
     slides: "https://frontend-yyc.github.io/presentations/Zero%20Servers,%20Zero%20Dollars_%20Shipping%20Real%20Apps%20on%20Cloudflare%20-%20Slidev.pdf"
     abstract: >-
       How a personal website went from GitHub Pages to Netlify to Cloudflare,
@@ -53,6 +64,14 @@ talks:
       region: "AB"
       postalCode: "T2R 0W5"
       country: "CA"
+    admission:
+      url: "https://www.eventbrite.ca/e/dev-containers-with-claude-security-first-tickets-1985233302248"
+      price: 0
+      currency: "CAD"
+    images:
+      - "https://frontend-yyc.github.io/og/events/dev-containers-with-claude-security-first-16x9.png"
+      - "https://frontend-yyc.github.io/og/events/dev-containers-with-claude-security-first-4x3.png"
+      - "https://frontend-yyc.github.io/og/events/dev-containers-with-claude-security-first-1x1.png"
     slides: "https://frontend-yyc.github.io/presentations/Dev%20Containers%20with%20Claude_%20Security%20First%20-%20Slidev.pdf"
     code: "https://github.com/gatezh/devcontainers"
     abstract: >-
