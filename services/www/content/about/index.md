@@ -8,36 +8,34 @@ role: "Product Engineer · Calgary, Canada"
 portrait: "images/serge-gatezh-sticker.png"
 ---
 
-I'm a product engineer. Since 2018, I've built web applications that solve complex product and engineering problems without passing that complexity on to users, and since 2020 I've done it on remote teams.
+I'm a product engineer. I've built web applications since 2018, on remote teams since 2020.
 
-My front-end roots still shape how I work across the stack. I pay attention to the small decisions that determine whether a product feels obvious or exhausting: information hierarchy, useful feedback, sensible defaults, accessibility, and the awkward edge cases users find before anyone else. React and TypeScript are familiar tools, but the goal is never a particular framework. The goal is to help someone finish what they came to do without making them carry the complexity that made it possible.
+I started on the front end, and it still shapes how I work across the stack. Whether a product feels obvious or exhausting comes down to small decisions: what the screen shows first, what a click tells you, which defaults are already filled in, and what happens in the edge cases users find before anyone else. I use React and TypeScript most days, but the framework is never the point. The point is that someone finishes what they came to do.
 
 ## Complexity belongs behind the interface
 
 {{< about-focus >}}
-I specialize in optimizing user workflows to reduce cognitive load.
+Every decision the software can make is one the user doesn't have to.
 {{< /about-focus >}}
 
-That starts with understanding the real workflow before designing the screen, removing unnecessary decisions, and anticipating pain points while they are still inexpensive to fix. The goal is software that can grow without asking its users to grow more patient.
+So I start from the workflow people already have, before drawing a screen. I cut the choices they shouldn't have to make, and fix the awkward parts while they are still cheap to fix.
 
-It also means looking beyond the interface. A simple experience depends on dependable APIs, understandable data models, useful observability, and development practices that let a team change the product with confidence. Working full stack lets me follow those connections rather than treating each layer as somebody else's problem.
+A simple screen also depends on what's behind it: an API that behaves the same way every time, a data model someone can explain, logs that show what happened. Working full stack, I can fix a problem in the layer it lives in instead of patching around it in the UI.
 
 ## Security is part of the product
 
-Security and data protection are not audit items to bolt on at the end. They are part of whether a product deserves a user's trust. I advocate for secure defaults, minimal access, careful handling of personal data, and practical safeguards that protect people without turning every interaction into an obstacle.
-
-I write about security alongside web development, infrastructure, and tooling—subjects that are closely connected in practice even when projects try to separate them.
+I don't leave security for an audit at the end. A product that mishandles personal data hasn't earned anyone's trust, however good it looks. My defaults are least privilege, as little personal data as the feature needs, and safeguards that don't make people jump through hoops. The same goes for AI coding agents: mine work inside [dev containers](https://github.com/gatezh/devcontainers), fenced off from the rest of the machine.
 
 ## Finance, from both sides of the screen
 
-Before software, I studied the Economics of Entrepreneurship and then Finance at Bukovyna State Finance Academy, earning bachelor's and master's degrees. That background helps me understand the financial domains my work supports—not only as data and business rules, but as decisions that matter to the people making them.
+Before software, I studied the Economics of Entrepreneurship and then Finance at Bukovyna State Finance Academy, earning bachelor's and master's degrees. When a product handles money, I can read its business rules without a translator.
 
-Outside work, I still explore personal-finance products with equal parts curiosity and scrutiny. I want to understand how they work, where they earn trust, and which mobile and web experiences make difficult choices easier.
+I still try personal-finance products on my own time, mostly to see how they earn trust or lose it. What I find goes on [bank and me](https://bankand.me/): first-hand reviews of Canadian banks, fintechs and credit unions.
 
 ## What I share here
 
-This site is my working notebook: a place for solutions worth remembering, experiments worth explaining, and the occasional lesson learned the hard way. Notes on other people's articles, videos and books live in the [learning log](/ever-learning/). You can also find my open-source work on [GitHub](https://github.com/gatezh), the issues and pull requests I file on other people's projects on the [upstream](/upstream/) page, or connect with me on [LinkedIn](https://linkedin.com/in/gatezh).
+This site is where I write down fixes I'll need again and how I got to them. Notes on other people's articles, videos and books are in the [learning log](/ever-learning/). My open-source work is on [GitHub](https://github.com/gatezh), and the issues and pull requests I file on other people's projects are on the [upstream](/upstream/) page.
 
 I give [talks](/talks/) at Frontend & Beyond, Calgary's web developer meetup, on shipping real apps on zero-cost edge infrastructure and on security-first AI workflows. The slides are public. Anthropic certified me as a [Claude Certified Architect, Foundations](https://www.credly.com/badges/9ce5ccf8-7ea5-40d4-9f65-3e0a8a66094a) in September 2026.
 
-Everything I've shipped in public, from open-source dev containers to live products, is on the [projects](/projects/) page. I also curate [UX Cringe](https://uxcringe.com/), a collection of real interfaces that failed the people using them, written up step by step. And I build websites for small businesses at [Just Right Systems](https://justright.systems/).
+Everything I've shipped in public is on the [projects](/projects/) page, including [UX Cringe](https://uxcringe.com/), where I write up real interfaces that failed the people using them, step by step. Client work for small businesses, from custom software to automation and security, goes through [Just Right Systems](https://justright.systems/).

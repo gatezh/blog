@@ -394,7 +394,7 @@ test.describe("About page", () => {
       page.getByRole("heading", { level: 2, name: "Security is part of the product" }),
     ).toBeVisible();
     await expect(page.getByLabel("Core specialization")).toContainText(
-      "I specialize in optimizing user workflows to reduce cognitive load.",
+      "Every decision the software can make is one the user doesn't have to.",
     );
 
     const portrait = page.getByTestId("about-portrait");
@@ -406,12 +406,12 @@ test.describe("About page", () => {
   });
 
   test("keeps punctuation attached to Markdown links", async ({ page }) => {
-    for (const linkName of ["LinkedIn", "Just Right Systems"]) {
+    for (const linkName of ["learning log", "Just Right Systems"]) {
       const link = page.locator("#main-content").getByRole("link", { name: linkName, exact: true });
       await expect(link).toBeVisible();
       await expect
         .poll(() => link.evaluate((element) => element.nextSibling?.textContent))
-        .toBe(".");
+        .toMatch(/^\./);
     }
   });
 });
