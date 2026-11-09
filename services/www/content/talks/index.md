@@ -2,7 +2,7 @@
 title: "Talks"
 layout: showcase
 comments: false
-description: "Talks by Serge Gatezh: zero-cost edge infrastructure, security-first AI workflows, and simple software for messy business processes. Slides for every talk."
+description: "Talks by Serge Gatezh: shipping real apps on zero-cost edge infrastructure, and running AI coding agents in sandboxed dev containers. Slides for each."
 keywords: [talks, speaking, cloudflare, dev-containers, claude-code]
 # Each talk renders three ways from this one list: the HTML slides and the
 # Markdown/llms-full text (layouts/_shortcodes/talks.*) and the Event JSON-LD
