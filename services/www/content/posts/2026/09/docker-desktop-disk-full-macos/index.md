@@ -11,8 +11,6 @@ draft: false
 
 This is the third time macOS has warned me about low disk space and the answer turned out to be Docker. The first two times I pruned some images, felt clever, and moved on. This time Docker didn't give me the chance — it died first.
 
-What follows is the whole debugging session, including the parts where I was wrong, because the wrong turns were more instructive than the fix.
-
 ## The Symptom: Docker Doesn't Error, It Hangs
 
 I noticed something was off when a `docker ps` in my terminal just… sat there. No error, no output, no prompt. VS Code's own `docker ps` had been stuck for nine minutes.
@@ -44,7 +42,7 @@ There it was. Docker Desktop had been sitting on a "Disk full" dialog whose only
 
 ⚠️ **Note:** If `docker` commands hang instead of failing, don't waste time on the CLI. Go straight to `com.docker.backend.log`.
 
-## 🚨 Problem #1: `df` Doesn't Mean What You Think on APFS
+## Problem 1: `df` Doesn't Mean What You Think on APFS
 
 Naturally I checked how much disk I had left:
 
@@ -91,7 +89,7 @@ Note that both lines report the **same** `Avail` — 16 GB — because all APFS 
 
 **Always check `/System/Volumes/Data`, and read the `Avail` column rather than the percentage.**
 
-## 🚨 Problem #2: The Sparse File Trap
+## Problem 2: The Sparse File Trap
 
 Next, how big is Docker actually?
 
@@ -185,11 +183,11 @@ Then the extensions cache, which was the real surprise:
 3.5 GB  openai.chatgpt           26 cached versions
 ```
 
-Eighty-four versions of one extension. This isn't a bug so much as an unlucky collision: the cache was designed when extensions updated monthly, and AI coding extensions now ship **several releases per week**. Every version is kept forever, per platform.
+Eighty-four versions of one extension. The cache was designed when extensions updated monthly, and AI coding extensions now ship **several releases per week**. Every version is kept forever, per platform.
 
 There were also 109 orphaned `.vsix` files (819 MB) with UUID names — interrupted downloads that VS Code never cleaned up.
 
-## 🚨 Problem #3: The Freed Space Didn't Come Back
+## Problem 3: The Freed Space Didn't Come Back
 
 I cleaned up 23 GB. `Docker.raw` shrank from 80 GB to 51 GB — Docker auto-TRIMs after a prune these days, so no manual `fstrim` needed.
 
@@ -216,7 +214,7 @@ tmutil thinlocalsnapshots / 30000000000 4
 
 ⚠️ **Note:** This only removes *local* snapshots. [Time Machine](https://support.apple.com/guide/mac-help/back-up-your-mac-with-time-machine-mh35860/mac) backups on an external or network disk are untouched.
 
-## 🚨 Problem #4: After a Crash, `container prune` Is a Trap
+## Problem 4: After a Crash, `container prune` Is a Trap
 
 Standard advice for reclaiming space is `docker container prune -f` — it only removes stopped containers, so it's safe.
 
@@ -241,8 +239,6 @@ Crash-killed containers all share the exact daemon-boot timestamp. Remove the ge
 
 ## The Detour: I Wrote a Cleanup Script
 
-Here's where I went down a rabbit hole, and I'm including it because the ending is the useful part.
-
 Since nothing prunes that `vscode` volume, I decided to write something that would: keep the two newest server installs per platform, keep the two newest versions of each extension, delete orphaned downloads older than a week, run weekly from a launchd agent.
 
 It worked in a dry run on the first try. It was also badly broken, and it took four review passes to find out:
@@ -259,7 +255,7 @@ $ ls -la ~/.vscode-server/bin/
 lrwxrwxrwx  a44adf7f... -> /vscode/vscode-server/bin/linux-arm64/a44adf7f...
 ```
 
-`~/.vscode-server/bin/<commit>` inside the container is a **symlink into the shared volume**. Deleting a server directory doesn't just clear a cache — it breaks the running server behind a live devcontainer's symlink.
+`~/.vscode-server/bin/<commit>` inside the container is a **symlink into the shared volume**. Deleting a server directory breaks the running server of any live devcontainer that links to it.
 
 I eventually got the script correct, verified against a scratch volume seeded with adversarial names, a symlink pointing at a canary file, and a live devcontainer caught mid-update.
 
@@ -283,7 +279,7 @@ That's it. The extension recreates the volume containing only the current server
 
 ⚠️ **Note:** Verified against [the docs](https://code.visualstudio.com/docs/devcontainers/tips-and-tricks) and the extension manifest — VS Code ships **no** automatic cleanup for this cache and no setting to bound its size. There's nothing you're failing to enable. It just needs occasional emptying.
 
-### 🚨 Problem #5: "Volume Is in Use"
+### Problem 5: "Volume Is in Use"
 
 Closing VS Code isn't enough:
 
@@ -303,13 +299,11 @@ docker volume rm vscode
 
 One of mine was still *running* despite VS Code being closed — it had `restart: unless-stopped`, so it had come back by itself after the crash and didn't care whether an editor was attached.
 
-**Never add `-v` to `docker rm`.** That takes the named volumes with it, which is where your credentials and databases live. Removing the containers themselves is cheap: source code is bind-mounted from the host, state lives in named volumes, and both survive. You lose the writable layer and rebuild on next "Reopen in Container".
+**Never add `-v` to `docker rm`.** It deletes the container's anonymous volumes, and an image that declares a `VOLUME` keeps its data in one unless you mounted a named volume there. The official Postgres image does. Removing the containers themselves is cheap: source code is bind-mounted from the host, state lives in named volumes, and both survive. You lose the writable layer and rebuild on next "Reopen in Container".
 
 That took `Docker.raw` from 53 GB to 24 GB.
 
 ## The Actual Root Cause
-
-Everything above is housekeeping. Here's the bug.
 
 ```bash
 cat ~/Library/Group\ Containers/group.com.docker/settings-store.json
@@ -328,7 +322,7 @@ No `DiskSizeMiB` key. None. Docker Desktop had never been given a disk limit, so
 
 On a 460 GB Mac, a 1 TB ceiling means Docker's effective limit is **the entire machine**. That's why the failure was so violent. Instead of Docker hitting its own wall and returning a normal `no space left on device` to whatever was writing, it kept growing until macOS itself ran out — and the VM died mid-write.
 
-The limit isn't there to save space. It's there to make the failure survivable and local to Docker.
+A real limit doesn't save space. It keeps the failure inside Docker, where it's survivable.
 
 ## Shrinking the Disk Wipes Everything
 
@@ -357,17 +351,13 @@ docker run --rm -v <volume>:/data -v "$PWD":/backup alpine \
 
 The `:ro` on the backup mount guarantees the pass can't modify the source. Ownership and permissions survive the round trip — my `.credentials.json` came back as `-rw-------` owned by uid 1000, and a Postgres data directory restored with the same 2,353 files it went in with.
 
-⚠️ **Note:** `alpine` was inside the disk image too, so after the wipe the very tool you need to restore with is gone. `docker pull alpine` before you start — and don't attempt any of this on a connection you don't trust.
-
-Three things worth knowing:
+⚠️ **Note:** `alpine` was inside the disk image too, so after the wipe the very tool you need to restore with is gone. `docker pull alpine` before you start.
 
 - **Back up cold.** Tarring a live Postgres data directory gives you an inconsistent snapshot. Stop the containers first; everything was already stopped in my case, which was convenient.
 - **Don't back up what regenerates.** Images re-pull, `node_modules` volumes reinstall, container layers rebuild. I only archived credentials, shell history, and databases — 29 volumes, **683 MB total**. The stuff that mattered was less than 1 GB out of 53.
 - **Re-take the backup right before you pull the trigger.** I had a full set from the day before and nearly used it. Re-running it, the checksums showed two volumes had changed in those 24 hours — a Claude config and an app's data directory. The older set would have silently rolled back a day of work.
 
 ### Which volumes actually matter
-
-This is the part I got wrong, and it matters more than the commands above.
 
 I picked volumes by **name** — a pattern matching `claude-config`, `fish-data`, `pgdata` and friends. It looked thorough. It wasn't: volume names are arbitrary, and mine weren't consistent across projects. Auditing every mount afterwards, the pattern had quietly skipped:
 
@@ -402,9 +392,7 @@ A `docker volume prune` at that moment would have deleted the entire restore.
 
 They stop looking reclaimable as you reopen each project and its containers re-attach. Until then the restore isn't finished, it's just staged — and the one command you might reach for to tidy up is the one that undoes it.
 
-## Bonus Round: Your Container Logs Never Rotate
-
-While I was in `~/.docker/daemon.json` anyway, one more thing worth fixing.
+## Container Logs Never Rotate
 
 Every line your containers write to stdout goes to a log file on disk. The default [`json-file`](https://docs.docker.com/engine/logging/drivers/json-file/) driver has `max-size` set to `-1` — **unlimited**, with no rotation at all. A chatty dev server or a database logging every query grows that file forever, and it appears nowhere in `docker system df`.
 
@@ -440,7 +428,7 @@ Docker's own [pruning guide](https://docs.docker.com/engine/manage-resources/pru
 ```bash
 docker image prune -f       # dangling only
 docker builder prune -f
-docker container prune -f   # NOT right after a crash - see Problem #4
+docker container prune -f   # NOT right after a crash - see Problem 4
 ```
 
 ### 3. Empty the VS Code cache volume
@@ -478,7 +466,7 @@ The second line deletes **local** snapshots — the on-disk "restore from earlie
 today" copies. Time Machine backups on an external or network disk are not
 touched. Run the first line on its own if you just want to look.
 
-### ⛔ Do NOT run these
+### Do not run these
 
 **These are here so you recognise them, not so you run them.** Both turn up
 constantly in answers about reclaiming Docker space, and both will delete data
@@ -487,10 +475,10 @@ that has no backup. They are deliberately not written as a copyable block.
 | Command | What it takes with it |
 | --- | --- |
 | `docker system prune` with `-a --volumes` | Every volume not attached to a **running** container. Databases, credential volumes, anything a stopped container owned. |
-| `docker volume prune` with `-a` | The same set of volumes, without even the images to show for it. |
+| `docker volume prune` with `-a` | Every volume no container references, named ones included. After a restore, that is every volume you just restored. |
 
 The trap is that "not attached to a running container" sounds narrow and isn't.
-Stop a devcontainer, run either of these, and its Postgres data and stored
+Stop a devcontainer, run the first one, and its Postgres data and stored
 credentials are gone.
 
 To release one project's volumes deliberately, use `docker compose down -v` in
@@ -501,7 +489,7 @@ finished with.
 
 The thing that actually fixed this was a single number in a settings file. Everything else — the seventeen server installs, the eighty-four cached extension versions, the orphaned downloads — is just growth, and growth is fine as long as it hits a wall that isn't your whole computer.
 
-What I keep coming back to is how much time I spent on the wrong solution: four review passes hardening a cleanup script, when the answer was one `docker volume rm` and a setting I hadn't read. Not wasted — those bugs taught me how the cache works — but I was solving the symptom with great thoroughness while the cause sat one settings panel away.
+I spent four review passes hardening a cleanup script, when the answer was one `docker volume rm` and a setting I hadn't read. The script taught me how the cache works, but it treated the symptom.
 
 Where I landed:
 
@@ -511,9 +499,7 @@ Where I landed:
 - ✅ Volume backups verified with checksums, because I'll need them next time I resize
 - ✅ No custom scripts, no scheduled jobs, nothing to maintain
 
-...actually, hold on. That last one isn't quite honest.
-
-You do still have to brush your teeth. Docker Engine ships no image garbage collection — nothing prunes the dangling images that pile up every time a devcontainer pulls a rebuilt `:latest`, and I was carrying 2.5 GB of them within days. So every now and then:
+One thing still needs doing by hand. Docker Engine ships no image garbage collection — nothing prunes the dangling images that pile up every time a devcontainer pulls a rebuilt `:latest`, and I was carrying 2.5 GB of them within days. So every now and then:
 
 ```bash
 docker image prune -f
@@ -521,10 +507,4 @@ docker image prune -f
 
 That's the entire maintenance burden. One command, no flags to remember, no risk — it only removes dangling layers, never a tagged image. Build cache handles itself through `defaultKeepStorage`, logs now rotate on their own, and the `vscode` volume needs emptying maybe once a quarter.
 
-What changed isn't that the growth stopped. It's what happens when I forget. With the 1 TB default, forgetting eventually takes out the VM and every container in it, on a random Tuesday, with no warning. With a real limit, Docker reports `no space left on device` when something tries to write beyond it; I prune the dangling images, and I get on with my day.
-
-If you've run into the same problem, I hope this write-up helps you reclaim the space without losing anything important. Knowing where to look — Docker's disk usage limit and, for devcontainer users, the size of the `vscode` volume — can make the difference between an annoying afternoon and losing every container you have.
-
----
-
-_Have questions or run into different issues? Let me know in the comments!_
+The growth hasn't stopped. What changed is what happens when I forget. With the 1 TB default, forgetting eventually takes out the VM and every container in it, on a random Tuesday, with no warning. With a real limit, Docker reports `no space left on device` when something tries to write beyond it; I prune the dangling images, and I get on with my day.
