@@ -14,19 +14,19 @@ A host allowlist. No template has an inline `<script>` — every script is a fil
 under `assets/js/`, built by `js.Build` and loaded with SRI — so `script-src`
 needs neither `'unsafe-inline'` nor a nonce.
 
-| Directive                              | Why                                                                                                                                                                                               |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `default-src 'self'`                   | Everything not listed below is first-party only — including the self-hosted fonts.                                                                                                                |
-| `script-src 'self' …`                  | Plus Remark42, Turnstile (when a site key is set), `https://*.googletagmanager.com` (production builds, where Google Analytics loads) and PostHog (`https://*.posthog.com`, when its key is set). |
-| `style-src 'self' 'unsafe-inline'`     | Posts only: Chroma's inline highlighting colours (`markup.highlight.noClasses`, default true) and the `cfimage` shortcode's `<style>` block. The theme and Turnstile need none of it.             |
-| `img-src 'self' data: …`               | Plus Google Analytics' pixel hosts (`https://*.google-analytics.com https://*.googletagmanager.com`), in production builds.                                                                       |
-| `connect-src 'self' <API> …`           | The contact-form API (per environment, from `HUGO_PARAMS_APIURL`), Remark42, PostHog and Google Analytics (`https://*.google-analytics.com https://*.google.com https://*.googletagmanager.com`). |
-| `frame-src`                            | Turnstile's challenge and the Remark42 comment thread.                                                                                                                                            |
-| `worker-src 'self' blob: data:`        | PostHog session replay compresses in a Worker created from a blob — PostHog's documented directive. Only when its key is set.                                                                     |
-| `object-src 'none'`, `base-uri 'none'` | No plugins; no `<base>` hijacking.                                                                                                                                                                |
-| `form-action 'self'`                   | Native form posts only to this site. `fetch()` is governed by `connect-src`.                                                                                                                      |
-| `frame-ancestors 'none'`               | Nothing may frame the site (clickjacking). `X-Frame-Options: DENY` for older browsers.                                                                                                            |
-| `report-uri`, `report-to posthog`      | Violations are reported to PostHog, with a matching `Reporting-Endpoints` header. Only when its key is set. See [Violation reports](#violation-reports).                                          |
+| Directive                              | Why                                                                                                                                                                                                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `default-src 'self'`                   | Everything not listed below is first-party only — including the self-hosted fonts.                                                                                                                                                                                    |
+| `script-src 'self' …`                  | Plus Remark42, Turnstile (when a site key is set), `https://*.googletagmanager.com` (production builds, where Google Analytics loads), PostHog (`https://*.posthog.com`, when its key is set) and Cloudflare Web Analytics (`https://static.cloudflareinsights.com`). |
+| `style-src 'self' 'unsafe-inline'`     | Posts only: Chroma's inline highlighting colours (`markup.highlight.noClasses`, default true) and the `cfimage` shortcode's `<style>` block. The theme and Turnstile need none of it.                                                                                 |
+| `img-src 'self' data: …`               | Plus Google Analytics' pixel hosts (`https://*.google-analytics.com https://*.googletagmanager.com`), in production builds.                                                                                                                                           |
+| `connect-src 'self' <API> …`           | The contact-form API (per environment, from `HUGO_PARAMS_APIURL`), Remark42, PostHog, Google Analytics (`https://*.google-analytics.com https://*.google.com https://*.googletagmanager.com`) and Cloudflare Web Analytics (`https://cloudflareinsights.com`).        |
+| `frame-src`                            | Turnstile's challenge and the Remark42 comment thread.                                                                                                                                                                                                                |
+| `worker-src 'self' blob: data:`        | PostHog session replay compresses in a Worker created from a blob — PostHog's documented directive. Only when its key is set.                                                                                                                                         |
+| `object-src 'none'`, `base-uri 'none'` | No plugins; no `<base>` hijacking.                                                                                                                                                                                                                                    |
+| `form-action 'self'`                   | Native form posts only to this site. `fetch()` is governed by `connect-src`.                                                                                                                                                                                          |
+| `frame-ancestors 'none'`               | Nothing may frame the site (clickjacking). `X-Frame-Options: DENY` for older browsers.                                                                                                                                                                                |
+| `report-uri`, `report-to posthog`      | Violations are reported to PostHog, with a matching `Reporting-Endpoints` header. Only when its key is set. See [Violation reports](#violation-reports).                                                                                                              |
 
 Google Analytics follows
 [Google's policy](https://developers.google.com/tag-platform/security/guides/csp)
@@ -44,7 +44,11 @@ fails, gtag retries at `https://www.google.com/g/collect`.
 Each third-party origin comes from the same param or condition the templates
 use to load it (`params.apiUrl`, `params.remark42Host`,
 `params.turnstileSiteKey`, the Google Analytics ID in production), so a build
-never allows a service it does not include. There is no
+never allows a service it does not include. Cloudflare Web Analytics is the
+exception: the zone injects it, not a template, so `params.cloudflareWebAnalytics`
+only gates the policy (see
+[Cloudflare features that inject scripts](#cloudflare-features-that-inject-scripts)).
+There is no
 `upgrade-insecure-requests`: every URL the site emits is relative or https, the
 zone redirects http to https, and under `wrangler dev` it would break every
 same-origin request.
@@ -69,9 +73,19 @@ sampled — the site's traffic is small and a violation should be rare.
 
 ### Cloudflare features that inject scripts
 
-Rocket Loader and Bot Fight Mode's JavaScript Detections inject scripts at the
-edge. With no nonce in the policy, an injected inline script can be blocked. Keep
-them off for this zone, or check the console for violations after enabling one.
+Rocket Loader and Bot Management's JavaScript Detections inject inline scripts
+at the edge. With no nonce or `'unsafe-inline'` in the policy, the browser
+blocks them and logs a violation on every page, which Lighthouse counts against
+Best Practices. Keep both off for this zone. JavaScript Detections was found on
+and turned off on 2026-11-08 (`cf bot-management update --enable-js false`);
+Bot Fight Mode, which requires it, is off.
+
+Web Analytics' automatic setup injects a beacon too, but as an external file
+with SRI, so the policy can allow its host. `params.cloudflareWebAnalytics` in
+`hugo.yaml` adds `https://static.cloudflareinsights.com` to `script-src` and
+`https://cloudflareinsights.com` to `connect-src`, as
+[Cloudflare documents](https://developers.cloudflare.com/web-analytics/). Until
+2026-11-08 the policy blocked it, so Web Analytics recorded nothing before then.
 
 ## Adding a third-party service
 
