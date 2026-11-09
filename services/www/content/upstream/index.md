@@ -121,11 +121,8 @@ upstream:
 ---
 
 When something I build on breaks, I file it where it can be fixed for
-everyone. This is the log. Each entry links to the issue or pull request on
-GitHub and says what the report was about; the line beside it says what came
-of it. Projects of my own are on the [projects](/projects/) page, not here.
+everyone. This is the log: each entry links to the issue or pull request,
+says what it was about, and what came of it. My own projects are on the
+[projects](/projects/) page.
 
 {{< upstream >}}
-
-Found a bug in something of mine? Open an issue on the repository, or
-[send me a message](/contact/).
