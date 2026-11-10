@@ -14,6 +14,9 @@ import { type APIRequestContext, expect, type Page, test } from "@playwright/tes
 /** A post with comments, so the Remark42 embed is on the page. */
 const POST = "/posts/docker-desktop-disk-full-macos/";
 
+/** The placeholder reverse proxy from playwright.config.ts. */
+const POSTHOG_PROXY = "https://proxy.example.test";
+
 /** Records every violation of the page's own policy, from the first byte. */
 async function trackCspViolations(page: Page): Promise<() => Promise<string[]>> {
   // addInitScript runs through the DevTools protocol, outside the page's CSP,
@@ -39,6 +42,15 @@ async function stub(page: Page, pattern: string): Promise<string[]> {
     return route.fulfill({ contentType: "application/javascript", body: "" });
   });
   return hits;
+}
+
+/** The build carries a placeholder PostHog token; never send it out. Returns
+ *  the hits on the proxy and on PostHog's own hosts. */
+async function stubPostHog(page: Page): Promise<{ proxy: string[]; direct: string[] }> {
+  return {
+    proxy: await stub(page, `${POSTHOG_PROXY}/**`),
+    direct: await stub(page, "https://*.posthog.com/**"),
+  };
 }
 
 /** The build is a production one with the real GA ID: keep gtag.js and every
@@ -113,10 +125,14 @@ test.describe("security headers", () => {
 
   test("the CSP grants PostHog the directives PostHog documents", async ({ request }) => {
     // https://posthog.com/docs/advanced/content-security-policy — the build
-    // carries a placeholder token (playwright.config.ts), so PostHog is in it.
+    // carries a placeholder token and proxy (playwright.config.ts). With a
+    // reverse proxy, PostHog's own hosts are permitted "rather than" it, not
+    // beside it: the browser tests below show nothing reaches them.
     const csp = await cspOf(request, "/");
-    expect(directive(csp, "script-src")).toContain("https://*.posthog.com");
-    expect(directive(csp, "connect-src")).toContain("https://*.posthog.com");
+    for (const name of ["script-src", "connect-src"]) {
+      expect(directive(csp, name)).toContain(POSTHOG_PROXY);
+      expect(directive(csp, name)).not.toContain("posthog.com");
+    }
     expect(directive(csp, "worker-src")).toBe("worker-src 'self' blob: data:");
   });
 
@@ -133,9 +149,9 @@ test.describe("security headers", () => {
   });
 
   test("CSP violations are reported to PostHog", async ({ request }) => {
-    // https://posthog.com/docs/csp-tracking — the same US host as api_host in
-    // js/posthog.ts, and the placeholder token from playwright.config.ts.
-    const endpoint = "https://us.i.posthog.com/report/?token=phc_playwright_placeholder";
+    // https://posthog.com/docs/csp-tracking — through the proxy, with the
+    // placeholder token from playwright.config.ts.
+    const endpoint = `${POSTHOG_PROXY}/report/?token=phc_playwright_placeholder`;
     const res = await request.get("/");
     const csp = res.headers()["content-security-policy"] ?? "";
     expect(directive(csp, "report-uri")).toBe(`report-uri ${endpoint}`);
@@ -212,8 +228,7 @@ test.describe("security headers", () => {
   for (const path of ["/", "/contact/", POST]) {
     test(`${path} raises no CSP violations`, async ({ page }) => {
       const violations = await trackCspViolations(page);
-      // The build carries a placeholder PostHog token; never send it out.
-      await stub(page, "https://*.posthog.com/**");
+      await stubPostHog(page);
       await stubGoogleAnalytics(page);
       await page.goto(path);
       await page.waitForLoadState("load");
@@ -231,16 +246,21 @@ test.describe("security headers", () => {
  * and any violation of that policy fails the test.
  */
 test.describe("vendor snippets run unmodified under the enforced CSP", () => {
-  test("PostHog's snippet loads its SDK with nothing blocked", async ({ page }) => {
+  test("PostHog's snippet loads its SDK through the proxy with nothing blocked", async ({
+    page,
+  }) => {
     const violations = await trackCspViolations(page);
     await stubGoogleAnalytics(page);
-    const posthog = await stub(page, "https://*.posthog.com/**");
+    const posthog = await stubPostHog(page);
 
     await page.goto("/");
 
     // The snippet injects array.js. A policy that blocked it would stop the
     // request from ever being made, so reaching the stub is the proof.
-    await expect.poll(() => posthog.some((url) => url.endsWith("/static/array.js"))).toBe(true);
+    await expect
+      .poll(() => posthog.proxy.some((url) => url === `${POSTHOG_PROXY}/static/array.js`))
+      .toBe(true);
+    expect(posthog.direct).toEqual([]);
     expect(await violations()).toEqual([]);
   });
 
@@ -249,7 +269,7 @@ test.describe("vendor snippets run unmodified under the enforced CSP", () => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await stubGoogleAnalytics(page);
-    await stub(page, "https://*.posthog.com/**");
+    await stubPostHog(page);
     // Fail the submission deterministically, which drives the handler into
     // turnstile.reset("#contact-turnstile").
     await page.route("http://localhost:8787/**", (route) => route.abort());
@@ -273,6 +293,41 @@ test.describe("vendor snippets run unmodified under the enforced CSP", () => {
     expect(await violations()).toEqual([]);
   });
 
+  test("contact outcomes reach PostHog, and nothing the visitor typed does", async ({ page }) => {
+    await stubGoogleAnalytics(page);
+    await stubPostHog(page);
+    // The stubbed array.js never loads the SDK, so the snippet's queue
+    // (window.posthog) keeps every call the page made.
+    const captured = () =>
+      page.evaluate(() => JSON.stringify((window as unknown as { posthog: unknown[] }).posthog));
+    let answer: { status: number; body: object } = { status: 500, body: { error: "boom" } };
+    await page.route("http://localhost:8787/**", (route) =>
+      route.fulfill({ status: answer.status, json: answer.body }),
+    );
+
+    await page.goto("/contact/");
+    const token = page.locator('#contact-form input[name="cf-turnstile-response"]');
+    await expect(token).toHaveValue(/.+/, { timeout: 30_000 });
+    await page.locator("#contact-name").fill("Ada");
+    await page.locator("#contact-email").fill("ada@example.com");
+    await page.locator("#contact-message").fill("Hello there");
+    const submit = page.locator('#contact-form [type="submit"]');
+
+    await submit.click();
+    await expect
+      .poll(captured)
+      .toContain('"contact_form_failed",{"reason":"rejected","status":500}');
+
+    answer = { status: 200, body: { success: true } };
+    await expect(token).toHaveValue(/.+/, { timeout: 30_000 });
+    await submit.click();
+    await expect.poll(captured).toContain('"contact_form_submitted"');
+
+    for (const typed of ["Ada", "ada@example.com", "Hello there"]) {
+      expect(await captured()).not.toContain(typed);
+    }
+  });
+
   test("gtag's fallback beacon is allowed when its primary hit fails", async ({ page }) => {
     // The one test that runs the real gtag.js, because the path it covers only
     // exists inside it: when the hit to *.google-analytics.com fails (a filter
@@ -280,7 +335,7 @@ test.describe("vendor snippets run unmodified under the enforced CSP", () => {
     // hit is still kept off the network: the primary is aborted and the
     // fallback answered here, so nothing reaches the production property.
     const violations = await trackCspViolations(page);
-    await stub(page, "https://*.posthog.com/**");
+    await stubPostHog(page);
     await page.route("https://*.googletagmanager.com/**", (route) =>
       new URL(route.request().url()).pathname === "/gtag/js"
         ? route.continue()

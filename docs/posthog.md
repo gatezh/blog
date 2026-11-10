@@ -4,18 +4,20 @@ Product analytics for `gatezh.com`, alongside Google Analytics. Production only.
 
 ## How it is wired
 
-| Piece    | Where                                                                                                                                                                                  |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Snippet  | `services/www/themes/terminal/assets/js/posthog.ts`, loaded by `_partials/posthog.html` from `_partials/head.html`                                                                     |
-| Key      | `HUGO_PARAMS_POSTHOGKEY`, a variable on the **production** GitHub Environment                                                                                                          |
-| Plumbing | `release.yml` passes it to the Hugo build. `deploy-staging.yml` has no equivalent line.                                                                                                |
-| CSP      | `services/www/layouts/home._outputformat_headers_.txt` — `https://*.posthog.com` in `script-src` and `connect-src`, `worker-src 'self' blob: data:`, and the violation report endpoint |
+| Piece    | Where                                                                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Snippet  | `services/www/themes/terminal/assets/js/posthog.ts`, loaded by `_partials/posthog.html` from `_partials/head.html`                                                                                                  |
+| Key      | `HUGO_PARAMS_POSTHOGKEY`, a variable on the **production** GitHub Environment                                                                                                                                       |
+| Proxy    | `HUGO_PARAMS_POSTHOGAPIHOST`, a **secret** on the production GitHub Environment; overrides `params.posthogApiHost` (`https://us.i.posthog.com`) in `hugo.yaml`                                                      |
+| Plumbing | `release.yml` passes both to the Hugo build. `deploy-staging.yml` has no equivalent line.                                                                                                                           |
+| CSP      | `services/www/layouts/home._outputformat_headers_.txt` — the proxy (or, without one, `https://*.posthog.com`) in `script-src` and `connect-src`, `worker-src 'self' blob: data:`, and the violation report endpoint |
 
 The snippet is PostHog's [Option 1, "Recommended"](https://posthog.com/docs/libraries/js):
-the loader copied verbatim from the docs, with
-`api_host: 'https://us.i.posthog.com'` and a `defaults` date. It runs from a
+the loader copied verbatim from the docs, with `api_host` from
+`params.posthogApiHost`, `ui_host: 'https://us.posthog.com'` and a `defaults`
+date. It runs from a
 bundled file rather than an inline `<script>`, because the site's CSP allows no
-inline script; the project token reaches it as `data-posthog-key`. Nothing in
+inline script; the token and `api_host` reach it as `data-*` attributes. Nothing in
 the loader is specific to this site's CSP.
 
 **Production only, structurally.** It is not enough to leave the variable unset
@@ -27,27 +29,76 @@ so your own browsing never lands in the data.
 written into every page's HTML. Everything genuinely private stays a secret
 (see `docs/deployment.md`).
 
+## Events
+
+Autocapture, pageviews, page leave, web vitals (`$web_vitals`: LCP, INP, CLS,
+FCP), exceptions and session replay come from the SDK and project settings.
+The site adds two events, from `assets/js/contact.ts`:
+
+| Event                    | When                       | Properties                                                      |
+| ------------------------ | -------------------------- | --------------------------------------------------------------- |
+| `contact_form_submitted` | the API accepted a message | —                                                               |
+| `contact_form_failed`    | the submission failed      | `reason`: `rejected`, `invalid_response` or `network`; `status` |
+
+Neither carries anything the visitor typed; `tests/assets.spec.ts` checks that.
+
+## Reverse proxy
+
+Production sends events through PostHog's
+[managed reverse proxy](https://posthog.com/docs/advanced/proxy), a subdomain of
+gatezh.com, so ad blockers that list PostHog's hosts do not drop them. It serves
+`/static/array.js` too, so the page never contacts `*.posthog.com` directly.
+
+- **The hostname is a secret.** It is in every page's HTML and CSP, so this
+  hides it only from the repository and its Actions logs — the places a
+  blocklist maintainer could grep. What keeps it off lists is a boring name: never
+  `analytics`, `tracking`, `telemetry`, `posthog` or `ph`.
+- **Setup:** PostHog → Organization settings → Managed reverse proxy, then a
+  Cloudflare `CNAME` to the target PostHog shows, **DNS only** (an orange cloud
+  breaks certificate issuance). Set the secret to `https://<subdomain>`.
+- **Release gate:** `release.yml`'s preflight fetches `array.js` through the
+  proxy and stops a release if it fails (a redeploy only warns). If PostHog's
+  proxy is down and a release cannot wait, clear the secret: the release goes
+  out with a warning and sends events straight to `us.i.posthog.com`. Set it
+  again and release once the proxy is back.
+- **Without the secret** the build falls back to `us.i.posthog.com`, with a
+  warning in preflight.
+- **Changing it:** create the new proxy and CNAME, wait for PostHog to show it
+  valid, update the secret, release, then delete the old proxy and record.
+- **The SDK's own exceptions are not filtered.** posthog-js drops an exception
+  as its own only when the stack ends in a file under `posthog.com/static`;
+  through the proxy it runs from `<proxy>/static/`, so such an error lands in
+  error tracking as the site's. Mark that issue **Suppressed** in PostHog,
+  which drops its future exceptions. Suppression rules cannot do it: they
+  match only an exception's type and message.
+
 ## Under the CSP
 
 The policy is a host allowlist generated into `_headers` (see `docs/CSP.md`), so
 PostHog's documented directives are what it gets, and only in builds that
 include the snippet:
 
-- **`script-src https://*.posthog.com`** for `array.js` and the session-replay
-  recorder, which the loader injects from PostHog's assets host.
-- **`connect-src https://*.posthog.com`** for event capture.
+- **`script-src`** for `array.js` and the session-replay recorder, which the
+  loader injects from the asset host.
+- **`connect-src`** for event capture.
+- **One host in both:** the reverse proxy, alone. The SDK sends every request
+  to `api_host` once it is not a PostHog host, and PostHog's CSP page says a
+  proxy domain is permitted "rather than PostHog ones". Without a proxy,
+  `https://*.posthog.com`.
 - **`worker-src 'self' blob: data:`** for session replay's compression Worker.
 - **`report-uri` and `report-to posthog`**, with a `Reporting-Endpoints`
   header, send the site's own CSP violations to this project
-  ([CSP tracking](https://posthog.com/docs/csp-tracking)). The URL is
-  `https://us.i.posthog.com/report/?token=<key>`; if `api_host` ever moves to
-  the EU cloud, change both. See `docs/CSP.md`, "Violation reports".
-- **The wildcard stays.** PostHog warns that "the exact subdomains may change
-  over time" and that narrowing the list is not recommended.
+  ([CSP tracking](https://posthog.com/docs/csp-tracking)), at
+  `<posthogApiHost>/report/?token=<key>`. See `docs/CSP.md`, "Violation
+  reports".
+- **The wildcard, when there is no proxy, stays a wildcard.** PostHog warns
+  that "the exact subdomains may change over time" and that narrowing the list
+  is not recommended.
 
 `tests/assets.spec.ts` proves this rather than asserting it: a real browser loads
-the page through the enforced policy and the snippet must get as far as
-requesting `array.js`, with no violation raised.
+the page through the enforced policy and the snippet must request `array.js`
+from a placeholder proxy, with no violation raised, no request to
+`*.posthog.com`, and no `*.posthog.com` in the policy.
 
 ## Updating
 
@@ -63,9 +114,6 @@ requesting `array.js`, with no violation raised.
 
 ## Not used, on purpose
 
-- **A reverse proxy.** PostHog offers one to keep requests first-party and
-  sidestep ad blockers. It is optional in their docs, and it would put this site
-  in the business of proxying a third party.
 - **The toolbar's extra directives** (`img-src`, `style-src`, `font-src`,
   `media-src` and `frame-ancestors` for heatmaps). They serve the site owner's
   in-app tooling, not visitors, and `frame-ancestors` would loosen the site's
