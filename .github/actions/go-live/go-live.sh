@@ -15,8 +15,11 @@
 #            headers, a `curl -H @file` with what it sent, for the checks.
 #   promote  Deploy both new versions at 100%, api first, then wait until
 #            plain requests reach them.
-#   restore  The run summary after a failure: what may be live, and the
-#            commands that put back what was live before.
+#   restore  After a failure. Before the promote (a failed check), take the
+#            staged versions out of each deployment; after a failed promote,
+#            say what may be live and print the commands that put back what
+#            was live before; after a promote that succeeded (a late cancel),
+#            only say so.
 #
 # Environment, set by the calling job:
 #   WRANGLER_ENV            the wrangler env: "staging", or "" for the top level
@@ -30,7 +33,7 @@
 #   DEPLOY_LABEL            "staging" or "production", for messages
 #   DEPLOY_MESSAGE          the deployment message
 #   CLOUDFLARE_ZERO_CLIENT_ID, CLOUDFLARE_ZERO_CLIENT_SECRET  optional Access
-#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID  stage and promote only
+#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID  stage, promote and restore
 #   PROMOTE, WWW_LIVE, API_LIVE  restore only: the promote step's outcome and
 #                           stage's outputs
 set -eo pipefail
@@ -56,10 +59,18 @@ headers_file() {
   echo "${file}"
 }
 
-# The version at 100%. A failed earlier run can leave its own at 0% beside it.
+deployment() {
+  bunx wrangler deployments status --cwd "services/$1" "${env_arg}" --json
+}
+
+# From a deployment on stdin: the version at 100%. A version staged at 0% can
+# sit beside it.
+at_100() {
+  jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty'
+}
+
 live() {
-  bunx wrangler deployments status --cwd "services/$1" "${env_arg}" --json \
-    | jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty'
+  deployment "$1" | at_100
 }
 
 stage_one() {
@@ -128,13 +139,47 @@ cmd_promote() {
   wait_for plain
 }
 
-# Nothing rolls back on its own, and only a failed or cancelled promote can
-# leave something to restore: a failed check never promoted. The restore goes
-# www first, so a new site never meets an old api.
+# $1 worker, $2 the version it served before this run. Deploys that version
+# alone at 100%, which takes a version staged beside it out of the deployment:
+# at 0% it serves no visitor, but it still answers anyone who sends the
+# override, and its id is in this public run's log. Leaves the Worker alone
+# when it serves something else at 100% now (a later deploy) or has nothing
+# staged.
+unstage_one() {
+  local now
+  [ -n "$2" ] || return 0
+  now=$(deployment "$1") || return 1
+  if [ "$(at_100 <<< "${now}")" != "$2" ]; then
+    echo "$1 no longer serves $2 at 100%; left as it is."
+    return 0
+  fi
+  if [ "$(jq '.versions | length' <<< "${now}")" -le 1 ]; then
+    echo "$1 has nothing staged beside $2."
+    return 0
+  fi
+  # Explicit returns: called as `unstage_one … || …`, so `set -e` is off here.
+  bunx wrangler versions deploy --cwd "services/$1" "${env_arg}" "$2@100%" \
+    --message "${DEPLOY_MESSAGE} (staged versions removed)" --yes || return 1
+  echo "Took the staged version out of $1; $2 serves all traffic."
+}
+
+# A cancel that lands after a successful promote still runs restore: the new
+# versions are live and there is nothing to take out.
+#
+# Nothing new is live unless the promote ran: a failed check promoted
+# nothing, so restore takes the staged versions out (www first, as below). A
+# failed or cancelled promote may have made them live; that is left to a
+# person, with the commands, because re-running go-live may be the better
+# fix. The restore goes www first, so a new site never meets an old api.
 cmd_restore() {
-  {
-    case "${PROMOTE}" in
-      failure | cancelled)
+  local failed=""
+  case "${PROMOTE}" in
+    success)
+      echo "## go-live promoted both versions; the run was cancelled afterwards — ${DEPLOY_LABEL} serves the new versions" >> "$GITHUB_STEP_SUMMARY"
+      return 0
+      ;;
+    failure | cancelled)
+      {
         echo "## promote ${PROMOTE/failure/failed} — the new versions may be live, nothing was rolled back"
         echo ""
         echo "They passed every check at 0%. If both \`versions deploy\` commands in the log succeeded and only the wait after them timed out, they are live and still spreading. Re-running \`go-live\` finishes the promotion, if no later run has deployed since. Or put both Workers back on what they served before this run:"
@@ -143,14 +188,33 @@ cmd_restore() {
         echo "bunx wrangler versions deploy --cwd services/www --env=\"${WRANGLER_ENV}\" ${WWW_LIVE}@100% --yes"
         echo "bunx wrangler versions deploy --cwd services/api --env=\"${WRANGLER_ENV}\" ${API_LIVE}@100% --yes"
         echo '```'
-        ;;
-      *)
-        echo "## go-live stopped before promoting — ${DEPLOY_LABEL} still serves what it served before"
-        echo ""
-        echo "The new versions may be staged at 0%: no visitor reaches them without the override, and the next deploy replaces them."
-        ;;
-    esac
+      } >> "$GITHUB_STEP_SUMMARY"
+      return 0
+      ;;
+  esac
+
+  unstage_one www "${WWW_LIVE}" || failed="${failed} www"
+  unstage_one api "${API_LIVE}" || failed="${failed} api"
+  {
+    echo "## go-live stopped before promoting — ${DEPLOY_LABEL} still serves what it served before"
+    echo ""
+    if [ -z "${failed}" ]; then
+      echo "Any version this run staged at 0% was taken out again, so the override no longer reaches it."
+    else
+      echo "Taking the staged versions out failed for:${failed}. They serve no visitor, but the override still reaches them until the next deploy, or until you run:"
+      echo ""
+      echo '```sh'
+      for w in ${failed}; do
+        live_var="$(tr '[:lower:]' '[:upper:]' <<< "${w}")_LIVE"
+        echo "bunx wrangler versions deploy --cwd services/${w} --env=\"${WRANGLER_ENV}\" ${!live_var}@100% --yes"
+      done
+      echo '```'
+    fi
   } >> "$GITHUB_STEP_SUMMARY"
+  if [ -n "${failed}" ]; then
+    echo "::error::could not take the staged versions out of:${failed} (see the run summary)"
+    return 1
+  fi
 }
 
 case "$1" in
