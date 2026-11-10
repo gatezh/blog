@@ -34,11 +34,13 @@
          and recorder the snippet injects; session replay compresses in a Web
          Worker created from a blob, hence worker-src.
          https://posthog.com/docs/advanced/content-security-policy
+         params.posthogApiHost (the reverse proxy in production) is added to
+         script-src and connect-src unless it is already a *.posthog.com host.
          Violations of this policy are reported to the same PostHog project
-         (report-uri for browsers without the Reporting API, report-to plus a
-         Reporting-Endpoints header for those with it), so vendor drift that
-         starts blocking a request shows up there. The host must match
-         api_host in js/posthog.ts (US cloud). The token is public by design.
+         through that host (report-uri for browsers without the Reporting API,
+         report-to plus a Reporting-Endpoints header for those with it), so
+         vendor drift that starts blocking a request shows up there. The token
+         is public by design.
          https://posthog.com/docs/csp-tracking
 
        Each third-party origin is derived from the same param or condition the
@@ -102,7 +104,15 @@
 	{{- $script = $script | append "https://*.posthog.com" -}}
 	{{- $connect = $connect | append "https://*.posthog.com" -}}
 	{{- $worker = slice "'self'" "blob:" "data:" -}}
-	{{- $report = printf "https://us.i.posthog.com/report/?token=%s" (urlquery site.Params.posthogKey) -}}
+	{{- with urls.Parse site.Params.posthogApiHost -}}
+		{{- if not .Host }}{{ errorf "_headers: params.posthogApiHost %q is not an absolute URL" site.Params.posthogApiHost }}{{ end -}}
+		{{- $posthog := printf "%s://%s" .Scheme .Host -}}
+		{{- if not (strings.HasSuffix .Host ".posthog.com") -}}
+			{{- $script = $script | append $posthog -}}
+			{{- $connect = $connect | append $posthog -}}
+		{{- end -}}
+		{{- $report = printf "%s/report/?token=%s" $posthog (urlquery site.Params.posthogKey) -}}
+	{{- end -}}
 {{- end -}}
 {{- if and hugo.IsProduction site.Config.Services.GoogleAnalytics.ID -}}
 	{{- $script = $script | append "https://*.googletagmanager.com" -}}

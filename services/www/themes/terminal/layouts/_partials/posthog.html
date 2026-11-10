@@ -5,10 +5,13 @@
      variable exists on the production GitHub Environment only, so staging and
      local builds ship no analytics. The key is a public project token — it is
      in every page's HTML by design — which is why it is a variable, not a
-     secret. */}}
+     secret.
+
+     data-api-host is params.posthogApiHost (the reverse proxy in production).
+     data-ui-host keeps toolbar and replay links on PostHog US. */}}
 {{- with site.Params.posthogKey }}
 	{{- $key := . }}
 	{{- with partial "js.html" "js/posthog.ts" }}
-		<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" async data-posthog-key="{{ $key }}"></script>
+		<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" async data-posthog-key="{{ $key }}" data-api-host="{{ site.Params.posthogApiHost }}" data-ui-host="https://us.posthog.com"></script>
 	{{- end }}
 {{- end }}

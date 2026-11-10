@@ -128,6 +128,8 @@ export default defineConfig({
       env: {
         HUGO_PARAMS_TURNSTILESITEKEY: "1x00000000000000000000AA",
         HUGO_PARAMS_POSTHOGKEY: "phc_playwright_placeholder",
+        // Stands in for the production reverse proxy (tests/assets.spec.ts).
+        HUGO_PARAMS_POSTHOGAPIHOST: "https://proxy.example.test",
       },
       url: `http://127.0.0.1:${ASSETS_PORT}/`,
       reuseExistingServer: !process.env.CI,

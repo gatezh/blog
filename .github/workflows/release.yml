@@ -75,6 +75,26 @@ jobs:
           HAS_FROM_EMAIL: ${{ secrets.FROM_EMAIL != '' }}
           HAS_TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY != '' }}
 
+      # A dead reverse proxy drops every event, so a release stops here. A
+      # redeploy (a rollback) only warns.
+      - name: Check the PostHog reverse proxy
+        env:
+          ACTION: ${{ inputs.action }}
+          POSTHOG_KEY: ${{ vars.HUGO_PARAMS_POSTHOGKEY }}
+          POSTHOG_API_HOST: ${{ secrets.HUGO_PARAMS_POSTHOGAPIHOST }}
+        run: |
+          [ -n "${POSTHOG_KEY}" ] || exit 0
+          if [ -z "${POSTHOG_API_HOST}" ]; then
+            echo "::warning title=No PostHog proxy::HUGO_PARAMS_POSTHOGAPIHOST is not set, so events go straight to PostHog (docs/posthog.md)."
+            exit 0
+          fi
+          echo "::add-mask::${POSTHOG_API_HOST#https://}"
+          if ! curl -sf --max-time 20 --retry 3 --retry-all-errors -o /dev/null "${POSTHOG_API_HOST}/static/array.js"; then
+            level=error; [ "${ACTION}" = redeploy ] && level=warning
+            echo "::${level} title=PostHog proxy down::The reverse proxy does not serve array.js (docs/posthog.md)."
+            [ "${level}" = warning ]
+          fi
+
   # The whole of CI on the commit about to be tagged, before anything is
   # tagged — a failure leaves no release behind. Not on a redeploy: that tag
   # passed CI when it was released, and a rollback mid-incident must not wait on
@@ -211,12 +231,16 @@ jobs:
           # line, so a key set on staging by mistake still never reaches a build.
           # Optional: unset means the site ships without PostHog.
           HUGO_PARAMS_POSTHOGKEY: ${{ vars.HUGO_PARAMS_POSTHOGKEY }}
+          # The reverse proxy. A secret, so its hostname stays out of the logs.
+          HUGO_PARAMS_POSTHOGAPIHOST: ${{ secrets.HUGO_PARAMS_POSTHOGAPIHOST }}
           # The tag's commit, not github.sha: on a redeploy those differ, and
           # go-live's verify step must confirm the tag is what is live.
           HUGO_PARAMS_BUILDCOMMIT: ${{ needs.release.outputs.commit_sha }}
           HUGO_PARAMS_BUILDID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           : "${HUGO_BASEURL:?Set HUGO_BASEURL on the production environment}"
+          # Unset, not empty, so hugo.yaml's default host applies.
+          [ -n "${HUGO_PARAMS_POSTHOGAPIHOST}" ] || unset HUGO_PARAMS_POSTHOGAPIHOST
           bun run --cwd services/www build
 
       # Secrets go up with the code in one Worker version — see the same step

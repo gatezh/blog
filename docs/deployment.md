@@ -243,14 +243,15 @@ A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 
 ### Secrets
 
-| Name                            | Used by                                            | Notes                                                  |
-| ------------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
-| `CLOUDFLARE_API_TOKEN`          | every deploy                                       | same token in both; see [below](#cloudflare-api-token) |
-| `RESEND_API_KEY`                | contact form                                       | separate key per environment                           |
-| `TO_EMAIL`                      | contact form — where submissions are sent          | a secret only to keep it out of the logs               |
-| `FROM_EMAIL`                    | contact form — sender, on a Resend-verified domain | staging: use a distinct sender                         |
-| `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment                        |
-| `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access                 | optional                                               |
+| Name                            | Used by                                            | Notes                                                   |
+| ------------------------------- | -------------------------------------------------- | ------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`          | every deploy                                       | same token in both; see [below](#cloudflare-api-token)  |
+| `RESEND_API_KEY`                | contact form                                       | separate key per environment                            |
+| `TO_EMAIL`                      | contact form — where submissions are sent          | a secret only to keep it out of the logs                |
+| `FROM_EMAIL`                    | contact form — sender, on a Resend-verified domain | staging: use a distinct sender                          |
+| `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment                         |
+| `HUGO_PARAMS_POSTHOGAPIHOST`    | PostHog reverse proxy URL, production only         | a secret to keep it off blocklists; see docs/posthog.md |
+| `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access                 | optional                                                |
 
 The Worker degrades one feature at a time, and each api deploy reports what is
 missing (`.github/actions/check-deploy-config`) instead of failing:
