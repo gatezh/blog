@@ -288,6 +288,10 @@ params:
   # env vars at build time, and unset means falsy in `{{ with }}` guards.
   apiUrl: "http://localhost:8787"
 
+  # PostHog SDK api_host, also read by the CSP. Production overrides it with the
+  # reverse proxy via the HUGO_PARAMS_POSTHOGAPIHOST secret (docs/posthog.md).
+  posthogApiHost: "https://us.i.posthog.com"
+
   # Self-hosted Remark42. Read by the comments partial and by the CSP in
   # layouts/home._outputformat_headers_.txt, so the two cannot disagree.
   remark42Host: "https://comments.gatezh.com"
