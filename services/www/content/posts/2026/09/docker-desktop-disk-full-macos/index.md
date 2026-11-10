@@ -474,12 +474,12 @@ that has no backup. They are deliberately not written as a copyable block.
 
 | Command | What it takes with it |
 | --- | --- |
-| `docker system prune` with `-a --volumes` | Every volume not attached to a **running** container. Databases, credential volumes, anything a stopped container owned. |
+| `docker system prune` with `-a --volumes` | Every **stopped** container, then every anonymous volume no container uses: a database whose image declares a `VOLUME` you didn't mount a named volume over. Named volumes survive. |
 | `docker volume prune` with `-a` | Every volume no container references, named ones included. After a restore, that is every volume you just restored. |
 
-The trap is that "not attached to a running container" sounds narrow and isn't.
-Stop a devcontainer, run the first one, and its Postgres data and stored
-credentials are gone.
+The trap is that the two add up. Stop a devcontainer and run the first one: its
+containers are gone, and its named volumes now belong to no container. Run the
+second one after it, and its Postgres data and stored credentials are gone too.
 
 To release one project's volumes deliberately, use `docker compose down -v` in
 that project's folder instead. It is scoped to the thing you are actually
