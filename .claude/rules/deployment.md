@@ -44,7 +44,8 @@ always-pass Turnstile test keys must never reach a deployed Worker. See
   back to the live version silently. A failed check promotes nothing, and
   restore takes the staged versions out again; only a failed promote prints
   the restore command. `CLOUDFLARE_API_TOKEN` goes on the steps that call
-  Cloudflare, never a job's `env` (setup and the build run npm code). CI
+  Cloudflare, never a job's `env` (setup and the build run npm code; a step
+  is not an isolation boundary, see docs/deployment.md). CI
   cannot create a Worker — create it in the dashboard first (docs/deployment.md, "Upload, then
   promote").
 - Every job below one that can be skipped needs an explicit
