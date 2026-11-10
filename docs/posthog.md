@@ -17,7 +17,7 @@ the loader copied verbatim from the docs, with `api_host` from
 `params.posthogApiHost`, `ui_host: 'https://us.posthog.com'` and a `defaults`
 date. It runs from a
 bundled file rather than an inline `<script>`, because the site's CSP allows no
-inline script; the token and hosts reach it as `data-*` attributes. Nothing in
+inline script; the token and `api_host` reach it as `data-*` attributes. Nothing in
 the loader is specific to this site's CSP.
 
 **Production only, structurally.** It is not enough to leave the variable unset

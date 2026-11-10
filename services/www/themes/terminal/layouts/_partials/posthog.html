@@ -7,11 +7,10 @@
      in every page's HTML by design — which is why it is a variable, not a
      secret.
 
-     data-api-host is params.posthogApiHost (the reverse proxy in production).
-     data-ui-host keeps toolbar and replay links on PostHog US. */}}
+     data-api-host is params.posthogApiHost (the reverse proxy in production). */}}
 {{- with site.Params.posthogKey }}
 	{{- $key := . }}
 	{{- with partial "js.html" "js/posthog.ts" }}
-		<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" async data-posthog-key="{{ $key }}" data-api-host="{{ site.Params.posthogApiHost }}" data-ui-host="https://us.posthog.com"></script>
+		<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" async data-posthog-key="{{ $key }}" data-api-host="{{ site.Params.posthogApiHost }}"></script>
 	{{- end }}
 {{- end }}
