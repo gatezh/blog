@@ -18,7 +18,8 @@
 #   restore  After a failure. Before the promote (a failed check), take the
 #            staged versions out of each deployment; after a failed promote,
 #            say what may be live and print the commands that put back what
-#            was live before.
+#            was live before; after a promote that succeeded (a late cancel),
+#            only say so.
 #
 # Environment, set by the calling job:
 #   WRANGLER_ENV            the wrangler env: "staging", or "" for the top level
@@ -162,6 +163,9 @@ unstage_one() {
   echo "Took the staged version out of $1; $2 serves all traffic."
 }
 
+# A cancel that lands after a successful promote still runs restore: the new
+# versions are live and there is nothing to take out.
+#
 # Nothing new is live unless the promote ran: a failed check promoted
 # nothing, so restore takes the staged versions out (www first, as below). A
 # failed or cancelled promote may have made them live; that is left to a
@@ -170,6 +174,10 @@ unstage_one() {
 cmd_restore() {
   local failed=""
   case "${PROMOTE}" in
+    success)
+      echo "## go-live promoted both versions; the run was cancelled afterwards — ${DEPLOY_LABEL} serves the new versions" >> "$GITHUB_STEP_SUMMARY"
+      return 0
+      ;;
     failure | cancelled)
       {
         echo "## promote ${PROMOTE/failure/failed} — the new versions may be live, nothing was rolled back"
