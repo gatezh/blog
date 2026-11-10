@@ -125,13 +125,15 @@ test.describe("security headers", () => {
 
   test("the CSP grants PostHog the directives PostHog documents", async ({ request }) => {
     // https://posthog.com/docs/advanced/content-security-policy — the build
-    // carries a placeholder token (playwright.config.ts), so PostHog is in it.
+    // carries a placeholder token and proxy (playwright.config.ts). With a
+    // reverse proxy, PostHog's own hosts are permitted "rather than" it, not
+    // beside it: the browser tests below show nothing reaches them.
     const csp = await cspOf(request, "/");
-    expect(directive(csp, "script-src")).toContain("https://*.posthog.com");
-    expect(directive(csp, "connect-src")).toContain("https://*.posthog.com");
+    for (const name of ["script-src", "connect-src"]) {
+      expect(directive(csp, name)).toContain(POSTHOG_PROXY);
+      expect(directive(csp, name)).not.toContain("posthog.com");
+    }
     expect(directive(csp, "worker-src")).toBe("worker-src 'self' blob: data:");
-    expect(directive(csp, "script-src")).toContain(POSTHOG_PROXY);
-    expect(directive(csp, "connect-src")).toContain(POSTHOG_PROXY);
   });
 
   test("the CSP allows the Web Analytics beacon the zone injects", async ({ request }) => {

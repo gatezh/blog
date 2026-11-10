@@ -29,13 +29,15 @@
          only for the manual snippet.
          https://developers.cloudflare.com/web-analytics/faq/
        - PostHog (only when params.posthogKey is set, i.e. production): its
-         documented policy. The wildcard is required — PostHog warns that "the
-         exact subdomains may change over time". script-src covers the array.js
-         and recorder the snippet injects; session replay compresses in a Web
-         Worker created from a blob, hence worker-src.
+         documented policy, for params.posthogApiHost. script-src covers the
+         array.js and recorder the snippet injects; session replay compresses
+         in a Web Worker created from a blob, hence worker-src.
          https://posthog.com/docs/advanced/content-security-policy
-         params.posthogApiHost (the reverse proxy in production) is added to
-         script-src and connect-src unless it is already a *.posthog.com host.
+         The SDK sends everything to api_host, so the host allowed is either
+         the reverse proxy (production) alone — "ensure this domain is
+         permitted rather than PostHog ones" — or, without one, the
+         *.posthog.com wildcard: PostHog warns that "the exact subdomains may
+         change over time".
          Violations of this policy are reported to the same PostHog project
          through that host (report-uri for browsers without the Reporting API,
          report-to plus a Reporting-Endpoints header for those with it), so
@@ -101,16 +103,13 @@
 	{{- $script = $script | append "https://static.cloudflareinsights.com" -}}
 {{- end -}}
 {{- if site.Params.posthogKey -}}
-	{{- $script = $script | append "https://*.posthog.com" -}}
-	{{- $connect = $connect | append "https://*.posthog.com" -}}
 	{{- $worker = slice "'self'" "blob:" "data:" -}}
 	{{- with urls.Parse site.Params.posthogApiHost -}}
-		{{- if not .Host }}{{ errorf "_headers: params.posthogApiHost %q is not an absolute URL" site.Params.posthogApiHost }}{{ end -}}
 		{{- $posthog := printf "%s://%s" .Scheme .Host -}}
-		{{- if not (strings.HasSuffix .Host ".posthog.com") -}}
-			{{- $script = $script | append $posthog -}}
-			{{- $connect = $connect | append $posthog -}}
-		{{- end -}}
+		{{- if ne $posthog site.Params.posthogApiHost }}{{ errorf "_headers: params.posthogApiHost %q must be a bare origin, such as https://us.i.posthog.com" site.Params.posthogApiHost }}{{ end -}}
+		{{- $allow := cond (strings.HasSuffix .Host ".posthog.com") "https://*.posthog.com" $posthog -}}
+		{{- $script = $script | append $allow -}}
+		{{- $connect = $connect | append $allow -}}
 		{{- $report = printf "%s/report/?token=%s" $posthog (urlquery site.Params.posthogKey) -}}
 	{{- end -}}
 {{- end -}}
