@@ -163,7 +163,7 @@ This way it reads like:
 
 > Company specialWarning triggered
 >
-> Company cpecianlWarning reason
+> Company specialWarning reason
 
 ### `id`: Leave it alone
 

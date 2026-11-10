@@ -1,10 +1,9 @@
 ---
-title: 'Publishing Multi-Platform Docker Images to Github Container Registry'
+title: 'Publishing Multi-Platform Docker Images to GitHub Container Registry'
 date: '2025-12-05T20:41:18Z'
 description: "Guide to building and publishing multi-platform Docker images to GitHub Container Registry using buildx and PATs."
 keywords: [docker, buildx, github-actions, container-registry, ci-cd]
-ShowToc: true
-TocOpen: true
+toc: true
 ---
 
 **TL;DR:** If you're just here for the commands, jump to the **[Quick Reference](#quick-reference)** at the bottom.
@@ -21,17 +20,17 @@ The solution? Pre-build my devcontainer images and host them on GitHub Container
 2. Container startup becomes almost instant (just pulling instead of building)
 3. I maintain one `Dockerfile` instead of copying it everywhere
 
-Sounds simple, right? Well, it mostly is, but I ran into a few gotchas along the way.
+It mostly is, but I hit a few gotchas along the way.
 
-## The Authentication Puzzle
+## Authentication
 
 My first question was pretty straightforward: "Can I just use SSH authentication like I do for Git?"
 
 Nope. Container registries use token-based authentication over HTTPS. SSH keys and Docker credentials are completely separate systems. So even though I can push code to GitHub via SSH, I still needed a Personal Access Token (PAT) for pushing images.
 
-### Fine-Grained Tokens? Not Yet.
+### Fine-Grained Tokens Don't Work
 
-I wanted to use fine-grained PATs since they're more secure - you can scope them to specific repositories and set granular permissions. But here's the kicker: **GitHub Container Registry doesn't support fine-grained tokens**. 
+I wanted to use fine-grained PATs since they're more secure - you can scope them to specific repositories and set granular permissions. But **GitHub Container Registry doesn't support fine-grained tokens**. 
 
 I spent some time searching for a workaround, but it's a known limitation. The GitHub community has been asking for this feature since at least 2022, and it's still not available as of 2025.
 
@@ -61,7 +60,7 @@ I wondered if this login was permanent or if I needed to save the token somewher
 - The token expires
 - You delete the config
 
-Also worth noting: the `gh` CLI and Docker use completely different authentication systems. Having `gh` set up doesn't help with Docker, and vice versa.
+The `gh` CLI and Docker use completely different authentication systems. Having `gh` set up doesn't help with Docker, and vice versa.
 
 To log in:
 ```bash
@@ -125,7 +124,7 @@ unknown/unknown
 
 Where's `linux/amd64`? I had `TARGETARCH` in my Dockerfile specifically for multi-platform support!
 
-Here's what I learned: **`docker build` only builds for your current platform**, even if your Dockerfile is multi-platform ready. I'm on Apple Silicon (ARM64), so I only got an ARM64 image.
+**`docker build` only builds for your current platform**, even if your Dockerfile is multi-platform ready. I'm on Apple Silicon (ARM64), so I only got an ARM64 image.
 
 The `unknown/unknown` entry is just build attestation metadata from Docker - you can ignore it.
 
@@ -157,7 +156,7 @@ unknown/unknown (attestation)
 
 Perfect! Now I can use this image on my M3 macbook and on GitHub Codespaces.
 
-## The Devcontainer Confusion
+## Linking devcontainer.json to the Image
 
 This is where things got a bit confusing for me. I had:
 - A `.devcontainer` folder with a Dockerfile
@@ -170,7 +169,7 @@ It seemed like I was missing something fundamental about the workflow.
 
 ### How It Actually Works
 
-The key insight: **the Dockerfile and the image are decoupled**.
+**The Dockerfile and the image are decoupled.**
 
 **What I was doing before (slow):**
 ```json
@@ -228,13 +227,11 @@ This is cleaner if you plan to have multiple different devcontainer images. You 
 
 The Dockerfile lives in one project (like your blog), and other projects just reference the image. Simpler, but less organized if you have many images.
 
-I'm leaning toward Option 1 since I'll probably create more images in the future.
-
 ## Dedicated repo
 
-So I've decided to go with the dedicated repository approach. Not only because it allows me to neatly organize my Dockerfiles and suggested `devcontainer.json` config files. It also allows me to add GitHub Actions workflow so that whenever I update any of my Dockerfiles it automatically builds and pushes new images to my registry.
+I went with the dedicated repository. It keeps my Dockerfiles and suggested `devcontainer.json` files together, and a GitHub Actions workflow builds and pushes new images whenever a Dockerfile changes.
 
-I won't go into too many details about the repo since you can simply look at the repo itself [here](https://github.com/gatezh/devcontainer-images).
+I won't go into too many details about the repo since you can simply look at the repo itself [here](https://github.com/gatezh/devcontainers).
 
 The only thing to mention is that when you create such a repository you can link it with your Docker images (packages) on the Packages page so it shows the README from your linked repo.
 
@@ -294,11 +291,9 @@ Visit `https://github.com/users/YOUR_USERNAME/packages` and check the "OS/Arch" 
 
 ## Conclusion
 
-It was a great learning experience to get my Docker images standardized and have a single source of truth for all of my projects that use the same tech stack.
+Now one set of images serves every project on the same stack, built from one place.
 
-Check out my [devcontainer-images](https://github.com/gatezh/devcontainer-images) repository to see whatever is omitted in this article.
-
-If you find my writing useful, or feel like I missed something in my tutorial – let me know in the comments below!
+Check out my [devcontainers](https://github.com/gatezh/devcontainers) repository to see whatever is omitted in this article.
 
 ---
 

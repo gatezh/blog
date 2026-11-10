@@ -152,6 +152,26 @@
 			)
 			)
 		-}}
+		{{- /* offers and image are what Search Console reports missing from an
+		       Event. Both are copied from the organizer's own event page, so a
+		       talk without them fails the build instead of the report. */ -}}
+		{{- with $t.admission }}
+			{{- if not (and .url .currency (isset . "price")) }}
+				{{- errorf "talk %q: admission needs url, price and currency" $t.id }}
+			{{- end }}
+			{{- $event = merge $event (dict
+				"offers" (dict "@type" "Offer" "url" .url "price" .price "priceCurrency" .currency)
+				"isAccessibleForFree" (eq .price 0)
+				)
+			}}
+		{{- else }}
+			{{- errorf "talk %q has no admission (the event's registration url, price and currency)" $t.id }}
+		{{- end }}
+		{{- with $t.images }}
+			{{- $event = merge $event (dict "image" .) }}
+		{{- else }}
+			{{- errorf "talk %q has no images (the event's own artwork, 16x9, 4x3 and 1x1)" $t.id }}
+		{{- end }}
 		{{- with $t.slides }}
 			{{- $event = merge $event (dict "workPerformed" (dict "@type" "PresentationDigitalDocument" "name" $t.title "url" . "encodingFormat" "application/pdf" "author" $personRef)) }}
 		{{- end }}

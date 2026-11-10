@@ -47,7 +47,7 @@ After you have downloaded and installed Anki it needs some tune up to fit our ne
    {{type:cloze:Text}}﻿
    ```
 
-6. Replace `Styiling` section with:
+6. Replace `Styling` section with:
 
    ```
    .card {
@@ -88,7 +88,7 @@ Let's say you are reading about JavaScript ES6 template literals and want to mem
    console.log(`Hello ${customerName}`);
    ```
 
-3. Select _\`Hello ${customerName}\`_ part and press _Cloze deletation_ button (looks like this --> `[...]`). At the end your code will look like this:
+3. Select _\`Hello ${customerName}\`_ part and press _Cloze deletion_ button (looks like this --> `[...]`). At the end your code will look like this:
 
    ```
    ES6 template literals

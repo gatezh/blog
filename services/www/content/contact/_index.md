@@ -1,10 +1,11 @@
 ---
 title: "Contact"
-description: "Get in touch with me"
+description: "Send Serge Gatezh a message: a question, a correction, or a project to talk through. Replies within a day."
 layout: "contact"
 # A section with no pages, so the RSS feed hugo.yaml gives every section would
 # be empty, and the page would advertise it. This list replaces that default.
 outputs: [HTML, Markdown]
 ---
 
-Have a question, feedback, or just want to say hello? Feel free to reach out using the form below. I'm in Calgary, Alberta (UTC−6 all year: Chicago's clock in winter, Denver's in summer) and I'll get back to you within a day.
+A question, a correction, a project, or just hello: the form below comes
+straight to my inbox. I'm in Calgary, Alberta (UTC−6 all year: Chicago's clock in winter, Denver's in summer) and I'll get back to you within a day.

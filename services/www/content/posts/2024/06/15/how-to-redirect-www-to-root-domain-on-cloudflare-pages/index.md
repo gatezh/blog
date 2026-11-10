@@ -63,4 +63,4 @@ Just follow along and deploy your changes. Works as expected!
 
 ## Conclusion
 
-I hope this short tutorial helped you set up a `www` redirect for your Cloudflare Pages website. Feel free to share in the comments if you found it useful — or if you happen to know why simply adding a `CNAME` record for the `www` subdomain doesn’t do the trick. Thanks in advance!
+One thing I still don't know: why a plain `CNAME` record for the `www` subdomain doesn't do the trick on its own.

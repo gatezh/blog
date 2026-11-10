@@ -1,12 +1,12 @@
 ---
 title: "Protecting SSH Keys with macOS Secure Enclave (Native Approach)"
 date: "2026-02-12T22:41:55Z"
-description: "How to use macOS Secure Enclave for hardware-backed SSH key protection without third-party apps. A native approach to securing your keys."
+description: "How to keep SSH keys in the macOS Secure Enclave, with Touch ID on every use and no third-party apps."
 keywords: [macos, ssh, security, secure-enclave, developer-tooling]
 draft: false
 ---
 
-I've been paranoid about my SSH keys for a while now. They just sit there in `~/.ssh/`, protected by nothing but file permissions. Any malicious script that gets access to my filesystem could just copy them and — boom — access to all my servers.
+I've been paranoid about my SSH keys for a while now. They just sit there in `~/.ssh/`, protected by nothing but file permissions. Any malicious script that gets access to my filesystem could just copy them and get into all my servers.
 Also, there have been many stories out there online about fake interview assignments that asked to clone a repo and run it on your local machine.
 This is one of the reasons I switched completely to using devcontainers, but even that was not really enough for me (and it shouldn't be enough for you or anybody else really).
 
@@ -33,7 +33,7 @@ That left me with YubiKey or Secure Enclave. I have a YubiKey 5C, but I wanted t
 
 ## What is Secure Enclave SSH?
 
-Here's the cool part: since macOS Sequoia (and Tahoe), Apple quietly added native support for Secure Enclave-backed SSH keys. The private key lives inside the Secure Enclave hardware — a dedicated security chip that's physically separate from the main processor. The key never leaves this chip. Ever.
+Since macOS Sequoia (and Tahoe), macOS supports SSH keys backed by the Secure Enclave, a security subsystem on the Mac's chip that is isolated from the main processor. The private key is created inside it and never leaves.
 
 When you SSH somewhere, your Mac asks the Secure Enclave to sign the authentication challenge. If you enable Touch ID, you have to approve each signing operation. The actual private key never exists in memory or on disk.
 
@@ -41,7 +41,7 @@ The workflow is surprisingly similar to regular SSH keys:
 
 | Aspect                  | Regular SSH Key                      | Secure Enclave Key                          |
 | ----------------------- | ------------------------------------ | ------------------------------------------- |
-| Where private key lives | `~/.ssh/id_ed25519` (a file)         | Secure Enclave chip                         |
+| Where private key lives | `~/.ssh/id_ed25519` (a file)         | Secure Enclave                              |
 | What's on disk          | Actual private key                   | Just a reference (useless without this Mac) |
 | Setup on remote server  | Copy public key to `authorized_keys` | Same                                        |
 | Connecting              | Just works                           | Touch ID prompt, then works                 |
@@ -64,7 +64,7 @@ Breaking this down:
 
 You'll be prompted for Touch ID to create the key.
 
-#### 🚨 Problem #1: Touch ID Error
+#### Problem 1: Touch ID Error
 
 When I first ran this command, I got a scary error:
 
@@ -119,7 +119,7 @@ Reload your shell:
 source ~/.zshrc
 ```
 
-#### 🚨 Problem #2: Outdated Commands Everywhere
+#### Problem 2: Outdated Commands Everywhere
 
 If you search for "macOS Secure Enclave SSH" online, you'll find a lot of guides telling you to run `ssh-add -K`. Don't. It's deprecated:
 
@@ -159,9 +159,9 @@ Or manually paste the public key (with your comment) into `~/.ssh/authorized_key
 
 ### Step 6: Configure ~/.ssh/config
 
-#### 🚨 Problem #3: SSH Doesn't Find the Key
+#### Problem 3: SSH Doesn't Find the Key
 
-After setting everything up, I tried to SSH... and it asked for my password. 😤
+After setting everything up, I tried to SSH... and it asked for my password.
 
 The verbose output (`ssh -vvv`) showed SSH was only trying my old RSA key:
 
@@ -190,7 +190,7 @@ SSH tries identity files in order, so put the Secure Enclave key first if you wa
 ssh user@your-server
 ```
 
-You should get a Touch ID prompt, then connect. 🎉
+You should get a Touch ID prompt, then connect.
 
 ## The Ugly Touch ID Prompt
 
@@ -212,9 +212,7 @@ So my recommendation if you're planning to store your SSH keys this way: just us
 
 Secure Enclave keys are tied to your specific Mac. If your Mac dies, the keys die with it.
 
-This isn't a bug — it's the whole point. The key is unexportable by design.
-
-The solution isn't backing up the key — it's having multiple keys. Add your Secure Enclave key AND a backup key (from a YubiKey, or another Mac) to your servers' `authorized_keys`. If one device is lost, you still have access via the other.
+That's by design: the key can't be exported, so it can't be backed up either. Keep more than one key instead. Add your Secure Enclave key AND a backup key (from a YubiKey, or another Mac) to your servers' `authorized_keys`. If one device is lost, you still have access via the other.
 
 ## Final Thoughts
 
@@ -229,8 +227,4 @@ With the implementation above you get:
 
 However, I've been somewhat surprised by the ugliness of the UI. Not sure why Apple released such an unpolished thing. In each and every presentation they have a section on security (where their Apple logo becomes an Apple lock), so I was expecting an actual aesthetically appealing look for their security features. It is definitely not the case. My sense of beauty is not compatible with this ugliness, so I will be looking into other solutions to store my SSH keys in Secure Enclave such as [Secretive](https://github.com/maxgoedjen/secretive).
 
-And I would need to continue my experiments anyway, because I need a backup option in case anything happens to my Mac. So stay tuned.
-
----
-
-_Have questions or run into different issues? Let me know in the comments!_
+I also still need a backup option in case anything happens to my Mac.
