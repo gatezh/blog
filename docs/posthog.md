@@ -4,13 +4,13 @@ Product analytics for `gatezh.com`, alongside Google Analytics. Production only.
 
 ## How it is wired
 
-| Piece    | Where                                                                                                                                                                                  |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Snippet  | `services/www/themes/terminal/assets/js/posthog.ts`, loaded by `_partials/posthog.html` from `_partials/head.html`                                                                     |
-| Key      | `HUGO_PARAMS_POSTHOGKEY`, a variable on the **production** GitHub Environment                                                                                                          |
-| Proxy    | `HUGO_PARAMS_POSTHOGAPIHOST`, a **secret** on the production GitHub Environment; overrides `params.posthogApiHost` (`https://us.i.posthog.com`) in `hugo.yaml`                         |
-| Plumbing | `release.yml` passes both to the Hugo build. `deploy-staging.yml` has no equivalent line.                                                                                              |
-| CSP      | `services/www/layouts/home._outputformat_headers_.txt` — `https://*.posthog.com` in `script-src` and `connect-src`, `worker-src 'self' blob: data:`, and the violation report endpoint |
+| Piece    | Where                                                                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Snippet  | `services/www/themes/terminal/assets/js/posthog.ts`, loaded by `_partials/posthog.html` from `_partials/head.html`                                                                                                  |
+| Key      | `HUGO_PARAMS_POSTHOGKEY`, a variable on the **production** GitHub Environment                                                                                                                                       |
+| Proxy    | `HUGO_PARAMS_POSTHOGAPIHOST`, a **secret** on the production GitHub Environment; overrides `params.posthogApiHost` (`https://us.i.posthog.com`) in `hugo.yaml`                                                      |
+| Plumbing | `release.yml` passes both to the Hugo build. `deploy-staging.yml` has no equivalent line.                                                                                                                           |
+| CSP      | `services/www/layouts/home._outputformat_headers_.txt` — the proxy (or, without one, `https://*.posthog.com`) in `script-src` and `connect-src`, `worker-src 'self' blob: data:`, and the violation report endpoint |
 
 The snippet is PostHog's [Option 1, "Recommended"](https://posthog.com/docs/libraries/js):
 the loader copied verbatim from the docs, with `api_host` from
@@ -69,24 +69,27 @@ The policy is a host allowlist generated into `_headers` (see `docs/CSP.md`), so
 PostHog's documented directives are what it gets, and only in builds that
 include the snippet:
 
-- **`script-src https://*.posthog.com`** for `array.js` and the session-replay
-  recorder, which the loader injects from PostHog's assets host.
-- **`connect-src https://*.posthog.com`** for event capture.
-- **The reverse proxy** in both, when `posthogApiHost` is not a `*.posthog.com`
-  host.
+- **`script-src`** for `array.js` and the session-replay recorder, which the
+  loader injects from the asset host.
+- **`connect-src`** for event capture.
+- **One host in both:** the reverse proxy, alone. The SDK sends every request
+  to `api_host` once it is not a PostHog host, and PostHog's CSP page says a
+  proxy domain is permitted "rather than PostHog ones". Without a proxy,
+  `https://*.posthog.com`.
 - **`worker-src 'self' blob: data:`** for session replay's compression Worker.
 - **`report-uri` and `report-to posthog`**, with a `Reporting-Endpoints`
   header, send the site's own CSP violations to this project
   ([CSP tracking](https://posthog.com/docs/csp-tracking)), at
   `<posthogApiHost>/report/?token=<key>`. See `docs/CSP.md`, "Violation
   reports".
-- **The wildcard stays.** PostHog warns that "the exact subdomains may change
-  over time" and that narrowing the list is not recommended.
+- **The wildcard, when there is no proxy, stays a wildcard.** PostHog warns
+  that "the exact subdomains may change over time" and that narrowing the list
+  is not recommended.
 
 `tests/assets.spec.ts` proves this rather than asserting it: a real browser loads
 the page through the enforced policy and the snippet must request `array.js`
-from a placeholder proxy, with no violation raised and no request to
-`*.posthog.com`.
+from a placeholder proxy, with no violation raised, no request to
+`*.posthog.com`, and no `*.posthog.com` in the policy.
 
 ## Updating
 
