@@ -122,7 +122,7 @@ upstream:
 
 When something I build on breaks, I file it where it can be fixed for
 everyone. This is the log: each entry links to the issue or pull request,
-says what it was about, and what came of it. My own projects are on the
+says what it was about and what came of it. My own projects are on the
 [projects](/projects/) page.
 
 {{< upstream >}}
