@@ -381,7 +381,10 @@ for (const [workflow, envArg] of [
 
       expect(h.run("promote").code).toBe(0);
       const deploys = wranglerCalls(h).filter((c) => c.includes("@100%") && !c.includes("@0%"));
-      expect(deploys.map((c) => c.split(" ")[4])).toEqual(["services/api", "services/www"]);
+      expect(deploys.map((c) => /--cwd (\S+)/.exec(c)?.[1])).toEqual([
+        "services/api",
+        "services/www",
+      ]);
       expect(h.deployment("api")).toEqual([{ version_id: "api-new", percentage: 100 }]);
       expect(h.deployment("www")).toEqual([{ version_id: "www-new", percentage: 100 }]);
       expect(h.read("served.log")).toBe("www www-new \napi api-new \n");
@@ -430,7 +433,10 @@ for (const [workflow, envArg] of [
         expect(h.deployment("www")).toEqual([{ version_id: "www-old", percentage: 100 }]);
         expect(h.deployment("api")).toEqual([{ version_id: "api-old", percentage: 100 }]);
         const deploys = wranglerCalls(h).filter((c) => c.startsWith("wrangler versions deploy"));
-        expect(deploys.map((c) => c.split(" ")[4])).toEqual(["services/www", "services/api"]);
+        expect(deploys.map((c) => /--cwd (\S+)/.exec(c)?.[1])).toEqual([
+          "services/www",
+          "services/api",
+        ]);
         expect(h.summary()).toContain("go-live stopped before promoting");
         expect(h.summary()).toContain("taken out again");
         // The override that reached them a moment ago now falls back to the live versions.
@@ -449,7 +455,7 @@ for (const [workflow, envArg] of [
         0,
       );
       const deploys = wranglerCalls(h).filter((c) => c.startsWith("wrangler versions deploy"));
-      expect(deploys.map((c) => c.split(" ")[4])).toEqual(["services/api"]);
+      expect(deploys.map((c) => /--cwd (\S+)/.exec(c)?.[1])).toEqual(["services/api"]);
       expect(h.deployment("api")).toEqual([{ version_id: "api-old", percentage: 100 }]);
     });
 
