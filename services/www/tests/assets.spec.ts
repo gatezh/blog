@@ -123,10 +123,13 @@ test.describe("security headers", () => {
   test("the CSP allows the Web Analytics beacon the zone injects", async ({ request }) => {
     // Nothing in the build loads it, so no page test can catch it being
     // blocked: Cloudflare adds the script at the edge, wrangler dev does not.
-    // https://developers.cloudflare.com/web-analytics/
+    // The automatic setup reports to the site's own /cdn-cgi/rum, so
+    // connect-src needs nothing beyond 'self'; cloudflareinsights.com is for
+    // the manually embedded snippet only.
+    // https://developers.cloudflare.com/web-analytics/faq/
     const csp = await cspOf(request, "/");
     expect(directive(csp, "script-src")).toContain("https://static.cloudflareinsights.com");
-    expect(directive(csp, "connect-src")).toContain("https://cloudflareinsights.com");
+    expect(directive(csp, "connect-src")).not.toContain("cloudflareinsights.com");
   });
 
   test("CSP violations are reported to PostHog", async ({ request }) => {
