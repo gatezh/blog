@@ -65,10 +65,12 @@ upload`: new versions that serve no traffic.
    commit would let the live version pass for the new one. Only
    when every check passes does it promote both to 100%, api first, and confirm
    that plain requests reach them.
-5. A failed check promotes nothing: visitors stay on what they had, and the
-   staged versions sit at 0% until the next deploy replaces them. Only a failed
-   or cancelled promote can leave something to restore, and then a step prints
-   the exact `wrangler versions deploy` commands that put back what was live. A
+5. A failed check promotes nothing: visitors stay on what they had, and a
+   last step takes the staged versions out again (each Worker's live version
+   redeployed alone at 100%), so the override stops reaching them. Only a
+   failed or cancelled promote can leave something to restore, and then that
+   step prints the exact `wrangler versions deploy` commands that put back what
+   was live instead of running them (re-running `go-live` may be the better fix). A
    part-way promote leaves at most the api newer than the site, which the
    api-first order already requires to work, and re-running `go-live` finishes
    it.
@@ -89,8 +91,9 @@ ids reaches them, on production too. The ids are not secret: this repository's
 Actions logs are public, and `upload` (wrangler's `Worker Version ID:`) and
 `go-live` print them. That exposure is accepted. The staged versions are the
 ones about to be promoted, built from a public commit, and the window lasts as
-long as the checks, about a minute. Nothing Cloudflare offers restricts who
-may send an override.
+long as the checks, about a minute: when a check fails, the versions that
+failed it are taken out at once rather than left at 0% for anyone with the
+override. Nothing Cloudflare offers restricts who may send an override.
 
 So a failed upload, for example a Cloudflare API error during the asset upload,
 leaves the environment untouched: re-run the failed jobs, unless a later run
@@ -352,6 +355,17 @@ permissions.
 7. Restrict both environments' **Deployment branches** to `master`. On a public
    repository GitHub enforces this on every plan, so a pushed branch cannot
    reach the token.
+
+Within a job, the token is set only on the steps that call the Cloudflare API
+(the two `versions upload` steps, and `go-live`'s stage, promote and restore),
+never on the job: `bun ci` and the Hugo build run third-party npm code, and a
+job-level `env` would hand it the token. That keeps the token out of an
+environment dump during install and build. It is not isolation: every step in
+a job shares the runner's filesystem, and `bunx wrangler` runs the copy in
+`node_modules`, so a dependency that rewrites wrangler there still reaches the
+token in a later step. The boundary for that is a separate job, and even a
+token-only upload job runs wrangler's own dependencies with it; for one site
+that second runner is not worth it.
 
 **Blast radius.** Workers Admin at account scope reaches every Worker in this
 shared account, not only this project's. Narrowing it to **Specified Workers**
