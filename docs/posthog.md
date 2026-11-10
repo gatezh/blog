@@ -57,11 +57,20 @@ gatezh.com, so ad blockers that list PostHog's hosts do not drop them. It serves
   Cloudflare `CNAME` to the target PostHog shows, **DNS only** (an orange cloud
   breaks certificate issuance). Set the secret to `https://<subdomain>`.
 - **Release gate:** `release.yml`'s preflight fetches `array.js` through the
-  proxy and stops a release if it fails (a redeploy only warns).
+  proxy and stops a release if it fails (a redeploy only warns). If PostHog's
+  proxy is down and a release cannot wait, clear the secret: the release goes
+  out with a warning and sends events straight to `us.i.posthog.com`. Set it
+  again and release once the proxy is back.
 - **Without the secret** the build falls back to `us.i.posthog.com`, with a
   warning in preflight.
 - **Changing it:** create the new proxy and CNAME, wait for PostHog to show it
   valid, update the secret, release, then delete the old proxy and record.
+- **The SDK's own exceptions are not filtered.** posthog-js drops an exception
+  as its own only when the stack ends in a file under `posthog.com/static`;
+  through the proxy it runs from `<proxy>/static/`, so such an error lands in
+  error tracking as the site's. Mark that issue **Suppressed** in PostHog,
+  which drops its future exceptions. Suppression rules cannot do it: they
+  match only an exception's type and message.
 
 ## Under the CSP
 
