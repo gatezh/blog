@@ -38,7 +38,7 @@ Install Jekyll and Bundler gems through RubyGems. This may take some time.
 gem install jekyll bundler
 ```
 
-After everything is installed go to the foler where you want to locate source files for you website and generate a new one
+After everything is installed go to the folder where you want to keep the source files for your website and generate a new one
 
 ```
 jekyll new myblog
@@ -63,7 +63,7 @@ Now open `http://localhost:4000` to see results.
 
 ### Upload your blog to GitHub
 
-Beeing in your blog's folder instantiate a new repository and commit everything what is in it.
+Being in your blog's folder instantiate a new repository and commit everything what is in it.
 
 ```bash
 git init

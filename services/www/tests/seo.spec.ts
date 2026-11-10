@@ -437,6 +437,16 @@ test.describe("identity structured data", () => {
       expect(event.location.address.addressLocality, event.name).toBeTruthy();
       expect(event.organizer.name, event.name).toBeTruthy();
       expect(event.organizer.url, event.name).toMatch(/^https:\/\//);
+      // The two fields Search Console reported missing from these Events.
+      expect(event.offers["@type"], event.name).toBe("Offer");
+      expect(event.offers.url, event.name).toMatch(/^https:\/\//);
+      expect(typeof event.offers.price, event.name).toBe("number");
+      expect(event.offers.priceCurrency, event.name).toMatch(/^[A-Z]{3}$/);
+      expect(event.isAccessibleForFree, event.name).toBe(event.offers.price === 0);
+      expect(event.image.length, event.name).toBeGreaterThan(0);
+      for (const image of event.image) {
+        expect(image, event.name).toMatch(/^https:\/\/.+\.(png|jpe?g|webp)$/);
+      }
       if (event.workPerformed) {
         expect(event.workPerformed["@type"], event.name).toBe("PresentationDigitalDocument");
         expect(event.workPerformed.url, event.name).toMatch(/^https:\/\/.+\.pdf$/);

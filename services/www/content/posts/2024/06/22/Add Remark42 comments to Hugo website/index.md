@@ -37,10 +37,6 @@ Thank you very much.
 
 That's why I would suggest you stick to their $3.50 per month VM offer, which is still the cheapest option I have found (among kind of reputable providers, IMHO).
 
-## Create a Vultr Account
-
-Since you are reading this tutorial, you might be interested in getting a cheap VM too! If so, you can use [this limited time referral link](https://www.vultr.com/?ref=9622544-8H) to get $100 to test Vultr platform. Or when the above promo expires, use [this referral link](https://www.vultr.com/?ref=9622543) as a "thank you" for this tutorial. Thank you in advance.
-
 ## Pick the Right VM
 
 Even though there is this $3.50/mo IPv4 VM in their pricing, you may experience some difficulty figuring out how to get the VM for that price. To create a VM, select **Products** > **Compute** > **Deploy Server**. In the **Choose Type** section, select **Cloud Compute - Shared CPU**.
@@ -382,12 +378,4 @@ And that's it! Commit, push, deploy!
 
 ## Conclusion
 
-With this tutorial, I was trying to find a balanced approach to provide details on how to do each of the steps, but also to not go too deep into the woods. Obviously, there is more to securing your Linux VM, managing your SSH connections, and backing up your comments engine data. If you want more details on any part of this tutorial, please let me know.
-
-If you find this tutorial useful, feel free to use my Vultr referral links. Again, you can use [this limited time referral link](https://www.vultr.com/?ref=9622544-8H) to get $100 to test the Vultr platform. Or when the above promo expires, use [this referral link](https://www.vultr.com/?ref=9622543) as a "thank you" for this tutorial.
-
-I hope you found it useful.
-
-Thank you for reading.
-
-Leave a comment below!
+With this tutorial, I was trying to find a balanced approach to provide details on how to do each of the steps, but also to not go too deep into the woods. Obviously, there is more to securing your Linux VM, managing your SSH connections, and backing up your comments engine data.

@@ -21,6 +21,13 @@
          thread in an iframe from that host.
        - Cloudflare Turnstile (only when a site key is configured): api.js and
          the challenge iframe.
+       - Cloudflare Web Analytics (params.cloudflareWebAnalytics): no template
+         loads it — the zone injects its beacon, with SRI, into every HTML
+         response. script-src needs its host, not the exact file: the URL
+         is beacon.min.js/<version>. The automatic setup posts to the site's
+         own /cdn-cgi/rum, which 'self' covers; cloudflareinsights.com is
+         only for the manual snippet.
+         https://developers.cloudflare.com/web-analytics/faq/
        - PostHog (only when params.posthogKey is set, i.e. production): its
          documented policy. The wildcard is required — PostHog warns that "the
          exact subdomains may change over time". script-src covers the array.js
@@ -87,6 +94,9 @@
 {{- if site.Params.turnstileSiteKey -}}
 	{{- $script = $script | append "https://challenges.cloudflare.com" -}}
 	{{- $frame = $frame | append "https://challenges.cloudflare.com" -}}
+{{- end -}}
+{{- if site.Params.cloudflareWebAnalytics -}}
+	{{- $script = $script | append "https://static.cloudflareinsights.com" -}}
 {{- end -}}
 {{- if site.Params.posthogKey -}}
 	{{- $script = $script | append "https://*.posthog.com" -}}
