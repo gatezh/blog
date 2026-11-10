@@ -29,6 +29,19 @@ so your own browsing never lands in the data.
 written into every page's HTML. Everything genuinely private stays a secret
 (see `docs/deployment.md`).
 
+## Events
+
+Autocapture, pageviews, page leave, web vitals (`$web_vitals`: LCP, INP, CLS,
+FCP), exceptions and session replay come from the SDK and project settings.
+The site adds two events, from `assets/js/contact.ts`:
+
+| Event                    | When                       | Properties                                                      |
+| ------------------------ | -------------------------- | --------------------------------------------------------------- |
+| `contact_form_submitted` | the API accepted a message | —                                                               |
+| `contact_form_failed`    | the submission failed      | `reason`: `rejected`, `invalid_response` or `network`; `status` |
+
+Neither carries anything the visitor typed; `tests/assets.spec.ts` checks that.
+
 ## Reverse proxy
 
 Production sends events through PostHog's

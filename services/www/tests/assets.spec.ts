@@ -291,6 +291,41 @@ test.describe("vendor snippets run unmodified under the enforced CSP", () => {
     expect(await violations()).toEqual([]);
   });
 
+  test("contact outcomes reach PostHog, and nothing the visitor typed does", async ({ page }) => {
+    await stubGoogleAnalytics(page);
+    await stubPostHog(page);
+    // The stubbed array.js never loads the SDK, so the snippet's queue
+    // (window.posthog) keeps every call the page made.
+    const captured = () =>
+      page.evaluate(() => JSON.stringify((window as unknown as { posthog: unknown[] }).posthog));
+    let answer: { status: number; body: object } = { status: 500, body: { error: "boom" } };
+    await page.route("http://localhost:8787/**", (route) =>
+      route.fulfill({ status: answer.status, json: answer.body }),
+    );
+
+    await page.goto("/contact/");
+    const token = page.locator('#contact-form input[name="cf-turnstile-response"]');
+    await expect(token).toHaveValue(/.+/, { timeout: 30_000 });
+    await page.locator("#contact-name").fill("Ada");
+    await page.locator("#contact-email").fill("ada@example.com");
+    await page.locator("#contact-message").fill("Hello there");
+    const submit = page.locator('#contact-form [type="submit"]');
+
+    await submit.click();
+    await expect
+      .poll(captured)
+      .toContain('"contact_form_failed",{"reason":"rejected","status":500}');
+
+    answer = { status: 200, body: { success: true } };
+    await expect(token).toHaveValue(/.+/, { timeout: 30_000 });
+    await submit.click();
+    await expect.poll(captured).toContain('"contact_form_submitted"');
+
+    for (const typed of ["Ada", "ada@example.com", "Hello there"]) {
+      expect(await captured()).not.toContain(typed);
+    }
+  });
+
   test("gtag's fallback beacon is allowed when its primary hit fails", async ({ page }) => {
     // The one test that runs the real gtag.js, because the path it covers only
     // exists inside it: when the hit to *.google-analytics.com fails (a filter

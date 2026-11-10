@@ -9,6 +9,8 @@
 declare global {
   interface Window {
     turnstile?: { reset(widget?: string): void };
+    // Production only (js/posthog.ts). Never send what the visitor typed.
+    posthog?: { capture(event: string, properties?: Record<string, unknown>): void };
   }
 }
 
@@ -20,6 +22,10 @@ function byId<T extends HTMLElement>(id: string): T {
 
 function resetTurnstile(): void {
   window.turnstile?.reset("#contact-turnstile");
+}
+
+function trackFailure(reason: "invalid_response" | "rejected" | "network", status?: number): void {
+  window.posthog?.capture("contact_form_failed", { reason, status });
 }
 
 const form = document.getElementById("contact-form") as HTMLFormElement | null;
@@ -111,19 +117,23 @@ if (!apiUrl) {
       } catch {
         showError("Server returned an invalid response. Please try again.");
         resetTurnstile();
+        trackFailure("invalid_response", response.status);
         return;
       }
 
       if (response.ok && data.success) {
         form.hidden = true;
         successDiv.hidden = false;
+        window.posthog?.capture("contact_form_submitted");
       } else {
         showError(data.error || "Failed to send message. Please try again.");
         resetTurnstile();
+        trackFailure("rejected", response.status);
       }
     } catch {
       showError("Network error. Please check your connection and try again.");
       resetTurnstile();
+      trackFailure("network");
     } finally {
       setLoading(false);
     }
