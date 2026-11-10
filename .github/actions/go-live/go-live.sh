@@ -62,9 +62,14 @@ deployment() {
   bunx wrangler deployments status --cwd "services/$1" "${env_arg}" --json
 }
 
-# The version at 100%. A version staged at 0% can sit beside it.
+# From a deployment on stdin: the version at 100%. A version staged at 0% can
+# sit beside it.
+at_100() {
+  jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty'
+}
+
 live() {
-  deployment "$1" | jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty'
+  deployment "$1" | at_100
 }
 
 stage_one() {
@@ -143,7 +148,7 @@ unstage_one() {
   local now
   [ -n "$2" ] || return 0
   now=$(deployment "$1") || return 1
-  if [ "$(jq -r '[.versions[] | select(.percentage == 100) | .version_id] | first // empty' <<< "${now}")" != "$2" ]; then
+  if [ "$(at_100 <<< "${now}")" != "$2" ]; then
     echo "$1 no longer serves $2 at 100%; left as it is."
     return 0
   fi
