@@ -359,7 +359,13 @@ permissions.
 Within a job, the token is set only on the steps that call the Cloudflare API
 (the two `versions upload` steps, and `go-live`'s stage, promote and restore),
 never on the job: `bun ci` and the Hugo build run third-party npm code, and a
-job-level `env` would hand it the token.
+job-level `env` would hand it the token. That keeps the token out of an
+environment dump during install and build. It is not isolation: every step in
+a job shares the runner's filesystem, and `bunx wrangler` runs the copy in
+`node_modules`, so a dependency that rewrites wrangler there still reaches the
+token in a later step. The boundary for that is a separate job, and even a
+token-only upload job runs wrangler's own dependencies with it; for one site
+that second runner is not worth it.
 
 **Blast radius.** Workers Admin at account scope reaches every Worker in this
 shared account, not only this project's. Narrowing it to **Specified Workers**
