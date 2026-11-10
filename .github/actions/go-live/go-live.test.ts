@@ -459,6 +459,24 @@ for (const [workflow, envArg] of [
       expect(h.deployment("api")).toEqual([{ version_id: "api-old", percentage: 100 }]);
     });
 
+    test("restore after a promote that succeeded, then a cancel, says the new versions are live", () => {
+      const h = harness(workflow);
+      h.run("stage");
+      expect(h.run("promote").code).toBe(0);
+      writeFileSync(join(h.state, "calls.log"), "");
+
+      const restore = h.run("restore", {
+        PROMOTE: "success",
+        WWW_LIVE: "www-old",
+        API_LIVE: "api-old",
+      });
+
+      expect(restore.code).toBe(0);
+      expect(wranglerCalls(h)).toEqual([]);
+      expect(h.summary()).toContain("promoted both versions");
+      expect(h.summary()).not.toContain("stopped before promoting");
+    });
+
     test("restore changes nothing when stage never read what was live", () => {
       const h = harness(workflow);
 
