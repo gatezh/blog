@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
+import { createMiddleware } from "hono/factory";
 import { html } from "hono/html";
 import { methodNotAllowed } from "hono/method-not-allowed";
 import { validator } from "hono/validator";
@@ -39,6 +40,11 @@ interface TurnstileVerifyResponse {
   hostname?: string;
 }
 
+// Cloudflare's published test secrets (1x passes, 2x fails, 3x is a spent
+// token). siteverify answers them with hostname "example.com" whatever page the
+// widget ran on. https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+const TURNSTILE_TEST_SECRET = /^[123]x0{31}AA$/;
+
 // Validate Turnstile token
 async function verifyTurnstile(
   token: string,
@@ -53,15 +59,25 @@ async function verifyTurnstile(
     formData.append("remoteip", ip);
   }
 
-  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+  // siteverify unreachable, failing or answering garbage is Cloudflare's
+  // outage, not the sender's mistake or ours: 502, through app.onError.
+  const result = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: formData,
-  });
-
-  const result = (await response.json()) as TurnstileVerifyResponse;
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error(`siteverify answered ${response.status}`);
+      return response.json() as Promise<TurnstileVerifyResponse>;
+    })
+    .catch((err: unknown) => {
+      console.error("Turnstile siteverify failed:", err);
+      throw new HTTPException(502, {
+        message: "Captcha verification is unavailable. Please try again later.",
+      });
+    });
 
   if (!result.success) {
     return {
@@ -72,8 +88,8 @@ async function verifyTurnstile(
 
   // A token is only proof of a solved challenge, not of *where* it was solved.
   // Without this, a token minted on any other property sharing this sitekey
-  // verifies here. Cloudflare's test keys omit hostname, so absence is allowed.
-  if (result.hostname && result.hostname !== expectedHostname) {
+  // verifies here. Only the test secrets, which report a fixed hostname, skip it.
+  if (!TURNSTILE_TEST_SECRET.test(secretKey) && result.hostname !== expectedHostname) {
     return {
       success: false,
       error: `Turnstile hostname mismatch: ${result.hostname}`,
@@ -204,21 +220,28 @@ ${message}
 This message was sent via the contact form on gatezh.com`;
 }
 
+function isLoopback(origin: string): boolean {
+  const url = URL.parse(origin);
+  return (
+    url?.protocol === "http:" && (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+  );
+}
+
+// ALLOWED_ORIGIN exactly. Local development sets it to its own loopback origin
+// (services/api's dev script), and there any loopback origin is accepted, so
+// 127.0.0.1 and other ports work too. A deployed Worker never accepts one.
+function isAllowedOrigin(origin: string | undefined, allowedOrigin: string): boolean {
+  if (!origin) return false;
+  return origin === allowedOrigin || (isLoopback(allowedOrigin) && isLoopback(origin));
+}
+
 const app = new Hono<Env>();
 
-// CORS middleware with dynamic origin checking
 app.use(
   "*",
   cors({
-    origin: (origin, c) => {
-      const allowedOrigin = c.env.ALLOWED_ORIGIN;
-      // Allow the specific origin or localhost for development
-      const isAllowed =
-        origin === allowedOrigin ||
-        origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:");
-      return isAllowed ? origin : allowedOrigin;
-    },
+    origin: (origin, c) =>
+      isAllowedOrigin(origin, c.env.ALLOWED_ORIGIN) ? origin : c.env.ALLOWED_ORIGIN,
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
     maxAge: 86400,
@@ -235,6 +258,17 @@ app.use(
       c.json({ error: "Method not allowed" }, 405, { Allow: methods.join(", ") }),
   }),
 );
+
+// CORS only stops a browser reading the response: the POST itself still runs.
+// Refusing a missing or foreign Origin first means a page on another site
+// spends no Turnstile verification and sends no email. hono/csrf would not do:
+// it checks form content types only, and this endpoint takes JSON.
+const fromAllowedOrigin = createMiddleware<Env>(async (c, next) => {
+  if (!isAllowedOrigin(c.req.header("Origin"), c.env.ALLOWED_ORIGIN)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+  await next();
+});
 
 // Checks the body before the handler runs. Malformed JSON is answered with a
 // 400 by the validator itself. A body not declared as JSON is never parsed: it
@@ -281,7 +315,7 @@ const contactForm = validator("json", (value, c) => {
 });
 
 // Contact form submission endpoint
-app.post("/", contactForm, async (c) => {
+app.post("/", fromAllowedOrigin, contactForm, async (c) => {
   // Without these the Worker cannot send anything. 503 rather than a 500 from
   // deep inside Resend: this is a deployment that was never configured, not a
   // request that went wrong.
@@ -339,8 +373,8 @@ app.post("/", contactForm, async (c) => {
   });
 });
 
-// Errors nothing above handled: the validator's 400 for malformed JSON, or a
-// throw from fetch or Resend. Every error body is JSON, so the form can show it.
+// Errors nothing above handled: the validator's 400 for malformed JSON, the
+// 502 for an unreachable siteverify, or a throw from Resend. Every error body is JSON, so the form can show it.
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status);

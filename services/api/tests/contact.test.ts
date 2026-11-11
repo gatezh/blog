@@ -40,16 +40,16 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
+function request(body: Record<string, unknown>, origin: string | null = "https://gatezh.com") {
+  return {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(origin ? { Origin: origin } : {}) },
+    body: JSON.stringify(body),
+  };
+}
+
 function submit(body: Record<string, unknown>) {
-  return app.request(
-    "/",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: "https://gatezh.com" },
-      body: JSON.stringify(body),
-    },
-    ENV,
-  );
+  return app.request("/", request(body), ENV);
 }
 
 const VALID = {
@@ -100,7 +100,11 @@ describe("request body", () => {
   function post(body: string, contentType: string) {
     return app.request(
       "/",
-      { method: "POST", headers: { "Content-Type": contentType }, body },
+      {
+        method: "POST",
+        headers: { "Content-Type": contentType, Origin: "https://gatezh.com" },
+        body,
+      },
       ENV,
     );
   }
@@ -127,17 +131,45 @@ describe("request body", () => {
   });
 });
 
-describe("unexpected errors", () => {
-  test("a network failure is a JSON 500 that leaks nothing", async () => {
-    globalThis.fetch = (async () => {
+describe("upstream failures", () => {
+  /** Replaces one outbound endpoint's behaviour; the rest stay stubbed. */
+  function failing(host: string, respond: () => Response | Promise<Response>) {
+    const inner = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      return url.includes(host) ? respond() : inner(input, init);
+    }) as typeof fetch;
+  }
+
+  test("an unreachable siteverify is a 502, and nothing is sent", async () => {
+    failing("challenges.cloudflare.com", () => {
       throw new TypeError("network down");
-    }) as unknown as typeof fetch;
+    });
+
+    const res = await submit(VALID);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({
+      error: "Captcha verification is unavailable. Please try again later.",
+    });
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a non-2xx siteverify is a 502, not a captcha failure", async () => {
+    failing("challenges.cloudflare.com", () => new Response("upstream error", { status: 503 }));
+
+    const res = await submit(VALID);
+    expect(res.status).toBe(502);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a Resend failure is a JSON 500 that leaks nothing", async () => {
+    failing("api.resend.com", () => {
+      throw new TypeError("network down");
+    });
 
     const res = await submit(VALID);
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({
-      error: "An unexpected error occurred. Please try again.",
-    });
+    expect(JSON.stringify(await res.json())).not.toContain("network down");
   });
 });
 
@@ -154,10 +186,22 @@ describe("turnstile", () => {
     expect((await submit(VALID)).status).toBe(200);
   });
 
-  test("accepts a token when the hostname is absent", async () => {
-    // Cloudflare's test keys omit hostname; absence must not fail closed.
+  test("rejects a token with no hostname", async () => {
     turnstileResponse = { success: true };
-    expect((await submit(VALID)).status).toBe(200);
+    expect((await submit(VALID)).status).toBe(400);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("Cloudflare's test secret passes despite its fixed example.com hostname", async () => {
+    // What siteverify really answers for the always-pass test secret.
+    turnstileResponse = { success: true, hostname: "example.com" };
+    const env = { ...ENV, TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA" };
+    expect((await app.request("/", request(VALID), env)).status).toBe(200);
+  });
+
+  test("a real secret still rejects example.com", async () => {
+    turnstileResponse = { success: true, hostname: "example.com" };
+    expect((await submit(VALID)).status).toBe(400);
   });
 
   test("rejects an unsuccessful verification", async () => {
@@ -165,6 +209,55 @@ describe("turnstile", () => {
     const res = await submit(VALID);
     expect(res.status).toBe(400);
     expect(sentEmail).toBeNull();
+  });
+});
+
+describe("origin", () => {
+  /** Counts siteverify calls, so a test can show a refused request spent none. */
+  function countVerifications() {
+    const counter = { calls: 0 };
+    const inner = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes("challenges.cloudflare.com")) counter.calls++;
+      return inner(input, init);
+    }) as typeof fetch;
+    return counter;
+  }
+
+  for (const [label, origin] of [
+    ["no Origin", null],
+    ["a foreign origin", "https://attacker.example"],
+    ["a localhost origin, on a deployed Worker", "http://localhost:1313"],
+  ] as const) {
+    test(`POST / from ${label} is 403 before any Turnstile or email work`, async () => {
+      const verifications = countVerifications();
+      const res = await app.request("/", request(VALID, origin), ENV);
+
+      expect(res.status).toBe(403);
+      expect(verifications.calls).toBe(0);
+      expect(sentEmail).toBeNull();
+    });
+  }
+
+  test("a deployed Worker's CORS does not echo a localhost origin", async () => {
+    const res = await app.request(
+      "/",
+      {
+        method: "OPTIONS",
+        headers: { Origin: "http://localhost:1313", "Access-Control-Request-Method": "POST" },
+      },
+      ENV,
+    );
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://gatezh.com");
+  });
+
+  test("in local development any loopback origin is accepted", async () => {
+    const env = { ...ENV, ALLOWED_ORIGIN: "http://localhost:1313" };
+    turnstileResponse = { success: true, hostname: "localhost" };
+
+    const res = await app.request("/", request(VALID, "http://127.0.0.1:1314"), env);
+    expect(res.status).toBe(200);
   });
 });
 
@@ -212,15 +305,7 @@ describe("email body", () => {
 describe("optional feature credentials", () => {
   /** Same request shape as `submit`, but against a caller-supplied environment. */
   function submitWith(env: Record<string, string>, body: Record<string, unknown>) {
-    return app.request(
-      "/",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Origin: "https://gatezh.com" },
-        body: JSON.stringify(body),
-      },
-      env,
-    );
+    return app.request("/", request(body), env);
   }
 
   const VALID = {
