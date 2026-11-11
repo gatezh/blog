@@ -466,6 +466,17 @@ test.describe("Accessibility", () => {
 });
 
 test.describe("Footer", () => {
+  test("links Just Right Systems as a business, not as a profile", async ({ page }) => {
+    await page.goto("/");
+    const link = page
+      .locator("footer")
+      .getByRole("navigation", { name: "Site map" })
+      .getByRole("link", { name: "Just Right Systems" });
+    await expect(link).toHaveAttribute("href", "https://justright.systems/");
+    // rel=me claims a page is a profile of the same person; a company is not.
+    await expect(link).not.toHaveAttribute("rel", /\bme\b/);
+  });
+
   test("maps the site: every page the header leaves out, each link resolving", async ({
     page,
     request,

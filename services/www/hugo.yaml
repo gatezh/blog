@@ -248,6 +248,11 @@ menu:
       pageRef: /contact
       parent: me
       weight: 20
+    # My business. A plain link: rel=me is for profiles of me, not a company.
+    - name: Just Right Systems
+      url: https://justright.systems/
+      parent: me
+      weight: 30
 
 params:
   # Identity copy. One positioning statement is the source for every surface
