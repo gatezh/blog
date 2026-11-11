@@ -209,12 +209,12 @@ this reason; there is no `production` block.
 | www     | `gatezh-com-staging` → `staging-www.gatezh.com`              | `gatezh-com` → `gatezh.com`                  |
 | api     | `gatezh-com-email-worker-staging` → `staging-api.gatezh.com` | `gatezh-com-email-worker` → `api.gatezh.com` |
 
-No Worker answers on workers.dev or on per-version preview URLs. `workers_dev` and
-`preview_urls` are set in each `wrangler.jsonc`, so every release re-applies
-them; a dashboard toggle would not survive one. The flip side: a rollback
-(`release.yml`, `action: redeploy`) to a tag older than that change runs the
-old config's `triggers deploy`, which turns workers.dev back on until the next
-release.
+No Worker answers on workers.dev or on per-version preview URLs.
+`workers_dev` and `preview_urls` are set in each `wrangler.jsonc`, so every
+release re-applies them; a dashboard toggle would not survive one. The flip
+side: a rollback (`release.yml`, `action: redeploy`) to a tag older than the
+release that turned a Worker's workers.dev off runs the old config's
+`triggers deploy`, which turns it back on until the next release.
 
 The flat `staging-api` / `staging-www` prefixes rather than nested
 `api.staging` are deliberate: the Cloudflare universal certificate covers one
