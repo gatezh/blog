@@ -492,6 +492,15 @@ test.describe("legacy URLs redirect in one hop", () => {
     }
   });
 
+  for (const from of ["/feed", "/feed/", "/rss", "/rss/", "/feed.xml", "/rss.xml", "/atom.xml"]) {
+    test(`guessed feed URL ${from} -> /index.xml`, async ({ request }, info) => {
+      const res = await request.get(from, { maxRedirects: 0 });
+      expect(res.status()).toBe(301);
+      const location = new URL(res.headers().location, info.project.use.baseURL as string);
+      expect(location.pathname).toBe("/index.xml");
+    });
+  }
+
   test("the redirect table itself is not served", async ({ request }) => {
     expect((await request.get("/_redirects")).status()).toBe(404);
   });
