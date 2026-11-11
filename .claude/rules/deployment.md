@@ -68,9 +68,9 @@ Deployed Worker names are `gatezh-com` and `gatezh-com-email-worker` and do not
 match the directory names. Renaming them (to `gatezh-www-*` / `gatezh-api-*`)
 is planned in docs/deployment.md ("Remaining") — a cutover, not an edit. Only
 `staging` has an `env` block in `wrangler.jsonc` until then, deliberately.
-Production's api is on `api.gatezh.com`; its workers.dev URL is retired in the
-three steps of "Move the api off workers.dev". Every other Worker sets
-`workers_dev` and `preview_urls` to false in `wrangler.jsonc`.
+Production's api is on `api.gatezh.com`. Every Worker sets `workers_dev` and
+`preview_urls` to false in `wrangler.jsonc`; a dashboard toggle does not
+survive a deploy.
 
 ## Configuration
 
