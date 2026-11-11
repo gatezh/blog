@@ -135,7 +135,7 @@ Recorded so a future reader does not "discover" and undo any of it.
 | The deployed artifact is the build CI expects             | `<meta name="build-commit">`, `<meta name="build-id">`                       | `go-live` wait step    |
 | Stale build output is never deployed                      | `--cleanDestinationDir`                                                      | —                      |
 | Every page has a 1200 × 630 share image with alt text     | `_partials/share-image.html` (theme) + `params.images`                       | `tests/seo.spec.ts`    |
-| SVG, PNG and touch favicons, and a root `/favicon.ico`    | `head.html` + `assets/brand/`, `static/favicon.ico`                          | both specs             |
+| Favicons, root `/favicon.ico` and `/apple-touch-icon*`    | `head.html` + `assets/brand/`, `static/favicon.ico`                          | both specs             |
 | Every top-level page is in both llms indexes              | `site.Home.RegularPages` in `layouts/llms*._outputformat_llmtext_.txt`       | `tests/agents.spec.ts` |
 
 Five things that look redundant but are not:
@@ -270,7 +270,10 @@ stack, or a decision only the owner can make.
       `apple-touch-icon` rendered from it, all fingerprinted under `/brand/`,
       and a real `/favicon.ico` (16, 32 and 48 px) in `static/`. The 192 px
       PNG is for Google Search, which reads no SVG favicons and recommends
-      more than 48 px.
+      more than 48 px. `head.html` also publishes the touch icon at
+      `/apple-touch-icon.png` and `/apple-touch-icon-precomposed.png`, which
+      iOS and link-saving apps request by convention without reading the
+      head: on 2026-11-11 those two paths drew about 2,300 404s.
 - [x] **`og:image`.** Done. `params.images` is `[brand/share.png]`, a
       1200 × 630 PNG rendered from `brand/share-image.html` by
       `bun run brand`, emitted with `og:image:width`, `og:image:height` and

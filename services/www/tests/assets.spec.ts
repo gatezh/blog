@@ -220,6 +220,17 @@ test.describe("security headers", () => {
     expect(res.headers()["cache-control"] ?? "").not.toContain("immutable");
   });
 
+  // iOS and apps that save a link (HN readers among them) request these by
+  // convention, whatever the head links; without them every such visit 404s.
+  for (const path of ["/apple-touch-icon.png", "/apple-touch-icon-precomposed.png"]) {
+    test(`${path} is served from the root`, async ({ request }) => {
+      const res = await request.get(path);
+      expect(res.status()).toBe(200);
+      expect(res.headers()["content-type"]).toContain("image/png");
+      expect(res.headers()["cache-control"] ?? "").not.toContain("immutable");
+    });
+  }
+
   // The policy is only useful if the site still works under it. This proves
   // the first hop: every tag the HTML loads, and what the vendor snippets
   // request directly, is allowed. Third parties are stubbed, so requests a
