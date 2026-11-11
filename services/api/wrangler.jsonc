@@ -20,12 +20,10 @@
   // it staged at 0% from the live one. Not inherited: repeated in env.staging.
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
 
-  // Production's own hostname, step one of retiring the workers.dev URL. The
-  // site's live build still posts to gatezh-com-email-worker.<subdomain>.
-  // workers.dev, so workers.dev stays on until production's HUGO_PARAMS_APIURL
-  // points here and a release has shipped that build; only then does
-  // `workers_dev` flip to false (docs/deployment.md, "Move the api off
-  // workers.dev"). Routes are not inherited: env.staging keeps its own.
+  // workers_dev stays true until the live form posts to api.gatezh.com
+  // (docs/deployment.md, "Move the api off workers.dev"); with `routes` set,
+  // wrangler would otherwise infer false. `routes` is inherited, so
+  // env.staging must keep its own.
   "routes": [{ "pattern": "api.gatezh.com", "custom_domain": true }],
   "workers_dev": true,
   "preview_urls": false,

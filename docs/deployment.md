@@ -213,7 +213,10 @@ No Worker answers on workers.dev or on per-version preview URLs except the
 production api, whose workers.dev URL stays until the contact form has moved
 off it (see "Move the api off workers.dev" below). `workers_dev` and
 `preview_urls` are set in each `wrangler.jsonc`, so every release re-applies
-them; a dashboard toggle would not survive one.
+them; a dashboard toggle would not survive one. The flip side: a rollback
+(`release.yml`, `action: redeploy`) to a tag older than that change runs the
+old config's `triggers deploy`, which turns www's workers.dev back on until the
+next release.
 
 The flat `staging-api` / `staging-www` prefixes rather than nested
 `api.staging` are deliberate: the Cloudflare universal certificate covers one

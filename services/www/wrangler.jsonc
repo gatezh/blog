@@ -18,11 +18,9 @@
     // carries robots noindex.
     "not_found_handling": "404-page",
   },
-  // Served on its custom domain only. Left unset, the Worker kept its
-  // gatezh-com.<subdomain>.workers.dev URL and per-version preview URLs: full
-  // copies of the production site outside the security headers' and
-  // canonical host's reach. Both keys are inheritable, so env.staging gets
-  // them too. `triggers deploy` (go-live) applies them on every release.
+  // Custom domain only. Without `routes`, wrangler infers workers_dev: true on
+  // every deploy. preview_urls also covers Version URLs, which would expose
+  // each version staged at 0%. Both are inherited by env.staging.
   "workers_dev": false,
   "preview_urls": false,
   "observability": {
@@ -41,7 +39,6 @@
   // with HUGO_ENVIRONMENT=staging, which adds X-Robots-Tag: noindex to _headers.
   "env": {
     "staging": {
-      "workers_dev": false,
       "routes": [{ "pattern": "staging-www.gatezh.com", "custom_domain": true }],
     },
   },
