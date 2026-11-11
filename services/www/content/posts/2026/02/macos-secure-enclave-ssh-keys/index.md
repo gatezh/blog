@@ -4,6 +4,8 @@ date: "2026-02-12T22:41:55Z"
 updated: "2026-11-11"
 description: "How to keep SSH keys in the macOS Secure Enclave, with Touch ID on every use and no third-party apps."
 keywords: [macos, ssh, security, secure-enclave, developer-tooling]
+# Without this, the Update note below becomes the summary on post cards and in RSS.
+summary: "I've been paranoid about my SSH keys for a while now. They just sit there in `~/.ssh/`, protected by nothing but file permissions."
 draft: false
 ---
 
@@ -146,7 +148,7 @@ Output:
 sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTIt... ssh:
 ```
 
-That `ssh:` at the end is the comment. The key's FIDO2 application ID is stored inside the key itself (the last field of the base64 part), and it happens to be `ssh:` too, so the line shows it twice. You can replace the comment with anything when copying to `authorized_keys`; the key stays the same:
+That `ssh:` at the end is the comment. The key's FIDO2 application ID is stored inside the key itself (the last field of the base64 part). `ssh-keygen -K` copies it into the comment, so the line shows it twice. You can replace the comment with anything when copying to `authorized_keys`; the key stays the same:
 
 ```
 sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTIt... macbook-secure-enclave
