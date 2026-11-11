@@ -501,6 +501,14 @@ test.describe("legacy URLs redirect in one hop", () => {
     });
   }
 
+  test("the renamed Touch ID image keeps its old URL", async ({ request }) => {
+    const dir = "/posts/macos-secure-enclave-ssh-keys/images/";
+    const res = await request.get(`${dir}Touch%20ID%20prompt.png`, { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect(new URL(res.headers().location, "http://x").pathname).toBe(`${dir}touch-id-prompt.png`);
+    expect((await request.get(`${dir}touch-id-prompt.png`)).status()).toBe(200);
+  });
+
   test("the redirect table itself is not served", async ({ request }) => {
     expect((await request.get("/_redirects")).status()).toBe(404);
   });
