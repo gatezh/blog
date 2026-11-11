@@ -19,4 +19,7 @@
 {{ with .Date }}{{ if not .IsZero }}
 *Published: {{ .Format "January 2, 2006" }}*
 {{ end }}{{ end }}
+{{- if .Params.updated }}
+*Updated: {{ .Lastmod.Format "January 2, 2006" }}*
+{{ end }}
 {{ .RenderShortcodes }}

@@ -149,7 +149,8 @@
        default revalidation. /brand/ holds the favicons and share image, which
        head.html always fingerprints, and the resized portraits, which
        portrait.html always fingerprints. /fonts/ and /favicon.ico are plain static/
-       files and are left alone. */ -}}
+       files, and the root /apple-touch-icon*.png copies head.html publishes
+       are unfingerprinted; all are left alone. */ -}}
 {{- $immutable := slice "/js/*" "/brand/*" -}}
 {{- if hugo.IsProduction }}{{ $immutable = $immutable | append "/css/*" }}{{ end -}}
 {{- range $immutable -}}

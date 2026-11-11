@@ -115,7 +115,9 @@
      recommends more than 48 px), and iOS reads the opaque 180 px
      apple-touch-icon. /favicon.ico
      is a plain static/ file because clients request that exact path without
-     reading any markup. */}}
+     reading any markup. iOS and link-saving apps do the same for
+     /apple-touch-icon.png and /apple-touch-icon-precomposed.png, so the touch
+     icon is also published at both, unfingerprinted. */}}
 {{- with resources.Get "brand/favicon.svg" }}
 	<link rel="icon" href="{{ (. | fingerprint).RelPermalink }}" type="image/svg+xml">
 {{- end }}
@@ -127,6 +129,10 @@
 {{- end }}
 {{- with resources.Get "brand/apple-touch-icon.png" }}
 	<link rel="apple-touch-icon" href="{{ (. | fingerprint).RelPermalink }}" sizes="180x180">
+	{{- $icon := . }}
+	{{- range slice "apple-touch-icon.png" "apple-touch-icon-precomposed.png" }}
+		{{- (resources.Copy . $icon).Publish }}
+	{{- end }}
 {{- end }}
 
 {{/* RSS Feed autodiscovery */}}

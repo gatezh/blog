@@ -20,6 +20,7 @@
 {{- define "page" -}}
 {{- printf "\n---\n\n## %s\n\nSource: %s\n" .Title .Permalink -}}
 {{- with .Date }}{{ if not .IsZero }}{{ printf "Published: %s\n" (.Format "2006-01-02") }}{{ end }}{{ end -}}
+{{- if .Params.updated }}{{ printf "Updated: %s\n" (.Lastmod.Format "2006-01-02") }}{{ end -}}
 {{- printf "\n%s\n" (trim .RenderShortcodes "\n") -}}
 {{- end -}}
 {{- $listable := partial "agent-listable.html" site.RegularPages -}}
