@@ -204,19 +204,17 @@ serving the custom domain until the domain is moved, and the contact form breaks
 in between. Only `staging` has an `env` block in `wrangler.jsonc` for exactly
 this reason; there is no `production` block.
 
-| Surface | staging                                                      | production                                                         |
-| ------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
-| www     | `gatezh-com-staging` → `staging-www.gatezh.com`              | `gatezh-com` → `gatezh.com`                                        |
-| api     | `gatezh-com-email-worker-staging` → `staging-api.gatezh.com` | `gatezh-com-email-worker` → `api.gatezh.com` (and `*.workers.dev`) |
+| Surface | staging                                                      | production                                   |
+| ------- | ------------------------------------------------------------ | -------------------------------------------- |
+| www     | `gatezh-com-staging` → `staging-www.gatezh.com`              | `gatezh-com` → `gatezh.com`                  |
+| api     | `gatezh-com-email-worker-staging` → `staging-api.gatezh.com` | `gatezh-com-email-worker` → `api.gatezh.com` |
 
-No Worker answers on workers.dev or on per-version preview URLs except the
-production api, whose workers.dev URL stays until the contact form has moved
-off it (see "Move the api off workers.dev" below). `workers_dev` and
-`preview_urls` are set in each `wrangler.jsonc`, so every release re-applies
-them; a dashboard toggle would not survive one. The flip side: a rollback
-(`release.yml`, `action: redeploy`) to a tag older than that change runs the
-old config's `triggers deploy`, which turns www's workers.dev back on until the
-next release.
+No Worker answers on workers.dev or on per-version preview URLs.
+`workers_dev` and `preview_urls` are set in each `wrangler.jsonc`, so every
+release re-applies them; a dashboard toggle would not survive one. The flip
+side: a rollback (`release.yml`, `action: redeploy`) to a tag older than the
+release that turned a Worker's workers.dev off runs the old config's
+`triggers deploy`, which turns it back on until the next release.
 
 The flat `staging-api` / `staging-www` prefixes rather than nested
 `api.staging` are deliberate: the Cloudflare universal certificate covers one
@@ -237,15 +235,15 @@ the repo-root `.env.local` (copy `.env.example`).
 
 ### Variables
 
-| Name                           | Used by                                           | staging                           | production                                         |
-| ------------------------------ | ------------------------------------------------- | --------------------------------- | -------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`        | every deploy (repository-level)                   | inherited                         | inherited                                          |
-| `HUGO_BASEURL`                 | Hugo build — canonical, sitemap, JSON-LD          | `https://staging-www.gatezh.com/` | `https://gatezh.com/`                              |
-| `HUGO_PARAMS_APIURL`           | contact form POST target, CSP connect-src         | `https://staging-api.gatezh.com`  | `https://api.gatezh.com` (was the workers.dev URL) |
-| `HUGO_PARAMS_TURNSTILESITEKEY` | contact form widget                               | the staging widget's site key     | the production widget's site key                   |
-| `HUGO_PARAMS_POSTHOGKEY`       | PostHog analytics — optional, see docs/posthog.md | — (never plumbed into staging)    | the PostHog project token                          |
-| `ALLOWED_ORIGIN`               | api Worker CORS — **required**                    | `https://staging-www.gatezh.com`  | `https://gatezh.com`                               |
-| `CLOUDFLARE_ZERO_CLIENT_ID`    | staging verify, only behind Access                | optional                          | —                                                  |
+| Name                           | Used by                                           | staging                           | production                       |
+| ------------------------------ | ------------------------------------------------- | --------------------------------- | -------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`        | every deploy (repository-level)                   | inherited                         | inherited                        |
+| `HUGO_BASEURL`                 | Hugo build — canonical, sitemap, JSON-LD          | `https://staging-www.gatezh.com/` | `https://gatezh.com/`            |
+| `HUGO_PARAMS_APIURL`           | contact form POST target, CSP connect-src         | `https://staging-api.gatezh.com`  | `https://api.gatezh.com`         |
+| `HUGO_PARAMS_TURNSTILESITEKEY` | contact form widget                               | the staging widget's site key     | the production widget's site key |
+| `HUGO_PARAMS_POSTHOGKEY`       | PostHog analytics — optional, see docs/posthog.md | — (never plumbed into staging)    | the PostHog project token        |
+| `ALLOWED_ORIGIN`               | api Worker CORS — **required**                    | `https://staging-www.gatezh.com`  | `https://gatezh.com`             |
+| `CLOUDFLARE_ZERO_CLIENT_ID`    | staging verify, only behind Access                | optional                          | —                                |
 
 A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 `ALLOWED_ORIGIN` (every request would fail CORS). Everything else is optional.
@@ -291,21 +289,6 @@ first staging deploy verified, the triggers flipped, and the zone's legacy
 `production` environment at the same time. After the first release
 (`v0.0.1`), the untagged push-to-production workflow (`deploy.yml`) was
 deleted; its post-deploy indexability checks moved into `release.yml`.
-
-## Remaining: move the api off workers.dev
-
-The production api answers on `api.gatezh.com` (a custom domain in
-`services/api/wrangler.jsonc`) and still on
-`gatezh-com-email-worker.gatezh.workers.dev`, which the live contact form
-posts to. In this order, so the form never points at a URL that is gone:
-
-1. Release the commit that added the `api.gatezh.com` route. `go-live` attaches
-   the domain; nothing changes for the form.
-2. Set production's `HUGO_PARAMS_APIURL` to `https://api.gatezh.com` and
-   release. The site now posts there, and the CSP's `connect-src` follows. A
-   failed check promotes nothing, and the workers.dev URL still works.
-3. Set `"workers_dev": false` at the top level of
-   `services/api/wrangler.jsonc`, update the tables above, and release.
 
 ## Remaining: rename the Workers
 
