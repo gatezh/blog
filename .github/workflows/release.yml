@@ -315,8 +315,9 @@ jobs:
       API_VERSION_ID: ${{ needs.upload.outputs.api_version }}
       WWW_VERSION_ID: ${{ needs.upload.outputs.www_version }}
       WWW_URL: https://gatezh.com
-      # The api's workers.dev URL. Optional (preflight only warns): unset, the
-      # site posts nowhere and the api's version is not checked.
+      # The api's public URL, the form's POST target. Optional (preflight only
+      # warns): unset, the site posts nowhere and the api's version is not
+      # checked.
       API_URL: ${{ vars.HUGO_PARAMS_APIURL }}
       EXPECT_BUILD: ${{ needs.upload.outputs.build_id }}
       DEPLOY_LABEL: production
