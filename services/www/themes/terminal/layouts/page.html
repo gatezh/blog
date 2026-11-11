@@ -36,7 +36,11 @@
 				<time class="article-date" datetime="{{ .Date.Format "2006-01-02" }}" itemprop="datePublished">
 					{{ .Date.Format "January 2, 2006" }}
 				</time>
-				{{ if not .Lastmod.IsZero }}
+				{{ if .Params.updated }}
+					<time class="article-updated" datetime="{{ .Lastmod.Format "2006-01-02" }}" itemprop="dateModified">
+						Updated {{ .Lastmod.Format "January 2, 2006" }}
+					</time>
+				{{ else if not .Lastmod.IsZero }}
 					<meta itemprop="dateModified" content="{{ .Lastmod.Format "2006-01-02" }}" />
 				{{ end }}
 			{{ end }}

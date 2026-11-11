@@ -13,6 +13,13 @@ enableRobotsTXT: true
 # full history in CI — the deploy workflow checks out with fetch-depth: 0.
 enableGitInfo: true
 
+# `updated:` front matter marks a change readers should know about (an update
+# or a correction). It wins over the git date, and the article shows "Updated
+# <date>". Without it, Lastmod is Hugo's default (git first), which every
+# commit moves, so it is never shown to readers.
+frontmatter:
+  lastmod: ["updated", ":git", "lastmod", "modified", "date", "publishDate"]
+
 # Hugo's embedded sitemap template skips any page with `sitemap.disable`.
 # Taxonomy and term listings carry `noindex` (_partials/head.html), and a
 # sitemap should only advertise URLs meant to be indexed, so they opt out here.
