@@ -75,7 +75,7 @@ test.describe("Single post", () => {
     await expect(h1).toBeVisible();
 
     // Date
-    const date = page.locator(".article-meta time");
+    const date = page.locator(".article-meta time[itemprop=datePublished]");
     await expect(date).toBeVisible();
 
     // Reading time

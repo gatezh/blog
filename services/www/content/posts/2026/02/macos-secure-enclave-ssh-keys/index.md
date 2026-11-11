@@ -1,10 +1,13 @@
 ---
 title: "Protecting SSH Keys with macOS Secure Enclave (Native Approach)"
 date: "2026-02-12T22:41:55Z"
+updated: "2026-11-11"
 description: "How to keep SSH keys in the macOS Secure Enclave, with Touch ID on every use and no third-party apps."
 keywords: [macos, ssh, security, secure-enclave, developer-tooling]
 draft: false
 ---
+
+> **Update, November 11, 2026:** I've since switched to [Secretive](https://github.com/maxgoedjen/secretive), which keeps keys in the Secure Enclave with a much better prompt. Part 2 is coming. I've also corrected one error, marked below.
 
 I've been paranoid about my SSH keys for a while now. They just sit there in `~/.ssh/`, protected by nothing but file permissions. Any malicious script that gets access to my filesystem could just copy them and get into all my servers.
 Also, there have been many stories out there online about fake interview assignments that asked to clone a repo and run it on your local machine.
@@ -143,11 +146,13 @@ Output:
 sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTIt... ssh:
 ```
 
-That `ssh:` at the end is the FIDO2 application ID — it's part of the key, not a comment. You can add your own comment after it when copying to `authorized_keys`:
+That `ssh:` at the end is the comment. The key's FIDO2 application ID is stored inside the key itself (the last field of the base64 part), and it happens to be `ssh:` too, so the line shows it twice. You can replace the comment with anything when copying to `authorized_keys`; the key stays the same:
 
 ```
-sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTIt... ssh: macbook-secure-enclave
+sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTIt... macbook-secure-enclave
 ```
+
+> **Correction, November 11, 2026:** An earlier version said the trailing `ssh:` was the FIDO2 application ID. It's the comment; the application ID is stored inside the key. Thanks to [computerfriend](https://news.ycombinator.com/item?id=50450776) on Hacker News for pointing it out.
 
 ### Step 5: Copy to Your Server
 

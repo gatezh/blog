@@ -222,6 +222,26 @@ test.describe("link previews", () => {
     expect(article).toBeTruthy();
     expect(article.image).toBeUndefined();
   });
+
+  test("a post with updated front matter shows when it was updated", async ({ page }) => {
+    // `updated:` marks an update readers should see; it wins over the git
+    // date (hugo.yaml `frontmatter.lastmod`).
+    await page.goto("/posts/macos-secure-enclave-ssh-keys/");
+    const updated = page.locator(".article-meta time[itemprop=dateModified]");
+    await expect(updated).toHaveText("Updated November 11, 2026");
+    await expect(updated).toHaveAttribute("datetime", "2026-11-11");
+    const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
+    const article = blocks.map((b) => JSON.parse(b)).find((b) => b["@type"] === "Article");
+    expect(article.dateModified).toMatch(/^2026-11-11T/);
+  });
+
+  test("a post without updated front matter shows only its published date", async ({ page }) => {
+    // The git date moves with every commit, typo fixes included, so it is
+    // never presented to readers as an update.
+    await page.goto("/posts/docker-desktop-disk-full-macos/");
+    await expect(page.locator(".article-meta time[itemprop=dateModified]")).toHaveCount(0);
+    await expect(page.locator(".article-meta time[itemprop=datePublished]")).toHaveCount(1);
+  });
 });
 
 test.describe("favicons", () => {
