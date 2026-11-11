@@ -313,3 +313,5 @@ params:
       url: "https://github.com/gatezh"
     - name: "LinkedIn"
       url: "https://linkedin.com/in/gatezh"
+    - name: "Hacker News"
+      url: "https://news.ycombinator.com/user?id=gatezh"
