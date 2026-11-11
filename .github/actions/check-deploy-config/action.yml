@@ -58,3 +58,9 @@ runs:
         if [ -z "${HUGO_PARAMS_APIURL}" ]; then
           echo "::warning title=HUGO_PARAMS_APIURL not set::The contact form has no Worker URL to POST to. Set HUGO_PARAMS_APIURL on the ${ENVIRONMENT} environment."
         fi
+
+        # No Worker serves workers.dev (wrangler.jsonc), so such a URL ships a dead form.
+        if [[ "${HUGO_PARAMS_APIURL}" == *.workers.dev* ]]; then
+          echo "::error title=HUGO_PARAMS_APIURL is a workers.dev URL::workers.dev is off for every Worker. Point HUGO_PARAMS_APIURL on the ${ENVIRONMENT} environment at the api's custom domain."
+          exit 1
+        fi
