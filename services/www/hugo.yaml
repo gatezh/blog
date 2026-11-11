@@ -15,8 +15,9 @@ enableGitInfo: true
 
 # `updated:` front matter marks a change readers should know about (an update
 # or a correction). It wins over the git date, and the article shows "Updated
-# <date>". Without it, Lastmod is Hugo's default (git first), which every
-# commit moves, so it is never shown to readers.
+# <date>". Later commits then leave the sitemap and dateModified alone until
+# `updated:` is bumped. Without it, Lastmod is Hugo's default (git first),
+# which every commit moves, so it is never shown to readers.
 frontmatter:
   lastmod: ["updated", ":git", "lastmod", "modified", "date", "publishDate"]
 

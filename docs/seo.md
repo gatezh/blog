@@ -131,7 +131,7 @@ Recorded so a future reader does not "discover" and undo any of it.
 | Legacy URLs 301 in one hop, with no meta-refresh stub     | `hugo.yaml` → `disableAliases` + `layouts/home._outputformat_redirects_.txt` | `tests/assets.spec.ts` |
 | Every post links out to related posts                     | `hugo.yaml` → `related`                                                      | `tests/seo.spec.ts`    |
 | `<lastmod>` tracks the last commit, not the authored date | `hugo.yaml` → `enableGitInfo`                                                | needs `fetch-depth: 0` |
-| `updated:` front matter wins over git, shows "Updated"    | `hugo.yaml` → `frontmatter.lastmod`, theme `page.html`                       | `tests/seo.spec.ts`    |
+| …but `updated:` overrides it, frozen until bumped         | `hugo.yaml` → `frontmatter.lastmod`, theme `page.html`                       | `tests/seo.spec.ts`    |
 | The deployed artifact is the build CI expects             | `<meta name="build-commit">`, `<meta name="build-id">`                       | `go-live` wait step    |
 | Stale build output is never deployed                      | `--cleanDestinationDir`                                                      | —                      |
 | Every page has a 1200 × 630 share image with alt text     | `_partials/share-image.html` (theme) + `params.images`                       | `tests/seo.spec.ts`    |
