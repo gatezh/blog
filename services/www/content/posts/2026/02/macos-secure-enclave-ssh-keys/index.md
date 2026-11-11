@@ -201,7 +201,7 @@ You should get a Touch ID prompt, then connect.
 
 ## The Ugly Touch ID Prompt
 
-{{< cfimage src="images/Touch ID prompt.png" alt="Touch ID prompt" caption="Touch ID prompt" scale="60" >}}
+{{< cfimage src="images/touch-id-prompt.png" alt="Touch ID prompt" caption="Touch ID prompt" scale="60" >}}
 
 One thing I'm not thrilled about: the Touch ID dialog says **"ctccardtoken needs to authenticate to continue"** instead of something friendly like "SSH wants to use your key."
 

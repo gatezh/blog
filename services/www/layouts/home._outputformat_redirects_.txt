@@ -48,3 +48,10 @@
 		{{- printf "%s %s 301\n" . $feed -}}
 	{{- end -}}
 {{- end -}}
+{{- /* Renamed page resources: the old filename had spaces, which some clients
+       double-encoded into 404s. The post was on the HN front page under the
+       old name, so the old URL keeps working. Spaces are written %20: a rule
+       is space-delimited. */ -}}
+{{- with site.GetPage "/posts/2026/02/macos-secure-enclave-ssh-keys" -}}
+	{{- printf "%simages/Touch%%20ID%%20prompt.png %simages/touch-id-prompt.png 301\n" .RelPermalink .RelPermalink -}}
+{{- end -}}
