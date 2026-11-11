@@ -473,7 +473,6 @@ test.describe("Footer", () => {
       .getByRole("navigation", { name: "Site map" })
       .getByRole("link", { name: "Just Right Systems" });
     await expect(link).toHaveAttribute("href", "https://justright.systems/");
-    // rel=me claims a page is a profile of the same person; a company is not.
     await expect(link).not.toHaveAttribute("rel", /\bme\b/);
   });
 
