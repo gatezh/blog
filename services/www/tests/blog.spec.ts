@@ -75,7 +75,7 @@ test.describe("Single post", () => {
     await expect(h1).toBeVisible();
 
     // Date
-    const date = page.locator(".article-meta time");
+    const date = page.locator(".article-meta time[itemprop=datePublished]");
     await expect(date).toBeVisible();
 
     // Reading time
@@ -466,6 +466,16 @@ test.describe("Accessibility", () => {
 });
 
 test.describe("Footer", () => {
+  test("links Just Right Systems as a business, not as a profile", async ({ page }) => {
+    await page.goto("/");
+    const link = page
+      .locator("footer")
+      .getByRole("navigation", { name: "Site map" })
+      .getByRole("link", { name: "Just Right Systems" });
+    await expect(link).toHaveAttribute("href", "https://justright.systems/");
+    await expect(link).not.toHaveAttribute("rel", /\bme\b/);
+  });
+
   test("maps the site: every page the header leaves out, each link resolving", async ({
     page,
     request,

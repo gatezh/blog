@@ -13,6 +13,14 @@ enableRobotsTXT: true
 # full history in CI — the deploy workflow checks out with fetch-depth: 0.
 enableGitInfo: true
 
+# `updated:` front matter marks a change readers should know about (an update
+# or a correction). It wins over the git date, and the article shows "Updated
+# <date>". Later commits then leave the sitemap and dateModified alone until
+# `updated:` is bumped. Without it, Lastmod is Hugo's default (git first),
+# which every commit moves, so it is never shown to readers.
+frontmatter:
+  lastmod: ["updated", ":git", "lastmod", "modified", "date", "publishDate"]
+
 # Hugo's embedded sitemap template skips any page with `sitemap.disable`.
 # Taxonomy and term listings carry `noindex` (_partials/head.html), and a
 # sitemap should only advertise URLs meant to be indexed, so they opt out here.
@@ -240,6 +248,11 @@ menu:
       pageRef: /contact
       parent: me
       weight: 20
+    # Not rel=me: that marks profiles of a person, not a company.
+    - name: Just Right Systems
+      url: https://justright.systems/
+      parent: me
+      weight: 30
 
 params:
   # Identity copy. One positioning statement is the source for every surface
@@ -313,3 +326,5 @@ params:
       url: "https://github.com/gatezh"
     - name: "LinkedIn"
       url: "https://linkedin.com/in/gatezh"
+    - name: "Hacker News"
+      url: "https://news.ycombinator.com/user?id=gatezh"

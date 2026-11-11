@@ -220,6 +220,17 @@ test.describe("security headers", () => {
     expect(res.headers()["cache-control"] ?? "").not.toContain("immutable");
   });
 
+  // iOS and apps that save a link (HN readers among them) request these by
+  // convention, whatever the head links; without them every such visit 404s.
+  for (const path of ["/apple-touch-icon.png", "/apple-touch-icon-precomposed.png"]) {
+    test(`${path} is served from the root`, async ({ request }) => {
+      const res = await request.get(path);
+      expect(res.status()).toBe(200);
+      expect(res.headers()["content-type"]).toContain("image/png");
+      expect(res.headers()["cache-control"] ?? "").not.toContain("immutable");
+    });
+  }
+
   // The policy is only useful if the site still works under it. This proves
   // the first hop: every tag the HTML loads, and what the vendor snippets
   // request directly, is allowed. Third parties are stubbed, so requests a
@@ -479,6 +490,27 @@ test.describe("legacy URLs redirect in one hop", () => {
       expect(res.status()).toBe(301);
       expect(await res.text()).not.toContain("http-equiv");
     }
+  });
+
+  for (const from of ["/feed", "/feed/", "/rss", "/rss/", "/feed.xml", "/rss.xml", "/atom.xml"]) {
+    test(`guessed feed URL ${from} -> /index.xml`, async ({ request }, info) => {
+      const res = await request.get(from, { maxRedirects: 0 });
+      expect(res.status()).toBe(301);
+      const location = new URL(res.headers().location, info.project.use.baseURL as string);
+      expect(location.pathname).toBe("/index.xml");
+    });
+  }
+
+  test("the renamed Touch ID image keeps its old URLs", async ({ request }) => {
+    const dir = "/posts/macos-secure-enclave-ssh-keys/images/";
+    for (const old of ["Touch%20ID%20prompt.png", "Touch%2520ID%2520prompt.png"]) {
+      const res = await request.get(`${dir}${old}`, { maxRedirects: 0 });
+      expect(res.status(), old).toBe(301);
+      expect(new URL(res.headers().location, "http://x").pathname, old).toBe(
+        `${dir}touch-id-prompt.png`,
+      );
+    }
+    expect((await request.get(`${dir}touch-id-prompt.png`)).status()).toBe(200);
   });
 
   test("the redirect table itself is not served", async ({ request }) => {

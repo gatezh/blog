@@ -35,3 +35,22 @@
 		{{- end -}}
 	{{- end -}}
 {{- end -}}
+{{- /* Feed URLs readers guess. An alias can't target the RSS output, so
+       they are listed here. */ -}}
+{{- with site.Home.OutputFormats.Get "rss" -}}
+	{{- $feed := .RelPermalink -}}
+	{{- range slice "/feed" "/rss" -}}
+		{{- printf "%s %s 301\n%s/ %s 301\n" . $feed . $feed -}}
+	{{- end -}}
+	{{- range slice "/feed.xml" "/rss.xml" "/atom.xml" -}}
+		{{- printf "%s %s 301\n" . $feed -}}
+	{{- end -}}
+{{- end -}}
+{{- /* Renamed image: its old name, single- and double-encoded (rules are
+       space-delimited, so spaces are %20). */ -}}
+{{- with site.GetPage "/posts/2026/02/macos-secure-enclave-ssh-keys" -}}
+	{{- $dir := print .RelPermalink "images/" -}}
+	{{- range slice "Touch%20ID%20prompt.png" "Touch%2520ID%2520prompt.png" -}}
+		{{- printf "%s%s %stouch-id-prompt.png 301\n" $dir . $dir -}}
+	{{- end -}}
+{{- end -}}
