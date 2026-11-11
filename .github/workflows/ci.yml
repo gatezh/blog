@@ -84,13 +84,19 @@ jobs:
 
       - uses: $/.github/actions/setup
 
-      # Not cached: Playwright's CI docs advise against caching browsers, the
-      # system dependencies have to be installed on every run anyway, and a
+      # Not cached: Playwright's CI docs advise against caching browsers, and a
       # per-PR cache entry of a few hundred MB fills the repository's quota.
       # Every project in playwright.config.ts runs headless Chromium, which is
       # the headless shell, so the full Chromium build is not downloaded.
+      #
+      # TEMPORARY: no --with-deps. Canonical's DNS outage (2026-11-11, from
+      # 14:26 UTC) stops apt on GitHub's runners (actions/runner-images#15296,
+      # #15297). The runner image already has every library the shell needs;
+      # --with-deps only added nine fallback fonts the tests don't use. A
+      # missing library would fail the browser launch by name, not silently.
+      # Restore --with-deps once apt resolves again (gatezh/blog#168).
       - name: Install Playwright browsers
-        run: bunx playwright install --with-deps --only-shell chromium
+        run: bunx playwright install --only-shell chromium
 
       - name: Run browser tests
         run: bun run test
