@@ -39,7 +39,9 @@ This is a Bun monorepo for gatezh.com:
 │   ├── workflows/
 │   │   ├── ci.yml              # PR checks + tests; also called by both deploys
 │   │   ├── deploy-staging.yml  # push to master → staging
-│   │   └── release.yml         # dispatch → v* tag → production
+│   │   ├── release.yml         # dispatch → v* tag → production
+│   │   ├── upstream.yml        # monthly PR updating /upstream/
+│   │   └── outdated.yml        # monthly "Outdated npm dependencies" issue
 │   ├── actions/
 │   │   ├── setup/              # mise tools + bun install (composite)
 │   │   ├── check-deploy-config/ # api deploy config gate (composite)
