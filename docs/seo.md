@@ -24,10 +24,13 @@ mechanisms — easy to conflate:
 > **The two axes are independent.** Always Use HTTPS rewrites the scheme only
 > and leaves the hostname alone; collapsing `www` needs its own Redirect Rule.
 >
-> As of now `www.gatezh.com` has **no DNS record**, so there is no `www`
-> duplicate to canonicalise — but anyone typing that hostname gets a DNS error
-> rather than the site. Tracked in
-> [#39](https://github.com/gatezh/blog/issues/39).
+> `www.gatezh.com` resolves and 301s to the apex, keeping the path and query
+> ([#39](https://github.com/gatezh/blog/issues/39)):
+>
+> ```console
+> $ curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' 'https://www.gatezh.com/about/?q=1'
+> 301 https://gatezh.com/about/?q=1
+> ```
 
 Without the scheme redirect, a Workers custom domain answers on `http://` as
 well as `https://`, so every page has a duplicate URL and Search Console files
@@ -42,8 +45,8 @@ them under "Alternate page with proper canonical tag".
   301 https://gatezh.com/
   ```
 
-- [ ] **HSTS** — not set. Tracked in
-      [#101](https://github.com/gatezh/blog/issues/101). Same Edge Certificates page. Not an indexing signal on its own;
+- [x] **HSTS** — on: 12 months, subdomains included, no preload
+      ([#101](https://github.com/gatezh/blog/issues/101)). Same Edge Certificates page. Not an indexing signal on its own;
       it is the documented companion to the redirect above and stops browsers
       making the plain-http request at all on repeat visits.
 
@@ -53,8 +56,7 @@ them under "Alternate page with proper canonical tag".
   > window. `Include subdomains` extends that to `comments.gatezh.com`. Leave
   > **Preload** off — the browser preload list is effectively a one-way door.
 
-  Verified not set — the check below currently prints nothing. Once enabled it
-  should print:
+  `release.yml` warns on every run if the header is gone:
 
   ```console
   $ curl -sI https://gatezh.com/ | grep -i strict-transport
