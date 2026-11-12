@@ -36,7 +36,7 @@ if (data.host) {
     max_shown_comments: 100,
     theme: initialTheme(),
     page_title: data.pageTitle,
-    show_email_subscription: false,
+    show_email_subscription: true,
     simple_view: false,
     no_footer: true,
     locale: "en",
