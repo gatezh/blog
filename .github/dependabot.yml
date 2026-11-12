@@ -3,7 +3,8 @@
 # pins, and the version comment beside each, up to date.
 #
 # There is no `bun` entry: npm dependencies are pinned exactly and upgraded by
-# deliberate decision (.claude/CLAUDE.md).
+# deliberate decision (.claude/CLAUDE.md). workflows/outdated.yml lists what
+# is outdated in an issue once a month.
 version: 2
 updates:
   - package-ecosystem: github-actions
