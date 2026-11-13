@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
-import { createMiddleware } from "hono/factory";
 import { html } from "hono/html";
 import { methodNotAllowed } from "hono/method-not-allowed";
 import { validator } from "hono/validator";
@@ -220,28 +219,15 @@ ${message}
 This message was sent via the contact form on gatezh.com`;
 }
 
-function isLoopback(origin: string): boolean {
-  const url = URL.parse(origin);
-  return (
-    url?.protocol === "http:" && (url.hostname === "localhost" || url.hostname === "127.0.0.1")
-  );
-}
-
-// ALLOWED_ORIGIN exactly. Local development sets it to its own loopback origin
-// (services/api's dev script), and there any loopback origin is accepted, so
-// 127.0.0.1 and other ports work too. A deployed Worker never accepts one.
-function isAllowedOrigin(origin: string | undefined, allowedOrigin: string): boolean {
-  if (!origin) return false;
-  return origin === allowedOrigin || (isLoopback(allowedOrigin) && isLoopback(origin));
-}
-
 const app = new Hono<Env>();
 
+// Answers ALLOWED_ORIGIN only (local dev sets it to the www dev server). That
+// also keeps other sites out: their JSON POST needs a preflight, which fails,
+// and a body sent without one is never parsed. No Origin check: scripts forge it.
 app.use(
   "*",
   cors({
-    origin: (origin, c) =>
-      isAllowedOrigin(origin, c.env.ALLOWED_ORIGIN) ? origin : c.env.ALLOWED_ORIGIN,
+    origin: (_origin, c) => c.env.ALLOWED_ORIGIN,
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
     maxAge: 86400,
@@ -258,17 +244,6 @@ app.use(
       c.json({ error: "Method not allowed" }, 405, { Allow: methods.join(", ") }),
   }),
 );
-
-// CORS only stops a browser reading the response: the POST itself still runs.
-// Refusing a missing or foreign Origin first means a page on another site
-// spends no Turnstile verification and sends no email. hono/csrf would not do:
-// it checks form content types only, and this endpoint takes JSON.
-const fromAllowedOrigin = createMiddleware<Env>(async (c, next) => {
-  if (!isAllowedOrigin(c.req.header("Origin"), c.env.ALLOWED_ORIGIN)) {
-    return c.json({ error: "Forbidden" }, 403);
-  }
-  await next();
-});
 
 // Checks the body before the handler runs. Malformed JSON is answered with a
 // 400 by the validator itself. A body not declared as JSON is never parsed: it
@@ -315,7 +290,7 @@ const contactForm = validator("json", (value, c) => {
 });
 
 // Contact form submission endpoint
-app.post("/", fromAllowedOrigin, contactForm, async (c) => {
+app.post("/", contactForm, async (c) => {
   // Without these the Worker cannot send anything. 503 rather than a 500 from
   // deep inside Resend: this is a deployment that was never configured, not a
   // request that went wrong.

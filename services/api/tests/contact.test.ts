@@ -40,10 +40,22 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
-function request(body: Record<string, unknown>, origin: string | null = "https://gatezh.com") {
+/** Hands requests for `host` to `handle`; `next` passes one on to the current stub. */
+function intercept(
+  host: string,
+  handle: (next: () => Promise<Response>, init?: RequestInit) => Response | Promise<Response>,
+) {
+  const inner = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    return url.includes(host) ? handle(() => inner(input, init), init) : inner(input, init);
+  }) as typeof fetch;
+}
+
+function request(body: Record<string, unknown>) {
   return {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...(origin ? { Origin: origin } : {}) },
+    headers: { "Content-Type": "application/json", Origin: "https://gatezh.com" },
     body: JSON.stringify(body),
   };
 }
@@ -132,17 +144,8 @@ describe("request body", () => {
 });
 
 describe("upstream failures", () => {
-  /** Replaces one outbound endpoint's behaviour; the rest stay stubbed. */
-  function failing(host: string, respond: () => Response | Promise<Response>) {
-    const inner = globalThis.fetch;
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-      return url.includes(host) ? respond() : inner(input, init);
-    }) as typeof fetch;
-  }
-
   test("an unreachable siteverify is a 502, and nothing is sent", async () => {
-    failing("challenges.cloudflare.com", () => {
+    intercept("challenges.cloudflare.com", () => {
       throw new TypeError("network down");
     });
 
@@ -155,15 +158,17 @@ describe("upstream failures", () => {
   });
 
   test("a non-2xx siteverify is a 502, not a captcha failure", async () => {
-    failing("challenges.cloudflare.com", () => new Response("upstream error", { status: 503 }));
+    intercept("challenges.cloudflare.com", () => new Response("upstream error", { status: 503 }));
 
     const res = await submit(VALID);
     expect(res.status).toBe(502);
     expect(sentEmail).toBeNull();
   });
 
+
+
   test("a Resend failure is a JSON 500 that leaks nothing", async () => {
-    failing("api.resend.com", () => {
+    intercept("api.resend.com", () => {
       throw new TypeError("network down");
     });
 
@@ -212,52 +217,46 @@ describe("turnstile", () => {
   });
 });
 
+// The browser keeps other sites out; see the cors comment in src/index.ts.
 describe("origin", () => {
-  /** Counts siteverify calls, so a test can show a refused request spent none. */
-  function countVerifications() {
-    const counter = { calls: 0 };
-    const inner = globalThis.fetch;
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-      if (url.includes("challenges.cloudflare.com")) counter.calls++;
-      return inner(input, init);
-    }) as typeof fetch;
-    return counter;
-  }
-
-  for (const [label, origin] of [
-    ["no Origin", null],
-    ["a foreign origin", "https://attacker.example"],
-    ["a localhost origin, on a deployed Worker", "http://localhost:1313"],
-  ] as const) {
-    test(`POST / from ${label} is 403 before any Turnstile or email work`, async () => {
-      const verifications = countVerifications();
-      const res = await app.request("/", request(VALID, origin), ENV);
-
-      expect(res.status).toBe(403);
-      expect(verifications.calls).toBe(0);
-      expect(sentEmail).toBeNull();
+  for (const origin of ["https://attacker.example", "http://localhost:1313"]) {
+    test(`a JSON preflight from ${origin} gets ALLOWED_ORIGIN back, so the POST never runs`, async () => {
+      const res = await app.request(
+        "/",
+        {
+          method: "OPTIONS",
+          headers: {
+            Origin: origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+          },
+        },
+        ENV,
+      );
+      expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://gatezh.com");
     });
   }
 
-  test("a deployed Worker's CORS does not echo a localhost origin", async () => {
+  test("a body sent without a preflight is never parsed, so nothing is verified or sent", async () => {
+    let verified = false;
+    intercept("challenges.cloudflare.com", (next) => {
+      verified = true;
+      return next();
+    });
+
+    // All another site can send without a preflight.
     const res = await app.request(
       "/",
       {
-        method: "OPTIONS",
-        headers: { Origin: "http://localhost:1313", "Access-Control-Request-Method": "POST" },
+        method: "POST",
+        headers: { "Content-Type": "text/plain", Origin: "https://attacker.example" },
+        body: JSON.stringify(VALID),
       },
       ENV,
     );
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://gatezh.com");
-  });
-
-  test("in local development any loopback origin is accepted", async () => {
-    const env = { ...ENV, ALLOWED_ORIGIN: "http://localhost:1313" };
-    turnstileResponse = { success: true, hostname: "localhost" };
-
-    const res = await app.request("/", request(VALID, "http://127.0.0.1:1314"), env);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
+    expect(verified).toBe(false);
+    expect(sentEmail).toBeNull();
   });
 });
 
