@@ -383,9 +383,21 @@ The account ID is the repository variable `CLOUDFLARE_ACCOUNT_ID`.
 
 ## Resend
 
-Verify `gatezh.com` at the domain level in Resend (any `*@gatezh.com` sender then
-works), and create one **Sending access** API key per environment. `FROM_EMAIL`
-must be on that verified domain.
+The contact form sends from the subdomain `notify.gatezh.com`, never the apex.
+`gatezh.com` hosts personal mail, and a subdomain keeps the reputation of
+automated sending apart from it. The Remark42 comment notifications share the
+subdomain.
+
+- Verify `notify.gatezh.com` in Resend. Its DNS records sit in the gatezh.com
+  Cloudflare zone, all DNS only: the DKIM `TXT resend._domainkey.notify`, and the
+  `CNAME`s `rsend.notify` and `send.notify` that Resend lists. The subdomain has
+  its own DMARC record, `_dmarc.notify` at `p=quarantine`, reporting to the
+  zone's DMARC Management address. DMARC Management only manages the apex, so
+  this record is maintained by hand.
+- Create one **Sending access** API key per environment, restricted to
+  `notify.gatezh.com`.
+- `FROM_EMAIL` is an address on `notify.gatezh.com`, with a different one for
+  staging, e.g. `contact@` and `contact-staging@`.
 
 ## Local development
 
@@ -412,8 +424,9 @@ form at `http://localhost:${API_PORT}`, and the api allows
 
 ### Emails not sending
 
-Check the Resend dashboard, that `FROM_EMAIL` is on the verified domain, and the
-api Worker's logs for Resend errors.
+Check the Resend dashboard, that `FROM_EMAIL` is on `notify.gatezh.com`, that
+the environment's API key may send from that domain, and the api Worker's logs
+for Resend errors.
 
 ### Build fails with "Set HUGO_BASEURL"
 
