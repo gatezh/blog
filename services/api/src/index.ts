@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
+import { createMiddleware } from "hono/factory";
 import { html } from "hono/html";
 import { methodNotAllowed } from "hono/method-not-allowed";
 import { validator } from "hono/validator";
@@ -21,6 +22,8 @@ type Env = {
     TURNSTILE_SECRET_KEY?: string;
     // wrangler.jsonc's version_metadata binding: which version is answering.
     CF_VERSION_METADATA?: WorkerVersionMetadata;
+    // wrangler.jsonc's ratelimits binding: 5 POSTs a minute per client IP.
+    CONTACT_RATE_LIMIT: RateLimit;
   };
 };
 
@@ -246,6 +249,22 @@ app.use(
   }),
 );
 
+// Turnstile proves a person solved a challenge, not how many messages they may
+// send: a solving service turns each token into an email. Checked before the
+// body and Turnstile, so a flood spends neither. CF-Connecting-IP is set by
+// Cloudflare's edge on every request, and this Worker is only reachable
+// through it, so a client cannot choose its own key.
+const rateLimited = createMiddleware<Env>(async (c, next) => {
+  const key = c.req.header("CF-Connecting-IP") ?? "unknown";
+  const { success } = await c.env.CONTACT_RATE_LIMIT.limit({ key });
+  if (!success) {
+    return c.json({ error: "Too many messages. Please wait a minute and try again." }, 429, {
+      "Retry-After": "60",
+    });
+  }
+  await next();
+});
+
 // Checks the body before the handler runs. Malformed JSON is answered with a
 // 400 by the validator itself. A body not declared as JSON is never parsed: it
 // arrives here as {} and fails the required-fields check.
@@ -291,7 +310,7 @@ const contactForm = validator("json", (value, c) => {
 });
 
 // Contact form submission endpoint
-app.post("/", contactForm, async (c) => {
+app.post("/", rateLimited, contactForm, async (c) => {
   // Without these the Worker cannot send anything. 503 rather than a 500 from
   // deep inside Resend: this is a deployment that was never configured, not a
   // request that went wrong.

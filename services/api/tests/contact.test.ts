@@ -2,7 +2,19 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import app from "../src/index";
 
+/** Stands in for the ratelimits binding: allows `limit` calls per key, then refuses. */
+function rateLimiter(limit = Infinity) {
+  const seen = new Map<string, number>();
+  return {
+    async limit({ key }: { key: string }) {
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+      return { success: (seen.get(key) ?? 0) <= limit };
+    },
+  };
+}
+
 const ENV = {
+  CONTACT_RATE_LIMIT: rateLimiter(),
   RESEND_API_KEY: "re_test",
   TURNSTILE_SECRET_KEY: "0x-test-secret",
   ALLOWED_ORIGIN: "https://gatezh.com",
@@ -278,6 +290,47 @@ describe("origin", () => {
   });
 });
 
+describe("rate limit", () => {
+  function from(ip: string) {
+    const req = request(VALID);
+    return { ...req, headers: { ...req.headers, "CF-Connecting-IP": ip } };
+  }
+
+  test("the sixth message in a minute from one IP is a 429, and is not sent", async () => {
+    const env = { ...ENV, CONTACT_RATE_LIMIT: rateLimiter(5) };
+    for (let i = 0; i < 5; i++) {
+      expect((await app.request("/", from("203.0.113.7"), env)).status).toBe(200);
+    }
+    sentEmail = null;
+
+    const res = await app.request("/", from("203.0.113.7"), env);
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("60");
+    expect(await res.json()).toEqual({
+      error: "Too many messages. Please wait a minute and try again.",
+    });
+    expect(sentEmail).toBeNull();
+  });
+
+  test("the limit is per IP", async () => {
+    const env = { ...ENV, CONTACT_RATE_LIMIT: rateLimiter(1) };
+    expect((await app.request("/", from("203.0.113.7"), env)).status).toBe(200);
+    expect((await app.request("/", from("198.51.100.2"), env)).status).toBe(200);
+  });
+
+  test("a limited request spends no Turnstile verification", async () => {
+    const env = { ...ENV, CONTACT_RATE_LIMIT: rateLimiter(0) };
+    let verified = false;
+    intercept("challenges.cloudflare.com", (next) => {
+      verified = true;
+      return next();
+    });
+
+    expect((await app.request("/", from("203.0.113.7"), env)).status).toBe(429);
+    expect(verified).toBe(false);
+  });
+});
+
 describe("header safety", () => {
   test("strips CR/LF from the subject before it reaches the mail API", async () => {
     await submit({ ...VALID, subject: "Hi\r\nBcc: victim@example.com" });
@@ -321,7 +374,7 @@ describe("email body", () => {
 
 describe("optional feature credentials", () => {
   /** Same request shape as `submit`, but against a caller-supplied environment. */
-  function submitWith(env: Record<string, string>, body: Record<string, unknown>) {
+  function submitWith(env: Record<string, unknown>, body: Record<string, unknown>) {
     return app.request("/", request(body), env);
   }
 
@@ -336,7 +389,7 @@ describe("optional feature credentials", () => {
   // feature, not fail the whole Worker.
   for (const missing of ["RESEND_API_KEY", "TO_EMAIL", "FROM_EMAIL"] as const) {
     test(`POST / returns 503 when ${missing} is unset`, async () => {
-      const env: Record<string, string> = { ...ENV };
+      const env: Record<string, unknown> = { ...ENV };
       delete env[missing];
 
       const res = await submitWith(env, VALID);
@@ -351,7 +404,7 @@ describe("optional feature credentials", () => {
   }
 
   test("submissions are accepted without a captcha when the bot gate is unconfigured", async () => {
-    const env: Record<string, string> = { ...ENV };
+    const env: Record<string, unknown> = { ...ENV };
     delete env.TURNSTILE_SECRET_KEY;
 
     // No turnstileToken at all: a client served no widget has nothing to send.
