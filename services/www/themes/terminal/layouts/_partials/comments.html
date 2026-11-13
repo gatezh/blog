@@ -1,12 +1,8 @@
 {{/*
   Remark42 Comments Integration
 
-  js/comments.ts handles:
-  1. Remark42 configuration with proper initial theme detection
-  2. Loading the Remark42 script
-  3. Theme synchronization when:
-     - User clicks the theme toggle (listens for 'themechange' event)
-     - System preference changes (when theme is set to 'system')
+  js/comments.ts: Remark42 config, lazy loading of the embed (a viewport
+  ahead; at once for a comment permalink), and theme sync with the page.
 
   The Remark42 host is params.remark42Host, which the CSP in
   layouts/home._outputformat_headers_.txt reads too.

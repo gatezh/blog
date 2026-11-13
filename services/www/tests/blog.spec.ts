@@ -164,24 +164,70 @@ test.describe("Contact form", () => {
 });
 
 test.describe("Comments", () => {
-  test("loads the Remark42 embed as an ES module", async ({ page }) => {
-    // Stubbed, so the test never reaches the real comments server.
+  // Comments start over two viewports down; the embed loads one ahead.
+  const LONG_POST = "/posts/docker-desktop-disk-full-macos/";
+
+  // Stub embed: records changeTheme calls in window.__remarkThemes and fires
+  // REMARK42::ready, like the real one.
+  async function stubComments(page: Page): Promise<string[]> {
     const requested: string[] = [];
     await page.route("https://comments.gatezh.com/**", (route) => {
       requested.push(new URL(route.request().url()).pathname);
-      return route.fulfill({ contentType: "text/javascript", body: "" });
+      return route.fulfill({
+        contentType: "text/javascript",
+        body: `window.REMARK42 = { changeTheme: (t) => (window.__remarkThemes ||= []).push(t) };
+window.dispatchEvent(new Event("REMARK42::ready"));`,
+      });
     });
+    return requested;
+  }
 
-    await page.goto("/posts/");
-    await page.locator(".post-list .post-list-item a").first().click();
+  const lastTheme = (page: Page) =>
+    page.evaluate(() => ((window as any).__remarkThemes ?? []).at(-1) as string | undefined);
 
+  test("loads the Remark42 embed as an ES module only near the comments", async ({ page }) => {
+    const requested = await stubComments(page);
+    await page.goto(LONG_POST);
+    await page.waitForLoadState("networkidle");
+
+    const offset = await page.evaluate(
+      () => document.getElementById("remark42")!.getBoundingClientRect().top / innerHeight,
+    );
+    expect(offset, "comments must start over two viewports down").toBeGreaterThan(2);
+    expect(requested).not.toContain("/web/embed.mjs");
+    expect(await page.evaluate(() => (window as any).remark_config?.host)).toBe(
+      "https://comments.gatezh.com",
+    );
+
+    await page.locator("#remark42").scrollIntoViewIfNeeded();
     await expect(
       page.locator('script[src="https://comments.gatezh.com/web/embed.mjs"]'),
     ).toHaveAttribute("type", "module");
     await expect.poll(() => requested).toContain("/web/embed.mjs");
-    expect(await page.evaluate(() => (window as any).remark_config?.host)).toBe(
-      "https://comments.gatezh.com",
-    );
+  });
+
+  test("a comment permalink loads the embed without scrolling", async ({ page }) => {
+    const requested = await stubComments(page);
+    await page.goto(`${LONG_POST}#remark42__comment-test`);
+    await expect.poll(() => requested).toContain("/web/embed.mjs");
+  });
+
+  test("Remark42 follows the page theme", async ({ page }) => {
+    await stubComments(page);
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto(LONG_POST);
+    await page.locator("#remark42").scrollIntoViewIfNeeded();
+
+    await expect.poll(() => lastTheme(page)).toBe("light");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect.poll(() => lastTheme(page)).toBe("dark");
+
+    // An explicit choice beats the OS; "system" defers to it again.
+    await page.locator(".theme-toggle-option", { hasText: "light" }).click();
+    await expect.poll(() => lastTheme(page)).toBe("light");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.locator(".theme-toggle-option", { hasText: "system" }).click();
+    await expect.poll(() => lastTheme(page)).toBe("dark");
   });
 });
 
