@@ -58,25 +58,26 @@ async function verifyTurnstile(
     formData.append("remoteip", ip);
   }
 
-  // siteverify unreachable, failing or answering garbage is Cloudflare's
-  // outage, not the sender's mistake or ours: 502, through app.onError.
-  const result = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formData,
-  })
-    .then((response) => {
-      if (!response.ok) throw new Error(`siteverify answered ${response.status}`);
-      return response.json() as Promise<TurnstileVerifyResponse>;
-    })
-    .catch((err: unknown) => {
-      console.error("Turnstile siteverify failed:", err);
-      throw new HTTPException(502, {
-        message: "Captcha verification is unavailable. Please try again later.",
-      });
+  // Any siteverify failure, a hang included (fetch has no timeout of its own),
+  // is Cloudflare's outage: 502, through app.onError.
+  let result: TurnstileVerifyResponse;
+  try {
+    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData,
+      signal: AbortSignal.timeout(10_000),
     });
+    if (!response.ok) throw new Error(`siteverify answered ${response.status}`);
+    result = (await response.json()) as TurnstileVerifyResponse;
+  } catch (err) {
+    console.error("Turnstile siteverify failed:", err);
+    throw new HTTPException(502, {
+      message: "Captcha verification is unavailable. Please try again later.",
+    });
+  }
 
   if (!result.success) {
     return {
@@ -349,7 +350,8 @@ app.post("/", contactForm, async (c) => {
 });
 
 // Errors nothing above handled: the validator's 400 for malformed JSON, the
-// 502 for an unreachable siteverify, or a throw from Resend. Every error body is JSON, so the form can show it.
+// 502 for an unreachable siteverify, or a throw from Resend. Every error body
+// is JSON, so the form can show it.
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status);
