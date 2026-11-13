@@ -31,7 +31,12 @@ function syncRemark42Theme(): void {
   }
 }
 
+let embedLoaded = false;
+
+// Once; the observer and a permalink both call it.
 function loadEmbed(host: string): void {
+  if (embedLoaded) return;
+  embedLoaded = true;
   window.remark_config.theme = pageTheme();
   // Module build only: browsers without modules can't parse it anyway.
   const script = document.createElement("script");
@@ -57,10 +62,10 @@ if (data.host) {
     locale: "en",
   };
 
-  // Load one viewport before the comments scroll into view; at once for a
-  // comment permalink, which the embed scrolls to.
-  const root = document.getElementById("remark42");
-  if (!root || window.location.hash.startsWith("#remark42__comment-")) {
+  // A viewport ahead of the comments; at once for a comment permalink, on load
+  // or by a hash change (no reload, nothing to scroll to).
+  const isPermalink = (): boolean => window.location.hash.startsWith("#remark42__comment-");
+  if (isPermalink()) {
     loadEmbed(host);
   } else {
     const observer = new IntersectionObserver(
@@ -71,8 +76,12 @@ if (data.host) {
       },
       { rootMargin: "0px 0px 100% 0px" },
     );
-    observer.observe(root);
+    // The partial renders it with this script.
+    observer.observe(document.getElementById("remark42")!);
   }
+  window.addEventListener("hashchange", () => {
+    if (isPermalink()) loadEmbed(host);
+  });
 
   // Ready: a change before the embed started. Visible: an OS change missed
   // while hidden or in the back/forward cache.
