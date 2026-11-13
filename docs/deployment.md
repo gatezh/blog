@@ -250,15 +250,15 @@ A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 
 ### Secrets
 
-| Name                            | Used by                                            | Notes                                                   |
-| ------------------------------- | -------------------------------------------------- | ------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`          | every deploy                                       | same token in both; see [below](#cloudflare-api-token)  |
-| `RESEND_API_KEY`                | contact form                                       | separate key per environment                            |
-| `TO_EMAIL`                      | contact form — where submissions are sent          | a secret only to keep it out of the logs                |
-| `FROM_EMAIL`                    | contact form — sender, on a Resend-verified domain | staging: use a distinct sender                          |
-| `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment                         |
-| `HUGO_PARAMS_POSTHOGAPIHOST`    | PostHog reverse proxy URL, production only         | a secret to keep it off blocklists; see docs/posthog.md |
-| `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access                 | optional                                                |
+| Name                            | Used by                                       | Notes                                                   |
+| ------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`          | every deploy                                  | same token in both; see [below](#cloudflare-api-token)  |
+| `RESEND_API_KEY`                | contact form                                  | one key for both, restricted to `notify.gatezh.com`     |
+| `TO_EMAIL`                      | contact form — where submissions are sent     | a secret only to keep it out of the logs                |
+| `FROM_EMAIL`                    | contact form — sender, on `notify.gatezh.com` | staging: use a distinct sender                          |
+| `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above       | separate widget per environment                         |
+| `HUGO_PARAMS_POSTHOGAPIHOST`    | PostHog reverse proxy URL, production only    | a secret to keep it off blocklists; see docs/posthog.md |
+| `CLOUDFLARE_ZERO_CLIENT_SECRET` | staging verify, only behind Access            | optional                                                |
 
 The Worker degrades one feature at a time, and each api deploy reports what is
 missing (`.github/actions/check-deploy-config`) instead of failing:
@@ -383,9 +383,22 @@ The account ID is the repository variable `CLOUDFLARE_ACCOUNT_ID`.
 
 ## Resend
 
-Verify `gatezh.com` at the domain level in Resend (any `*@gatezh.com` sender then
-works), and create one **Sending access** API key per environment. `FROM_EMAIL`
-must be on that verified domain.
+The contact form sends from the subdomain `notify.gatezh.com`, never the apex.
+`gatezh.com` hosts personal mail, and a subdomain keeps the reputation of
+automated sending apart from it. The Remark42 comment notifications share the
+subdomain.
+
+- Verify `notify.gatezh.com` in Resend. Its DNS records sit in the gatezh.com
+  Cloudflare zone, all DNS only: the DKIM `TXT resend._domainkey.notify`, and the
+  `CNAME`s `rsend.notify` and `send.notify` that Resend lists. It needs no DMARC
+  record of its own: the apex record, which DMARC Management manages, sets
+  `sp=quarantine` for every subdomain, and none but this one sends mail.
+- One **Sending access** API key, restricted to `notify.gatezh.com`, serves both
+  environments. Rotating it means updating both.
+- `FROM_EMAIL` is an address on `notify.gatezh.com`, with a different one for
+  staging, so staging mail is easy to tell apart. `TO_EMAIL` stays on the apex: the subdomain has no MX.
+- Change the key and `FROM_EMAIL` together. Both are uploaded with each
+  deploy, and staging deploys on every push to `master`.
 
 ## Local development
 
@@ -412,8 +425,9 @@ form at `http://localhost:${API_PORT}`, and the api allows
 
 ### Emails not sending
 
-Check the Resend dashboard, that `FROM_EMAIL` is on the verified domain, and the
-api Worker's logs for Resend errors.
+Check the Resend dashboard, that `FROM_EMAIL` is on `notify.gatezh.com`, that
+the environment's API key may send from that domain, and the api Worker's logs
+for Resend errors.
 
 ### Build fails with "Set HUGO_BASEURL"
 
