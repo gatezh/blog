@@ -595,15 +595,21 @@ test.describe("identity structured data", () => {
     expect(res.headers()["content-type"]).toBe("image/webp");
   });
 
-  test("footer profile links declare rel=me", async ({ page }) => {
-    await page.goto("/");
+  // params.socialIcons feeds the Person sameAs, the footer's rel=me links and
+  // llms.txt. The profiles come from the page, so adding one needs no edit here.
+  test("every sameAs profile is a rel=me footer link and listed in llms.txt", async ({
+    page,
+    request,
+  }) => {
+    const person = (await jsonLd(page, "/")).find((b) => b["@type"] === "Person");
+    const profiles: string[] = person.sameAs;
+    expect(profiles.length).toBeGreaterThan(0);
+
     const map = page.locator("footer").getByRole("navigation", { name: "Site map" });
-    for (const href of [
-      "https://github.com/gatezh",
-      "https://linkedin.com/in/gatezh",
-      "https://news.ycombinator.com/user?id=gatezh",
-    ]) {
-      await expect(map.locator(`a[href="${href}"]`)).toHaveAttribute("rel", /\bme\b/);
+    const llms = await (await request.get("/llms.txt")).text();
+    for (const href of profiles) {
+      await expect(map.locator(`a[href="${href}"]`), href).toHaveAttribute("rel", /\bme\b/);
+      expect(llms, `${href} is missing from llms.txt`).toContain(`(${href})`);
     }
   });
 });

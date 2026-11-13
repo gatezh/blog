@@ -14,6 +14,10 @@ linker = "isolated"
 # Block packages published in the last 7 days — defense against fresh
 # malicious uploads, and against same-week regressions. Value is in SECONDS.
 # This gate is deliberate: do not raise a pin past it to "catch up".
+# A security fix that cannot wait a week bypasses it for that package only,
+# for one run: `bun add <pkg>@<version> --minimum-release-age-excludes=<pkg>`.
+# The flag replaces the excludes list below for that run.
+# (`--minimum-release-age=0` would lift it for every package in the run.)
 minimumReleaseAge = 604800
 # Except @types/bun and the bun-types it wraps: their version tracks the Bun
 # runtime pinned in .mise.toml, and they move together on the day Bun is

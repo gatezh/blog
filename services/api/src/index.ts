@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
+import { createMiddleware } from "hono/factory";
 import { html } from "hono/html";
 import { methodNotAllowed } from "hono/method-not-allowed";
 import { validator } from "hono/validator";
@@ -21,6 +22,8 @@ type Env = {
     TURNSTILE_SECRET_KEY?: string;
     // wrangler.jsonc's version_metadata binding: which version is answering.
     CF_VERSION_METADATA?: WorkerVersionMetadata;
+    // wrangler.jsonc's ratelimits binding: 5 POSTs a minute per client IP.
+    CONTACT_RATE_LIMIT: RateLimit;
   };
 };
 
@@ -39,6 +42,11 @@ interface TurnstileVerifyResponse {
   hostname?: string;
 }
 
+// Cloudflare's published test secrets (1x passes, 2x fails, 3x is a spent
+// token). siteverify answers them with hostname "example.com" whatever page the
+// widget ran on. https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+const TURNSTILE_TEST_SECRET = /^[123]x0{31}AA$/;
+
 // Validate Turnstile token
 async function verifyTurnstile(
   token: string,
@@ -53,15 +61,26 @@ async function verifyTurnstile(
     formData.append("remoteip", ip);
   }
 
-  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formData,
-  });
-
-  const result = (await response.json()) as TurnstileVerifyResponse;
+  // Any siteverify failure, a hang included (fetch has no timeout of its own),
+  // is Cloudflare's outage: 502, through app.onError.
+  let result: TurnstileVerifyResponse;
+  try {
+    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData,
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) throw new Error(`siteverify answered ${response.status}`);
+    result = (await response.json()) as TurnstileVerifyResponse;
+  } catch (err) {
+    console.error("Turnstile siteverify failed:", err);
+    throw new HTTPException(502, {
+      message: "Captcha verification is unavailable. Please try again later.",
+    });
+  }
 
   if (!result.success) {
     return {
@@ -72,8 +91,8 @@ async function verifyTurnstile(
 
   // A token is only proof of a solved challenge, not of *where* it was solved.
   // Without this, a token minted on any other property sharing this sitekey
-  // verifies here. Cloudflare's test keys omit hostname, so absence is allowed.
-  if (result.hostname && result.hostname !== expectedHostname) {
+  // verifies here. Only the test secrets, which report a fixed hostname, skip it.
+  if (!TURNSTILE_TEST_SECRET.test(secretKey) && result.hostname !== expectedHostname) {
     return {
       success: false,
       error: `Turnstile hostname mismatch: ${result.hostname}`,
@@ -206,19 +225,13 @@ This message was sent via the contact form on gatezh.com`;
 
 const app = new Hono<Env>();
 
-// CORS middleware with dynamic origin checking
+// Answers ALLOWED_ORIGIN only (local dev sets it to the www dev server). That
+// also keeps other sites out: their JSON POST needs a preflight, which fails,
+// and a body sent without one is never parsed. No Origin check: scripts forge it.
 app.use(
   "*",
   cors({
-    origin: (origin, c) => {
-      const allowedOrigin = c.env.ALLOWED_ORIGIN;
-      // Allow the specific origin or localhost for development
-      const isAllowed =
-        origin === allowedOrigin ||
-        origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:");
-      return isAllowed ? origin : allowedOrigin;
-    },
+    origin: (_origin, c) => c.env.ALLOWED_ORIGIN,
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
     maxAge: 86400,
@@ -235,6 +248,22 @@ app.use(
       c.json({ error: "Method not allowed" }, 405, { Allow: methods.join(", ") }),
   }),
 );
+
+// Turnstile proves a person solved a challenge, not how many messages they may
+// send: a solving service turns each token into an email. Checked before the
+// body and Turnstile, so a flood spends neither. CF-Connecting-IP is set by
+// Cloudflare's edge on every request, and this Worker is only reachable
+// through it, so a client cannot choose its own key.
+const rateLimited = createMiddleware<Env>(async (c, next) => {
+  const key = c.req.header("CF-Connecting-IP") ?? "unknown";
+  const { success } = await c.env.CONTACT_RATE_LIMIT.limit({ key });
+  if (!success) {
+    return c.json({ error: "Too many messages. Please wait a minute and try again." }, 429, {
+      "Retry-After": "60",
+    });
+  }
+  await next();
+});
 
 // Checks the body before the handler runs. Malformed JSON is answered with a
 // 400 by the validator itself. A body not declared as JSON is never parsed: it
@@ -281,7 +310,7 @@ const contactForm = validator("json", (value, c) => {
 });
 
 // Contact form submission endpoint
-app.post("/", contactForm, async (c) => {
+app.post("/", rateLimited, contactForm, async (c) => {
   // Without these the Worker cannot send anything. 503 rather than a 500 from
   // deep inside Resend: this is a deployment that was never configured, not a
   // request that went wrong.
@@ -339,8 +368,9 @@ app.post("/", contactForm, async (c) => {
   });
 });
 
-// Errors nothing above handled: the validator's 400 for malformed JSON, or a
-// throw from fetch or Resend. Every error body is JSON, so the form can show it.
+// Errors nothing above handled: the validator's 400 for malformed JSON, the
+// 502 for an unreachable siteverify, or a throw from Resend. Every error body
+// is JSON, so the form can show it.
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status);

@@ -2,7 +2,19 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import app from "../src/index";
 
+/** Stands in for the ratelimits binding: allows `limit` calls per key, then refuses. */
+function rateLimiter(limit = Infinity) {
+  const seen = new Map<string, number>();
+  return {
+    async limit({ key }: { key: string }) {
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+      return { success: (seen.get(key) ?? 0) <= limit };
+    },
+  };
+}
+
 const ENV = {
+  CONTACT_RATE_LIMIT: rateLimiter(),
   RESEND_API_KEY: "re_test",
   TURNSTILE_SECRET_KEY: "0x-test-secret",
   ALLOWED_ORIGIN: "https://gatezh.com",
@@ -40,16 +52,28 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
+/** Hands requests for `host` to `handle`; `next` passes one on to the current stub. */
+function intercept(
+  host: string,
+  handle: (next: () => Promise<Response>, init?: RequestInit) => Response | Promise<Response>,
+) {
+  const inner = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    return url.includes(host) ? handle(() => inner(input, init), init) : inner(input, init);
+  }) as typeof fetch;
+}
+
+function request(body: Record<string, unknown>) {
+  return {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: "https://gatezh.com" },
+    body: JSON.stringify(body),
+  };
+}
+
 function submit(body: Record<string, unknown>) {
-  return app.request(
-    "/",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: "https://gatezh.com" },
-      body: JSON.stringify(body),
-    },
-    ENV,
-  );
+  return app.request("/", request(body), ENV);
 }
 
 const VALID = {
@@ -84,12 +108,10 @@ describe("input limits", () => {
 
   test("rejects an oversized message before spending a Turnstile verification", async () => {
     let verified = false;
-    const inner = globalThis.fetch;
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-      if (url.includes("challenges.cloudflare.com")) verified = true;
-      return inner(input, init);
-    }) as typeof fetch;
+    intercept("challenges.cloudflare.com", (next) => {
+      verified = true;
+      return next();
+    });
 
     await submit({ ...VALID, message: "x".repeat(5001) });
     expect(verified).toBe(false);
@@ -100,7 +122,11 @@ describe("request body", () => {
   function post(body: string, contentType: string) {
     return app.request(
       "/",
-      { method: "POST", headers: { "Content-Type": contentType }, body },
+      {
+        method: "POST",
+        headers: { "Content-Type": contentType, Origin: "https://gatezh.com" },
+        body,
+      },
       ENV,
     );
   }
@@ -127,17 +153,58 @@ describe("request body", () => {
   });
 });
 
-describe("unexpected errors", () => {
-  test("a network failure is a JSON 500 that leaks nothing", async () => {
-    globalThis.fetch = (async () => {
+describe("upstream failures", () => {
+  test("an unreachable siteverify is a 502, and nothing is sent", async () => {
+    intercept("challenges.cloudflare.com", () => {
       throw new TypeError("network down");
-    }) as unknown as typeof fetch;
+    });
+
+    const res = await submit(VALID);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({
+      error: "Captcha verification is unavailable. Please try again later.",
+    });
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a non-2xx siteverify is a 502, not a captcha failure", async () => {
+    intercept("challenges.cloudflare.com", () => new Response("upstream error", { status: 503 }));
+
+    const res = await submit(VALID);
+    expect(res.status).toBe(502);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a siteverify 200 that isn't JSON is a 502", async () => {
+    intercept("challenges.cloudflare.com", () => new Response("<html>maintenance</html>"));
+
+    const res = await submit(VALID);
+    expect(res.status).toBe(502);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a siteverify that never answers is a 502 once its timeout fires", async () => {
+    // A real abort would take 10 s.
+    let signal: AbortSignal | null | undefined;
+    intercept("challenges.cloudflare.com", (_next, init) => {
+      signal = init?.signal;
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    });
+
+    const res = await submit(VALID);
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(res.status).toBe(502);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a Resend failure is a JSON 500 that leaks nothing", async () => {
+    intercept("api.resend.com", () => {
+      throw new TypeError("network down");
+    });
 
     const res = await submit(VALID);
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({
-      error: "An unexpected error occurred. Please try again.",
-    });
+    expect(JSON.stringify(await res.json())).not.toContain("network down");
   });
 });
 
@@ -154,10 +221,22 @@ describe("turnstile", () => {
     expect((await submit(VALID)).status).toBe(200);
   });
 
-  test("accepts a token when the hostname is absent", async () => {
-    // Cloudflare's test keys omit hostname; absence must not fail closed.
+  test("rejects a token with no hostname", async () => {
     turnstileResponse = { success: true };
-    expect((await submit(VALID)).status).toBe(200);
+    expect((await submit(VALID)).status).toBe(400);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("Cloudflare's test secret passes despite its fixed example.com hostname", async () => {
+    // What siteverify really answers for the always-pass test secret.
+    turnstileResponse = { success: true, hostname: "example.com" };
+    const env = { ...ENV, TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA" };
+    expect((await app.request("/", request(VALID), env)).status).toBe(200);
+  });
+
+  test("a real secret still rejects example.com", async () => {
+    turnstileResponse = { success: true, hostname: "example.com" };
+    expect((await submit(VALID)).status).toBe(400);
   });
 
   test("rejects an unsuccessful verification", async () => {
@@ -165,6 +244,90 @@ describe("turnstile", () => {
     const res = await submit(VALID);
     expect(res.status).toBe(400);
     expect(sentEmail).toBeNull();
+  });
+});
+
+// The browser keeps other sites out; see the cors comment in src/index.ts.
+describe("origin", () => {
+  for (const origin of ["https://attacker.example", "http://localhost:1313"]) {
+    test(`a JSON preflight from ${origin} gets ALLOWED_ORIGIN back, so the POST never runs`, async () => {
+      const res = await app.request(
+        "/",
+        {
+          method: "OPTIONS",
+          headers: {
+            Origin: origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+          },
+        },
+        ENV,
+      );
+      expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://gatezh.com");
+    });
+  }
+
+  test("a body sent without a preflight is never parsed, so nothing is verified or sent", async () => {
+    let verified = false;
+    intercept("challenges.cloudflare.com", (next) => {
+      verified = true;
+      return next();
+    });
+
+    // All another site can send without a preflight.
+    const res = await app.request(
+      "/",
+      {
+        method: "POST",
+        headers: { "Content-Type": "text/plain", Origin: "https://attacker.example" },
+        body: JSON.stringify(VALID),
+      },
+      ENV,
+    );
+    expect(res.status).toBe(400);
+    expect(verified).toBe(false);
+    expect(sentEmail).toBeNull();
+  });
+});
+
+describe("rate limit", () => {
+  function from(ip: string) {
+    const req = request(VALID);
+    return { ...req, headers: { ...req.headers, "CF-Connecting-IP": ip } };
+  }
+
+  test("the sixth message in a minute from one IP is a 429, and is not sent", async () => {
+    const env = { ...ENV, CONTACT_RATE_LIMIT: rateLimiter(5) };
+    for (let i = 0; i < 5; i++) {
+      expect((await app.request("/", from("203.0.113.7"), env)).status).toBe(200);
+    }
+    sentEmail = null;
+
+    const res = await app.request("/", from("203.0.113.7"), env);
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("60");
+    expect(await res.json()).toEqual({
+      error: "Too many messages. Please wait a minute and try again.",
+    });
+    expect(sentEmail).toBeNull();
+  });
+
+  test("the limit is per IP", async () => {
+    const env = { ...ENV, CONTACT_RATE_LIMIT: rateLimiter(1) };
+    expect((await app.request("/", from("203.0.113.7"), env)).status).toBe(200);
+    expect((await app.request("/", from("198.51.100.2"), env)).status).toBe(200);
+  });
+
+  test("a limited request spends no Turnstile verification", async () => {
+    const env = { ...ENV, CONTACT_RATE_LIMIT: rateLimiter(0) };
+    let verified = false;
+    intercept("challenges.cloudflare.com", (next) => {
+      verified = true;
+      return next();
+    });
+
+    expect((await app.request("/", from("203.0.113.7"), env)).status).toBe(429);
+    expect(verified).toBe(false);
   });
 });
 
@@ -211,16 +374,8 @@ describe("email body", () => {
 
 describe("optional feature credentials", () => {
   /** Same request shape as `submit`, but against a caller-supplied environment. */
-  function submitWith(env: Record<string, string>, body: Record<string, unknown>) {
-    return app.request(
-      "/",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Origin: "https://gatezh.com" },
-        body: JSON.stringify(body),
-      },
-      env,
-    );
+  function submitWith(env: Record<string, unknown>, body: Record<string, unknown>) {
+    return app.request("/", request(body), env);
   }
 
   const VALID = {
@@ -234,7 +389,7 @@ describe("optional feature credentials", () => {
   // feature, not fail the whole Worker.
   for (const missing of ["RESEND_API_KEY", "TO_EMAIL", "FROM_EMAIL"] as const) {
     test(`POST / returns 503 when ${missing} is unset`, async () => {
-      const env: Record<string, string> = { ...ENV };
+      const env: Record<string, unknown> = { ...ENV };
       delete env[missing];
 
       const res = await submitWith(env, VALID);
@@ -249,7 +404,7 @@ describe("optional feature credentials", () => {
   }
 
   test("submissions are accepted without a captcha when the bot gate is unconfigured", async () => {
-    const env: Record<string, string> = { ...ENV };
+    const env: Record<string, unknown> = { ...ENV };
     delete env.TURNSTILE_SECRET_KEY;
 
     // No turnstileToken at all: a client served no widget has nothing to send.
