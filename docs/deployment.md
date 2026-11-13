@@ -269,6 +269,10 @@ missing (`.github/actions/check-deploy-config`) instead of failing:
   both or neither** — half a bot gate either accepts submissions unverified or
   rejects every one.
 
+The rate limit is not configuration: `services/api/wrangler.jsonc` declares it
+(5 `POST`s a minute per client IP, then 429), in both environments, and it is
+on in every deploy.
+
 Secrets go up with the code, in the same Worker version
 (`wrangler versions upload --secrets-file`). A deploy only ever **adds or replaces**
 secrets: one GitHub does not hold is left alone on the Worker. So deleting a

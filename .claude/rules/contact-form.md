@@ -19,3 +19,7 @@ Full tables in `docs/deployment.md`.
 - Turnstile: set the site key and secret together, or neither. One widget per
   environment (they are hostname-bound).
 - Local dev reads the repo-root `.env.local` (see `.env.example`).
+- The one exception is the rate limit (5 `POST`s a minute per client IP,
+  then 429): it is a `ratelimits` binding, which only `wrangler.jsonc` can
+  declare. It is not inherited, so `env.staging` repeats it with its own
+  `namespace_id`.
