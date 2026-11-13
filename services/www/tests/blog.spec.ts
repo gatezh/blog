@@ -201,25 +201,91 @@ test.describe("Code blocks", () => {
     },
   ];
 
+  // Content changes, so find a post with this kind of block via the sitemap.
+  async function openPostWith(
+    page: import("@playwright/test").Page,
+    request: import("@playwright/test").APIRequestContext,
+    marker: string,
+    name: string,
+  ) {
+    const posts = sitemapPaths(await (await request.get("/sitemap.xml")).text()).filter((path) =>
+      /^\/posts\/.+/.test(path),
+    );
+    for (const path of posts) {
+      if ((await (await request.get(path)).text()).includes(marker)) {
+        await page.goto(path);
+        await page.waitForLoadState("load");
+        return;
+      }
+    }
+    throw new Error(`no post with a ${name} code block`);
+  }
+
+  // Highlighting is CSS classes coloured by css/chroma.css (`bun run chroma`),
+  // one light-dark() pair per token, so code follows the theme. Hugo's default
+  // inline colours were one fixed dark palette in both themes.
+  test("highlighted code follows the colour scheme, and every token is legible", async ({
+    page,
+    request,
+  }, testInfo) => {
+    await openPostWith(page, request, KINDS[0].marker, KINDS[0].name);
+
+    const result = await page.locator(KINDS[0].selector).evaluateAll((pres) => {
+      const rgb = (c: string) =>
+        c
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number);
+      const lum = (c: string) => {
+        const [r, g, b] = rgb(c).map((v) => {
+          const x = v / 255;
+          return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const ratio = (a: string, b: string) => {
+        const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+      };
+      const transparent = (c: string) => c === "rgba(0, 0, 0, 0)" || c === "transparent";
+
+      const inline = pres
+        .flatMap((pre) => [pre, ...pre.querySelectorAll("[style]")])
+        .filter((el) => el.hasAttribute("style"))
+        .map((el) => el.outerHTML.slice(0, 80));
+      const backgrounds = pres.map((pre) => lum(getComputedStyle(pre).backgroundColor));
+      const illegible = pres.flatMap((pre) => {
+        const preBg = getComputedStyle(pre).backgroundColor;
+        return [...pre.querySelectorAll("code span[class]")]
+          .filter((span) => span.textContent!.trim())
+          .map((span) => {
+            const style = getComputedStyle(span);
+            const bg = transparent(style.backgroundColor) ? preBg : style.backgroundColor;
+            return {
+              token: `${span.className} "${span.textContent!.trim().slice(0, 20)}"`,
+              ratio: ratio(style.color, bg),
+            };
+          })
+          .filter((t) => t.ratio < 4.5);
+      });
+      return { inline, backgrounds, illegible };
+    });
+
+    expect(result.inline, "inline styles in highlighted code").toEqual([]);
+    const dark = testInfo.project.use.colorScheme === "dark";
+    for (const luminance of result.backgrounds) {
+      if (dark) expect(luminance).toBeLessThan(0.2);
+      else expect(luminance).toBeGreaterThan(0.5);
+    }
+    expect(result.illegible, "tokens under 4.5:1").toEqual([]);
+  });
+
   for (const { name, marker, selector } of KINDS) {
     test(`${name} blocks sit inside the content column and scroll from the keyboard`, async ({
       page,
       request,
     }) => {
-      // Content changes, so find a post with this kind of block via the sitemap.
-      const posts = sitemapPaths(await (await request.get("/sitemap.xml")).text()).filter((path) =>
-        /^\/posts\/.+/.test(path),
-      );
-      let found = false;
-      for (const path of posts) {
-        if ((await (await request.get(path)).text()).includes(marker)) {
-          await page.goto(path);
-          await page.waitForLoadState("load");
-          found = true;
-          break;
-        }
-      }
-      expect(found, `no post with a ${name} code block`).toBe(true);
+      await openPostWith(page, request, marker, name);
 
       const blocks = await page.locator(selector).evaluateAll((pres) =>
         pres.map((pre) => {
