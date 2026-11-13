@@ -3,6 +3,8 @@
 
   js/comments.ts: Remark42 config, lazy loading of the embed (a viewport
   ahead; at once for a comment permalink), and theme sync with the page.
+  #remark42 reserves the empty widget's height, so the lazy load doesn't shift
+  the footer.
 
   The Remark42 host is params.remark42Host, which the CSP in
   layouts/home._outputformat_headers_.txt reads too.
@@ -16,7 +18,7 @@
 				<span class="terminal-prompt"></span>
 				<span class="terminal-command">./comments --list</span>
 			</div>
-			<div id="remark42"></div>
+			<div id="remark42" class="[@media(scripting:enabled)]:min-h-[251px]"></div>
 			<noscript>Please enable JavaScript to view the comments.</noscript>
 		</section>
 
