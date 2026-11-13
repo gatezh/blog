@@ -165,7 +165,27 @@ describe("upstream failures", () => {
     expect(sentEmail).toBeNull();
   });
 
+  test("a siteverify 200 that isn't JSON is a 502", async () => {
+    intercept("challenges.cloudflare.com", () => new Response("<html>maintenance</html>"));
 
+    const res = await submit(VALID);
+    expect(res.status).toBe(502);
+    expect(sentEmail).toBeNull();
+  });
+
+  test("a siteverify that never answers is a 502 once its timeout fires", async () => {
+    // A real abort would take 10 s.
+    let signal: AbortSignal | null | undefined;
+    intercept("challenges.cloudflare.com", (_next, init) => {
+      signal = init?.signal;
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    });
+
+    const res = await submit(VALID);
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(res.status).toBe(502);
+    expect(sentEmail).toBeNull();
+  });
 
   test("a Resend failure is a JSON 500 that leaks nothing", async () => {
     intercept("api.resend.com", () => {
