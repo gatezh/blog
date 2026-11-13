@@ -57,6 +57,12 @@ directory = page path" rule applies to *directories*; do not "fix" these into
   column lists the talks page's entries; the header shows `menu.main` only),
   then the copyright and the theme switcher
 - Terminal-inspired aesthetic with monospace typography
+- Code highlighting uses Chroma CSS classes (`markup.highlight.noClasses:
+  false`). Their colours are **generated** into
+  `themes/terminal/assets/css/chroma.css` by `bun run chroma` (from
+  `services/www`): GitHub light and dark merged into `light-dark()` pairs,
+  each checked to 4.5:1 on the code background. Never edit it by hand;
+  `css.html` appends it to `main.css` before Tailwind.
 - Remark42 comments integration with theme synchronization
 - JSON-LD structured data via `layouts/_partials/seo.html` (site-level override:
   Person + WebSite on homepage, Article on posts, WebPage on other pages)
