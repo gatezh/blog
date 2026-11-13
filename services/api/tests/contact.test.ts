@@ -96,12 +96,10 @@ describe("input limits", () => {
 
   test("rejects an oversized message before spending a Turnstile verification", async () => {
     let verified = false;
-    const inner = globalThis.fetch;
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-      if (url.includes("challenges.cloudflare.com")) verified = true;
-      return inner(input, init);
-    }) as typeof fetch;
+    intercept("challenges.cloudflare.com", (next) => {
+      verified = true;
+      return next();
+    });
 
     await submit({ ...VALID, message: "x".repeat(5001) });
     expect(verified).toBe(false);
