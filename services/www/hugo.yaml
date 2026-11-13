@@ -166,6 +166,13 @@ services:
 permalinks:
   posts: "/posts/:contentbasename/"
 
+# Code highlighting writes CSS classes, not inline colours: the colours are in
+# the theme's generated css/chroma.css (`bun run chroma`), one light-dark()
+# pair per token, so code follows the theme switcher.
+markup:
+  highlight:
+    noClasses: false
+
 # `main` is the header; `footer` holds the pages kept out of it (footer.html).
 menu:
   main:
