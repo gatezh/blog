@@ -98,13 +98,13 @@ The initial theme must be known before Remark42 loads (in `remark_config`), so w
 
 **Date:** 2026-02-02
 
-## Update: 2026-11-13
+## Update: 2026-11-12
 
 `services/www/themes/terminal/assets/js/comments.ts` now:
 
 - **Syncs the theme the page renders**: `light`/`dark` on `<html>`, else the OS.
-  The `themechange` detail is no longer read; the classes also hold when
-  `localStorage` is unavailable.
+  `themechange` (`theme-toggle.ts`) no longer carries a detail; the classes
+  also hold when `localStorage` is unavailable.
 - **Syncs on more triggers** (the sync is idempotent): `REMARK42::ready`,
   `themechange`, the OS preference change, and the tab becoming visible again,
   which catches an OS change missed while hidden or in the back/forward cache.
@@ -112,4 +112,5 @@ The initial theme must be known before Remark42 loads (in `remark_config`), so w
   switch (not reproduced). The `MediaQueryList` is kept referenced.
 - **Loads the embed lazily**: an `IntersectionObserver` loads it one viewport
   before `#remark42` is visible, or at once for a `#remark42__comment-<id>`
-  permalink. `remark_config.theme` is set at load time.
+  permalink, including one reached by a hash change without a reload. It loads
+  once. `remark_config.theme` is set at load time.

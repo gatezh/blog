@@ -185,24 +185,36 @@ window.dispatchEvent(new Event("REMARK42::ready"));`,
   const lastTheme = (page: Page) =>
     page.evaluate(() => ((window as any).__remarkThemes ?? []).at(-1) as string | undefined);
 
-  test("loads the Remark42 embed as an ES module only near the comments", async ({ page }) => {
-    const requested = await stubComments(page);
-    await page.goto(LONG_POST);
-    await page.waitForLoadState("networkidle");
+  const EMBED = 'script[src="https://comments.gatezh.com/web/embed.mjs"]';
 
+  // Two frames: any pending IntersectionObserver callback has run.
+  const afterFrames = (page: Page) =>
+    page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+
+  // Comments still out of the observer's reach.
+  async function afterObserverRan(page: Page): Promise<void> {
+    await afterFrames(page);
     const offset = await page.evaluate(
       () => document.getElementById("remark42")!.getBoundingClientRect().top / innerHeight,
     );
     expect(offset, "comments must start over two viewports down").toBeGreaterThan(2);
+  }
+
+  test("loads the Remark42 embed as an ES module only near the comments", async ({ page }) => {
+    const requested = await stubComments(page);
+    await page.goto(LONG_POST);
+    await afterObserverRan(page);
+
+    await expect(page.locator(EMBED)).toHaveCount(0);
     expect(requested).not.toContain("/web/embed.mjs");
     expect(await page.evaluate(() => (window as any).remark_config?.host)).toBe(
       "https://comments.gatezh.com",
     );
 
     await page.locator("#remark42").scrollIntoViewIfNeeded();
-    await expect(
-      page.locator('script[src="https://comments.gatezh.com/web/embed.mjs"]'),
-    ).toHaveAttribute("type", "module");
+    await expect(page.locator(EMBED)).toHaveAttribute("type", "module");
     await expect.poll(() => requested).toContain("/web/embed.mjs");
   });
 
@@ -210,6 +222,22 @@ window.dispatchEvent(new Event("REMARK42::ready"));`,
     const requested = await stubComments(page);
     await page.goto(`${LONG_POST}#remark42__comment-test`);
     await expect.poll(() => requested).toContain("/web/embed.mjs");
+  });
+
+  test("a permalink reached by a hash change loads the embed once", async ({ page }) => {
+    const requested = await stubComments(page);
+    await page.goto(LONG_POST);
+    await afterObserverRan(page);
+    await expect(page.locator(EMBED)).toHaveCount(0);
+
+    // No reload, nothing to scroll to.
+    await page.evaluate(() => (location.hash = "#remark42__comment-test"));
+    await expect.poll(() => requested).toContain("/web/embed.mjs");
+
+    // Scrolling must not load it again.
+    await page.locator("#remark42").scrollIntoViewIfNeeded();
+    await afterFrames(page);
+    await expect(page.locator(EMBED)).toHaveCount(1);
   });
 
   test("Remark42 follows the page theme", async ({ page }) => {
