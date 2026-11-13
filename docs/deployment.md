@@ -253,7 +253,7 @@ A deploy **fails** without `HUGO_BASEURL` (every URL would be localhost) or
 | Name                            | Used by                                            | Notes                                                   |
 | ------------------------------- | -------------------------------------------------- | ------------------------------------------------------- |
 | `CLOUDFLARE_API_TOKEN`          | every deploy                                       | same token in both; see [below](#cloudflare-api-token)  |
-| `RESEND_API_KEY`                | contact form                                       | separate key per environment                            |
+| `RESEND_API_KEY`                | contact form                                       | one key for both, restricted to `notify.gatezh.com`     |
 | `TO_EMAIL`                      | contact form — where submissions are sent          | a secret only to keep it out of the logs                |
 | `FROM_EMAIL`                    | contact form — sender, on a Resend-verified domain | staging: use a distinct sender                          |
 | `TURNSTILE_SECRET_KEY`          | bot gate — pair with the site key above            | separate widget per environment                         |
@@ -394,10 +394,13 @@ subdomain.
   its own DMARC record, `_dmarc.notify` at `p=quarantine`, reporting to the
   zone's DMARC Management address. DMARC Management only manages the apex, so
   this record is maintained by hand.
-- Create one **Sending access** API key per environment, restricted to
-  `notify.gatezh.com`.
+- One **Sending access** API key, restricted to `notify.gatezh.com`, serves both
+  environments. Rotating it means updating both.
 - `FROM_EMAIL` is an address on `notify.gatezh.com`, with a different one for
-  staging, e.g. `contact@` and `contact-staging@`.
+  staging (e.g. `contact@` and `contact-staging@`), so staging mail is easy to
+  tell apart. `TO_EMAIL` stays on the apex: the subdomain has no MX.
+- Change the key and `FROM_EMAIL` together. Both are uploaded with each
+  deploy, and staging deploys on every push to `master`.
 
 ## Local development
 
