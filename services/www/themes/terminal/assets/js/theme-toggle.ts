@@ -12,23 +12,14 @@ function getStoredTheme(): Theme {
   }
 }
 
-function systemPrefersDark(): boolean {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function isDarkMode(theme: Theme): boolean {
-  return theme === "system" ? systemPrefersDark() : theme === "dark";
-}
-
 function applyTheme(theme: Theme): void {
   // The classes set color-scheme (main.css), as theme-init.ts does on load;
   // "system" sets neither and the stylesheet follows the OS on its own.
   document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.classList.toggle("light", theme === "light");
 
-  // For other components (e.g., Remark42)
-  const isDark = isDarkMode(theme);
-  window.dispatchEvent(new CustomEvent("themechange", { detail: { theme, isDark } }));
+  // Listeners read the classes.
+  window.dispatchEvent(new Event("themechange"));
 }
 
 const inputs = document.querySelectorAll<HTMLInputElement>(".theme-toggle-input");

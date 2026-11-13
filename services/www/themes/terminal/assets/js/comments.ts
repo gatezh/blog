@@ -1,8 +1,6 @@
-// Remark42 comments: configuration, the embed loader, and theme
-// synchronization (docs/adr-003-terminal-theme-remark42-synchronization.md).
-//
-// Values come from data-* attributes on this script's tag: data-host (the
-// Remark42 origin, params.remark42Host) and data-page-title.
+// Remark42 comments: config, lazy embed loader, theme sync
+// (docs/adr-003-terminal-theme-remark42-synchronization.md).
+// data-host: the Remark42 origin; data-page-title: the post title.
 
 declare global {
   interface Window {
@@ -13,28 +11,50 @@ declare global {
 
 const data = (document.currentScript as HTMLScriptElement | null)?.dataset ?? {};
 
-function storedTheme(): string {
+// Kept referenced so its change listener lives as long as the page.
+const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+
+// What the page renders: an explicit `light`/`dark` class on <html>, else the OS.
+function pageTheme(): "light" | "dark" {
+  const classes = document.documentElement.classList;
+  if (classes.contains("dark")) return "dark";
+  if (classes.contains("light")) return "light";
+  return darkScheme.matches ? "dark" : "light";
+}
+
+// Idempotent; a no-op until the embed is ready.
+function syncRemark42Theme(): void {
   try {
-    return localStorage.getItem("theme") || "system";
+    window.REMARK42?.changeTheme?.(pageTheme());
   } catch {
-    return "system";
+    // Ignore embed errors.
   }
 }
 
-function initialTheme(): "light" | "dark" {
-  const theme = storedTheme();
-  if (theme === "dark" || theme === "light") return theme;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+let embedLoaded = false;
+
+// Once; the observer and a permalink both call it.
+function loadEmbed(host: string): void {
+  if (embedLoaded) return;
+  embedLoaded = true;
+  window.remark_config.theme = pageTheme();
+  // Module build only: browsers without modules can't parse it anyway.
+  const script = document.createElement("script");
+  script.type = "module";
+  script.src = `${host}/web/embed.mjs`;
+  document.head.appendChild(script);
 }
 
 if (data.host) {
-  // The embed script reads its configuration from this global.
+  const host = data.host;
+
+  // Read by the embed.
   window.remark_config = {
-    host: data.host,
+    host,
     site_id: "remark",
     components: ["embed"],
     max_shown_comments: 100,
-    theme: initialTheme(),
+    theme: pageTheme(),
     page_title: data.pageTitle,
     show_email_subscription: true,
     simple_view: false,
@@ -42,30 +62,34 @@ if (data.host) {
     locale: "en",
   };
 
-  // The ES module build of the embed. Remark42's documented loader falls back
-  // to the classic build where `noModule` is missing, but no such browser can
-  // parse this bundle (it ships `?.` and `??`), so only the module branch runs.
-  const script = document.createElement("script");
-  script.type = "module";
-  script.src = `${data.host}/web/embed.mjs`;
-  document.head.appendChild(script);
-
-  function syncRemark42Theme(isDark: boolean): void {
-    try {
-      window.REMARK42?.changeTheme?.(isDark ? "dark" : "light");
-    } catch {
-      // Silently fail if Remark42 theme change fails
-    }
+  // A viewport ahead of the comments; at once for a comment permalink, on load
+  // or by a hash change (no reload, nothing to scroll to).
+  const isPermalink = (): boolean => window.location.hash.startsWith("#remark42__comment-");
+  if (isPermalink()) {
+    loadEmbed(host);
+  } else {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        loadEmbed(host);
+      },
+      { rootMargin: "0px 0px 100% 0px" },
+    );
+    // The partial renders it with this script.
+    observer.observe(document.getElementById("remark42")!);
   }
-
-  // Theme toggle changes (dispatched by theme-toggle.ts)
-  window.addEventListener("themechange", (event) => {
-    syncRemark42Theme((event as CustomEvent<{ isDark: boolean }>).detail.isDark);
+  window.addEventListener("hashchange", () => {
+    if (isPermalink()) loadEmbed(host);
   });
 
-  // System preference changes, when the theme is set to 'system'
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
-    if (storedTheme() === "system") syncRemark42Theme(event.matches);
+  // Ready: a change before the embed started. Visible: an OS change missed
+  // while hidden or in the back/forward cache.
+  window.addEventListener("REMARK42::ready", syncRemark42Theme);
+  window.addEventListener("themechange", syncRemark42Theme);
+  darkScheme.addEventListener("change", syncRemark42Theme);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") syncRemark42Theme();
   });
 }
 
