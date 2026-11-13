@@ -269,6 +269,10 @@ missing (`.github/actions/check-deploy-config`) instead of failing:
   both or neither** — half a bot gate either accepts submissions unverified or
   rejects every one.
 
+The rate limit is not configuration: `services/api/wrangler.jsonc` declares it
+(5 `POST`s a minute per client IP, then 429), in both environments, and it is
+on in every deploy.
+
 Secrets go up with the code, in the same Worker version
 (`wrangler versions upload --secrets-file`). A deploy only ever **adds or replaces**
 secrets: one GitHub does not hold is left alone on the Worker. So deleting a
@@ -317,9 +321,9 @@ Create**, any starter). The release then uploads into it, and `go-live`'s
 Two settings no deploy can enforce. `release.yml` reports both on every run.
 
 - **Always Use HTTPS** (SSL/TLS → Edge Certificates): on.
-- **HSTS** (same page): off. Browsers cache it for its whole `max-age`, so
-  enable it deliberately; `includeSubDomains` covers every subdomain, including
-  the comments tunnel.
+- **HSTS** (same page): on, 12 months, `includeSubDomains`, no preload.
+  Browsers cache it for its whole `max-age`, so every subdomain, the comments
+  tunnel included, must keep valid HTTPS for that long.
 
 Also under SSL/TLS: the encryption mode should be **Full (strict)** and the
 minimum TLS version **1.2**. Both are safe here — the Workers and the Remark42
