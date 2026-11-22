@@ -62,8 +62,9 @@ MARKETPLACES=(
     "GoogleChrome/modern-web-guidance"
     "AgriciDaniel/claude-seo"
     "cloudflare/skills"
-    # Private repository: needs GitHub access to it (`gh auth login`, or VS Code's
-    # credential helper). Without access this entry and its plugin only warn.
+    # The gatezh-private marketplace, added by the address of the private repository it
+    # lives in. The container needs GitHub access to it (`gh auth login`, or VS Code's
+    # credential helper); without access this entry and its plugin only warn.
     "gatezh/TheGodFather"
     # Not listed: typescript-native-lsp (declared in .claude/settings.json) and
     # gatezh / dev@gatezh (the image's managed settings declare and enable them).
@@ -103,8 +104,8 @@ PLUGINS=(
     # SEO toolkit — technical SEO, schema, E-E-A-T, GEO/AEO. Relevant: this repo
     # ships JSON-LD, llms.txt, and per-post SEO front matter.
     "claude-seo@agricidaniel-claude-seo"
-    # Recipes shared with the sibling repos: /convoy:audit lists the ones this repo is
-    # missing, /convoy:catch-up applies them.
+    # The one plugin of gatezh-private: recipes shared with the sibling repos.
+    # /convoy:audit lists the ones this repo is missing, /convoy:catch-up applies them.
     "convoy@gatezh-private"
 )
 
