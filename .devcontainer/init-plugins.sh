@@ -62,10 +62,10 @@ MARKETPLACES=(
     "GoogleChrome/modern-web-guidance"
     "AgriciDaniel/claude-seo"
     "cloudflare/skills"
-    # The gatezh-private marketplace, added by the address of the private repository it
-    # lives in. The container needs GitHub access to it (`gh auth login`, or VS Code's
-    # credential helper); without access this entry and its plugin only warn.
-    "gatezh/TheGodFather"
+    # The gatezh-private marketplace, which lives in the private repository gatezh/convoy.
+    # The container needs GitHub access to it (`gh auth login`, or VS Code's credential
+    # helper); without access this entry and its plugin only warn.
+    "gatezh/convoy"
     # Not listed: typescript-native-lsp (declared in .claude/settings.json) and
     # gatezh / dev@gatezh (the image's managed settings declare and enable them).
 )
