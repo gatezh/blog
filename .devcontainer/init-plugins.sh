@@ -62,6 +62,8 @@ MARKETPLACES=(
     "GoogleChrome/modern-web-guidance"
     "AgriciDaniel/claude-seo"
     "cloudflare/skills"
+    # Private repo: needs GitHub access (`gh auth login`), else only warns.
+    "gatezh/convoy"
     # Not listed: typescript-native-lsp (declared in .claude/settings.json) and
     # gatezh / dev@gatezh (the image's managed settings declare and enable them).
 )
@@ -100,6 +102,8 @@ PLUGINS=(
     # SEO toolkit — technical SEO, schema, E-E-A-T, GEO/AEO. Relevant: this repo
     # ships JSON-LD, llms.txt, and per-post SEO front matter.
     "claude-seo@agricidaniel-claude-seo"
+    # Recipes shared with sibling repos: /convoy:audit, /convoy:catch-up.
+    "convoy@gatezh-private"
 )
 
 for plugin in "${PLUGINS[@]}"; do
