@@ -3,8 +3,16 @@ import { defineConfig, devices } from "@playwright/test";
 /** Specs that exercise Cloudflare's asset server rather than the Hugo output. */
 const ASSETS_SPEC = /assets\.spec\.ts/;
 
-/** Port `wrangler dev` binds for the assets project. */
-const ASSETS_PORT = 8788;
+/**
+ * Ports the suite's own servers bind: `hugo server` for most projects,
+ * `wrangler dev` for the assets project. Not the dev server's 1313. The suite
+ * never reuses a running server, so whatever already holds a port (a dev
+ * server, another worktree's run) fails the run with "already used" rather
+ * than being tested in this tree's place (gatezh/blog#168). Set these to run
+ * two suites side by side.
+ */
+const HUGO_PORT = Number(process.env.TEST_HUGO_PORT ?? 1414);
+const ASSETS_PORT = Number(process.env.TEST_ASSETS_PORT ?? 8788);
 
 /**
  * Playwright configuration for Hugo site testing.
@@ -36,7 +44,7 @@ export default defineConfig({
   /* Shared settings for all projects */
   use: {
     /* Base URL for navigation */
-    baseURL: "http://localhost:1313",
+    baseURL: `http://localhost:${HUGO_PORT}`,
 
     /* Run in headless mode (required for containers) */
     headless: true,
@@ -110,9 +118,9 @@ export default defineConfig({
       // otherwise writes into ./public and never prunes files a rebuild no
       // longer produces, so a test asserting a URL is *gone* would pass or fail
       // on leftovers from an earlier build rather than on the config under test.
-      command: "hugo server --renderToMemory --bind 0.0.0.0",
-      url: "http://localhost:1313",
-      reuseExistingServer: !process.env.CI,
+      command: `hugo server --renderToMemory --bind 0.0.0.0 --port ${HUGO_PORT}`,
+      url: `http://localhost:${HUGO_PORT}`,
+      reuseExistingServer: false,
       timeout: 120000,
     },
     {
@@ -132,7 +140,7 @@ export default defineConfig({
         HUGO_PARAMS_POSTHOGAPIHOST: "https://proxy.example.test",
       },
       url: `http://127.0.0.1:${ASSETS_PORT}/`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 180000,
     },
   ],
