@@ -10,7 +10,7 @@
     "typecheck": "wrangler types && tsc --noEmit"
   },
   "dependencies": {
-    "hono": "4.13.14",
+    "hono": "4.13.16",
     "resend": "6.18.0"
   },
   "devDependencies": {
